@@ -107,6 +107,7 @@ function App() {
       /* Preference storage is optional. */
     }
   }, [state.phase, theme, page]);
+  if (state.phase === "loading") return <main className="workspace-signin" aria-busy="true" aria-label="Loading" />;
   if (state.phase !== "ready")
     return (
       <main className="workspace-signin">

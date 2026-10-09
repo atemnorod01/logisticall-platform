@@ -1,13 +1,13 @@
 /* LogistiCall web sign-in, isolated from the imported workspace styles. */
 body:has(#app.logisticall-auth) {
   margin: 0;
-  background: light-dark(#f3f4f7, #171923);
-  color: light-dark(#1a1b2e, #f1f1f6);
+  background: light-dark(#ffffff, #253544);
+  color: light-dark(#242a31, #edf2f7);
   color-scheme: inherit;
 }
 #app.logisticall-auth {
   min-height: 100dvh;
-  background: light-dark(#f3f4f7, #171923);
+  background: light-dark(#ffffff, #253544);
   color-scheme: inherit;
 }
 .workspace-signin {
@@ -15,8 +15,8 @@ body:has(#app.logisticall-auth) {
   display: grid;
   place-items: center;
   padding: 32px 20px;
-  background: light-dark(#f3f4f7, #171923);
-  color: light-dark(#1a1b2e, #f1f1f6);
+  background: light-dark(#ffffff, #253544);
+  color: light-dark(#242a31, #edf2f7);
   font-family:
     Inter,
     ui-sans-serif,
@@ -28,9 +28,9 @@ body:has(#app.logisticall-auth) {
   width: 100%;
   max-width: 440px;
   padding: 40px;
-  border: 1px solid light-dark(#dedfe7, #343744);
+  border: 1px solid light-dark(#ced5dc, #30404f);
   border-radius: 20px;
-  background: light-dark(#fff, #20222e);
+  background: light-dark(#edf0f3, #101923);
   box-shadow: 0 12px 40px #1a1b2e08;
 }
 .workspace-signin-brand {
@@ -52,12 +52,12 @@ body:has(#app.logisticall-auth) {
   line-height: 1.25;
   letter-spacing: -0.6px;
   margin: 0 0 12px;
-  color: light-dark(#1a1b2e, #f1f1f6);
+  color: light-dark(#242a31, #edf2f7);
 }
 .workspace-signin p {
   font-size: 14px;
   line-height: 1.6;
-  color: light-dark(#606477, #a4a8b9);
+  color: light-dark(#606a74, #a5b3c0);
 }
 .workspace-signin .button {
   display: flex;
@@ -67,9 +67,9 @@ body:has(#app.logisticall-auth) {
   min-height: 48px;
   margin-top: 28px;
   padding: 12px 18px;
-  background: light-dark(#1a1b2e, #f1f1f6);
-  color: light-dark(#fff, #20222e);
-  border: 1px solid light-dark(#1a1b2e, #f1f1f6);
+  background: light-dark(#242a31, #edf2f7);
+  color: light-dark(#edf0f3, #101923);
+  border: 1px solid light-dark(#242a31, #edf2f7);
   border-radius: 10px;
   text-decoration: none;
   font-weight: 600;
@@ -84,7 +84,7 @@ body:has(#app.logisticall-auth) {
   background: none;
   border: 0;
   font-size: 12px;
-  color: light-dark(#707487, #a4a8b9);
+  color: light-dark(#606a74, #a5b3c0);
 }
 @media (max-width: 480px) {
   .workspace-signin {
@@ -104,3 +104,5 @@ body[data-tenant-theme="dark"]:has(#app.logisticall-auth) {
 body[data-tenant-theme="light"]:has(#app.logisticall-auth) {
   color-scheme: light;
 }
+
+.workspace-signin .button { background: light-dark(#a64b21, #efa66f); color: light-dark(#fff, #17283b); border-color: transparent; }

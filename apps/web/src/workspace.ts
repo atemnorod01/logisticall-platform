@@ -48,6 +48,7 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
   };
   const subscribers = new Set<() => void>();
   let epoch = 0;
+  let signingOut = false;
   const update = (next: WorkspaceState) => {
     state = next;
     subscribers.forEach((fn) => fn());
@@ -83,6 +84,7 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
       return state;
     },
     async load() {
+      if (signingOut) return;
       const ticket = ++epoch;
       update({
         phase: "loading",
@@ -125,6 +127,7 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
       }
     },
     async refreshSession() {
+      if (signingOut || state.phase !== "ready") return;
       const ticket = epoch;
       try {
         const session = sessionSchema.parse(await (await request("/auth/session")).json());
@@ -264,7 +267,8 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
     },
     async logout() {
       const csrf = state.session?.csrfToken;
-      if (!csrf) return false;
+      if (!csrf || signingOut) return false;
+      signingOut = true;
       const ticket = ++epoch;
       const { context: _context, ...remaining } = state;
       update({ ...remaining, permissions: [], switching: false });
@@ -280,6 +284,8 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
             ...state,
             error: "Sign-out did not complete. Please try again.",
           });
+      } finally {
+        signingOut = false;
       }
       return false;
     },
