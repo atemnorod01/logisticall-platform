@@ -121,7 +121,7 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
         const result =
           key === undefined
             ? await c.query(
-                "select * from platform.groups where organization_id=$1 order by name,id offset $2 limit 50",
+                "select g.*, (select count(*)::integer from platform.group_members m where m.organization_id=g.organization_id and m.group_id=g.id) as member_count from platform.groups g where g.organization_id=$1 order by g.name,g.id offset $2 limit 50",
                 [a.organizationId, offset],
               )
             : await c.query(

@@ -18,6 +18,7 @@ export const groupSchema = z.object({
   visibility: z.enum(["private", "network"]),
   archived: z.boolean(),
   version: z.number().int().positive(),
+  member_count: z.number().int().nonnegative().optional(),
 });
 export type Group = z.infer<typeof groupSchema>;
 export const groupList = z.object({

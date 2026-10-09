@@ -480,18 +480,24 @@ export function OrganizationGroups({
                 }}
                 aria-label={`Manage ${g.name}`}
               >
-                <Icon name="message" />
+                <span className="lc-group-symbol">
+                  <Icon name="inbox" />
+                </span>
                 <span>
                   <strong>{g.name}</strong>
                   <small>
-                    {g.archived
-                      ? "Archived"
-                      : g.description || "Shared group inbox"}
+                    {g.member_count === undefined
+                      ? "Member count unavailable"
+                      : `${g.member_count} ${g.member_count === 1 ? "member" : "members"}`}
+                    {g.archived ? " · Archived" : ""}
                   </small>
                 </span>
                 <em>
                   {g.visibility === "network" ? "Network visible" : "Private"}
                 </em>
+                <span className="lc-group-chevron">
+                  <Icon name="chevron" />
+                </span>
               </button>
             ))}
           {!api.busy &&

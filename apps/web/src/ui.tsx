@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 const paths: Record<string, ReactNode> = {
+  chevron: <path d="m9 5 7 7-7 7" />,
   user: (
     <>
       <circle cx="12" cy="8" r="4" />
