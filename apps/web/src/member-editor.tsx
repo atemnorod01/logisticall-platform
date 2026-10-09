@@ -65,13 +65,17 @@ export function MemberEditor({
     let offset: number | null = 0;
     while (offset !== null) {
       const page = groupList.parse(await request(`groups?offset=${offset}`));
-      for (const g of page.groups.filter((g) => !g.archived)) {
-        const d = groupDetail.parse(await request(`groups/${g.id}`));
-        result.push({
-          id: g.id,
-          name: g.name,
-          assigned: d.members.some((m) => m.user_id === userId),
-        });
+      const active = page.groups.filter((g) => !g.archived);
+      // Bound concurrent requests while avoiding one network round trip per group.
+      for (let start = 0; start < active.length; start += 6) {
+        result.push(...await Promise.all(active.slice(start, start + 6).map(async (g) => {
+          const d = groupDetail.parse(await request(`groups/${g.id}`));
+          return {
+            id: g.id,
+            name: g.name,
+            assigned: d.members.some((m) => m.user_id === userId),
+          };
+        })));
       }
       offset = page.nextOffset;
     }
@@ -229,7 +233,7 @@ export function MemberEditor({
         {!member && !error && <p role="status">Loading member…</p>}
         {member && tab === "details" && (
           <form
-            className="lc-form"
+            className="lc-form lc-member-details-form"
             onSubmit={(e) => {
               e.preventDefault();
               void saveDetails();
@@ -242,6 +246,7 @@ export function MemberEditor({
                 <small>{member.email}</small>
               </div>
             </div>
+            <div className="lc-member-field">
             <label>
               Name
               <input
@@ -252,15 +257,6 @@ export function MemberEditor({
                 onChange={(e) => setName(e.target.value)}
               />
             </label>
-            <p className="lc-muted">
-              This name is shared across all organizations this user belongs to.
-            </p>
-            <div>
-              <strong>Email / login name</strong>
-              <p>{member.email}</p>
-              <small>
-                Email cannot be changed. A different email requires a new user.
-              </small>
             </div>
             <label>
               Organization role
@@ -276,6 +272,7 @@ export function MemberEditor({
                 <option value="admin">Organization admin</option>
               </select>
             </label>
+            <div className="lc-member-field">
             <label>
               Organization access
               <select
@@ -294,6 +291,7 @@ export function MemberEditor({
             {!member.can_edit_access && (
               <p>Your role cannot change this member’s access.</p>
             )}
+            </div>
           </form>
         )}
         {member && tab === "groups" && (

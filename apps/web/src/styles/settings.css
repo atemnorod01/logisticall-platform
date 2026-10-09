@@ -66,8 +66,8 @@
 #app.tenant-ui .lc-settings-page,
 #app.tenant-ui .lc-settings-open .admin {
   padding: 32px;
-  max-width: var(--lc-content-max, 880px);
-  margin: 0;
+  max-width: var(--lc-content-max, 968px);
+  margin: 0 auto;
   width: 100%;
   height: auto;
   min-height: 100%;
@@ -440,13 +440,11 @@
 }
 
 #app.tenant-ui.conversation-workspace .lc-settings-open > .sidebar {
-  position: relative;
-  inset: auto;
-  width: auto;
-  height: 100%;
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--chat-rail);
+  height: 100dvh;
   min-height: 0;
-  grid-column: 1;
-  grid-row: 1;
 }
 #app.tenant-ui.conversation-workspace .lc-settings-open > .workspace {
   height: 100%;
@@ -866,7 +864,7 @@
 #app.tenant-ui .lc-settings-open .lc-settings-page,
 #app.tenant-ui .lc-settings-open .admin {
   position: relative;
-  max-width: var(--lc-content-max, 880px);
+  max-width: var(--lc-content-max, 968px);
   width: 100%;
   padding: 32px;
 }
@@ -986,6 +984,7 @@
 /* One field surface across legacy forms, search, pickers and dialogs. */
 #app.tenant-ui .lc-settings-open {
   --lc-settings-field-background: light-dark(#fafafb, #1c1e28);
+  --lc-settings-input-background: light-dark(#f0f1f5, #161821);
 }
 #app.tenant-ui
   .lc-settings-open
@@ -996,7 +995,7 @@
 #app.tenant-ui .lc-settings-open textarea,
 #app.tenant-ui .lc-settings-open .lc-picker-search {
   /* Override the imported legacy field surfaces without changing layout. */
-  background-color: var(--lc-settings-field-background) !important;
+  background-color: var(--lc-settings-input-background) !important;
 }
 
 #app.tenant-ui.conversation-workspace .lc-settings-open .rail-bottom {
@@ -1113,7 +1112,7 @@
 
 /* Shared content width and a viewport-bounded member workspace. */
 #app.tenant-ui {
-  --lc-content-max: 880px;
+  --lc-content-max: 968px;
 }
 #app.tenant-ui .lc-settings-open .lc-members-page {
   height: 100%;
@@ -1217,3 +1216,58 @@
 #app.tenant-ui .lc-members-list .lc-member-row { padding-left: 14px; padding-right: 14px; }
 
 #app.tenant-ui .lc-profile-identity .lc-profile-email { margin: 6px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+
+/* The main rail keeps identical viewport geometry on every workspace page. */
+#app.tenant-ui.conversation-workspace .conversation-shell > .sidebar {
+  border-right: 1px solid var(--line);
+}
+#app.tenant-ui .lc-settings-open > .lc-settings-nav {
+  grid-column: 2;
+}
+@media (min-width: 601px) {
+  #app.tenant-ui .lc-settings-open > .workspace {
+    grid-column: 3;
+  }
+}
+
+/* Align the avatar and member footer controls along one bottom baseline. */
+#app.tenant-ui.conversation-workspace .conversation-shell > .sidebar {
+  padding-bottom: 37px;
+}
+#app.tenant-ui .lc-settings-open .lc-members-page {
+  padding-bottom: 20px;
+}
+#app.tenant-ui .lc-members-list {
+  display: flex;
+  flex-direction: column;
+}
+#app.tenant-ui .lc-members-list > .lc-member-row {
+  flex-shrink: 0;
+}
+#app.tenant-ui .lc-member-pagination {
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+/* Keep helper text with its field and give each field equal breathing room. */
+#app.tenant-ui .lc-member-editor .lc-member-details-form {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding-bottom: 24px;
+}
+#app.tenant-ui .lc-member-details-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+}
+#app.tenant-ui .lc-member-details-form label input,
+#app.tenant-ui .lc-member-details-form label select {
+  margin: 0;
+}
+#app.tenant-ui .lc-member-details-form .lc-member-field p {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
