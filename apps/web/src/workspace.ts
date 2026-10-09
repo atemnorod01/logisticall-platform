@@ -5,7 +5,11 @@ import {
   type OrganizationMembership,
 } from "../../../packages/types/src/index.js";
 import { z } from "zod";
-const sessionSchema = z.object({ userId: z.uuid(), csrfToken: z.string() });
+const sessionSchema = z.object({
+  userId: z.uuid(),
+  csrfToken: z.string(),
+  displayName: z.string().max(254).nullable().optional(),
+});
 const pageSchema = z.object({
   organizations: organizationMemberships,
   nextOffset: z.number().int().nonnegative().nullable(),

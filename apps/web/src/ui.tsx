@@ -97,7 +97,7 @@ export function Avatar({
         .slice(0, 2)
         .map((w) => w[0])
         .join("")
-        .toUpperCase() || "?"}
+        .toUpperCase() || <Icon name="users" />}
       {presence && (
         <span
           className="presence-dot"

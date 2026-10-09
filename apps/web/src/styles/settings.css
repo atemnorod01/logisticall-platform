@@ -1,0 +1,460 @@
+/* Approved settings navigation and account menu. */
+#app.tenant-ui.conversation-workspace
+  .conversation-shell.layout.lc-settings-open {
+  display: grid;
+  padding: 0;
+  min-height: 0;
+  grid-template-rows: minmax(0, 1fr);
+  grid-template-columns: var(--chat-rail, 96px) 224px minmax(0, 1fr);
+}
+#app.tenant-ui .lc-settings-nav {
+  min-width: 0;
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+  padding: 30px 12px;
+  overflow: auto;
+}
+#app.tenant-ui .lc-settings-nav h2 {
+  margin: 0 12px 30px;
+  font-size: 19px;
+}
+#app.tenant-ui .lc-caption {
+  text-transform: uppercase;
+  font-size: 10px;
+  letter-spacing: 1px;
+  font-weight: 600;
+  color: var(--muted);
+  display: block;
+  margin-bottom: 10px;
+}
+#app.tenant-ui .lc-settings-nav .lc-caption {
+  margin-left: 12px;
+}
+#app.tenant-ui .lc-org-caption {
+  margin-top: 32px;
+}
+#app.tenant-ui .lc-org-name {
+  display: block;
+  margin: 0 12px 16px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-settings-nav button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  border-radius: 7px;
+  padding: 10px 12px;
+  margin: 3px 0;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-settings-nav button.selected,
+#app.tenant-ui .lc-settings-nav button:hover {
+  background: var(--surface);
+  color: var(--ink);
+}
+#app.tenant-ui .lc-settings-open > .workspace {
+  overflow: auto;
+  background: var(--panel);
+  min-width: 0;
+}
+#app.tenant-ui .lc-settings-page,
+#app.tenant-ui .lc-settings-open .admin {
+  padding: 32px;
+  max-width: 1100px;
+  margin: 0;
+  width: 100%;
+  height: auto;
+  min-height: 100%;
+  border: 0;
+  border-radius: 0;
+  background: var(--panel);
+  overflow: visible;
+}
+#app.tenant-ui .lc-page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 30px;
+}
+#app.tenant-ui .lc-page-heading h1 {
+  font-size: 25px;
+  margin: 0 0 8px;
+}
+#app.tenant-ui .lc-page-heading p {
+  font-size: 13px;
+}
+#app.tenant-ui .lc-form {
+  max-width: 520px;
+  margin-top: 28px;
+}
+#app.tenant-ui .lc-form h3 {
+  margin-bottom: 12px;
+}
+#app.tenant-ui .lc-form p {
+  margin-top: 12px;
+}
+#app.tenant-ui .lc-profile-identity {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin: 24px 0 36px;
+}
+#app.tenant-ui .lc-profile-identity h2 {
+  margin-bottom: 6px;
+}
+#app.tenant-ui .lc-profile-identity .avatar {
+  width: 56px;
+  height: 56px;
+  font-size: 18px;
+}
+#app.tenant-ui .lc-setting-row,
+#app.tenant-ui .lc-member-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 13px;
+}
+#app.tenant-ui .lc-setting-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--ink);
+  margin: 0;
+}
+#app.tenant-ui .lc-member-row {
+  justify-content: flex-start;
+}
+#app.tenant-ui .lc-member-row > div {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-member-row small {
+  display: block;
+  margin-top: 4px;
+}
+#app.tenant-ui .lc-member-row button {
+  margin-left: auto;
+}
+#app.tenant-ui .lc-theme-options {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+#app.tenant-ui .lc-feedback {
+  margin-top: 24px;
+  font-size: 12px;
+}
+#app.tenant-ui .lc-search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+#app.tenant-ui .lc-search input {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+#app.tenant-ui .lc-account {
+  position: relative;
+}
+#app.tenant-ui .lc-avatar-trigger {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  border-radius: 50%;
+}
+#app.tenant-ui .lc-account-panel {
+  position: absolute;
+  left: calc(100% + 16px);
+  bottom: 0;
+  width: 290px;
+  max-width: calc(100vw - var(--chat-rail, 96px) - 28px);
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  box-shadow: 0 14px 40px #0003;
+  z-index: 80;
+  text-align: left;
+  max-height: calc(100dvh - 85px);
+  overflow-y: auto;
+}
+#app.tenant-ui .lc-account-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 18px 14px;
+}
+#app.tenant-ui .lc-account-identity > div {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-account-identity small {
+  display: block;
+  margin-top: 4px;
+}
+#app.tenant-ui .lc-account-org {
+  padding: 4px 18px 18px;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-account-org strong {
+  font-size: 13px;
+}
+#app.tenant-ui .lc-account-org label {
+  font-size: 12px;
+}
+#app.tenant-ui .lc-account-org select {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+#app.tenant-ui .lc-account-links {
+  padding: 16px 10px;
+}
+#app.tenant-ui .lc-account-links label,
+#app.tenant-ui .lc-account-links small {
+  display: block;
+  margin: 0 8px 8px;
+  font-size: 12px;
+}
+#app.tenant-ui .lc-account-links select {
+  margin: 0 8px 8px;
+  width: calc(100% - 16px);
+}
+#app.tenant-ui .lc-account-links button,
+#app.tenant-ui .lc-signout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  font-size: 13px;
+}
+#app.tenant-ui .lc-account-links button:hover,
+#app.tenant-ui .lc-signout:hover {
+  background: var(--surface);
+}
+#app.tenant-ui .lc-signout {
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: 16px 18px;
+}
+#app.tenant-ui .lc-group-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 14px;
+}
+#app.tenant-ui .lc-group-toolbar input[type="search"] {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+#app.tenant-ui .lc-group-toolbar label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  margin: 0;
+  font-size: 12px;
+}
+#app.tenant-ui .lc-group-toolbar input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+}
+#app.tenant-ui .lc-group-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 20px 4px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+}
+#app.tenant-ui .lc-group-row:hover {
+  background: var(--surface);
+}
+#app.tenant-ui .lc-group-row > span {
+  flex: 1;
+}
+#app.tenant-ui .lc-group-row strong {
+  display: block;
+  font-size: 14px;
+}
+#app.tenant-ui .lc-group-row small {
+  display: block;
+  margin-top: 4px;
+}
+#app.tenant-ui .lc-group-row em {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--muted);
+  padding: 4px 8px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+#app.tenant-ui .lc-group-tabs {
+  display: flex;
+  gap: 24px;
+  border-bottom: 1px solid var(--line);
+  margin: 24px 0;
+}
+#app.tenant-ui .lc-group-tabs button {
+  padding: 0 0 12px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-group-tabs button.active {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+#app.tenant-ui .lc-settings-open .admin .panel {
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+}
+#app.tenant-ui .lc-group-back {
+  border: 0;
+  background: none;
+  padding: 0;
+  margin-bottom: 20px;
+  color: var(--muted);
+  font-size: 12px;
+}
+#app.tenant-ui .lc-modal {
+  width: min(440px, calc(100vw - 32px));
+  max-height: calc(100dvh - 48px);
+  padding: 26px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 24px 80px #0004;
+}
+#app.tenant-ui .lc-modal::backdrop {
+  background: #0006;
+}
+#app.tenant-ui .lc-modal header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 24px;
+}
+#app.tenant-ui .lc-modal header button {
+  background: none;
+  border: 0;
+  font-size: 25px;
+}
+#app.tenant-ui .lc-modal .note {
+  font-size: 12px;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 12px 0;
+}
+#app.tenant-ui .lc-modal input,
+#app.tenant-ui .lc-modal select {
+  width: 100%;
+}
+@media (max-width: 850px) {
+  #app.tenant-ui.conversation-workspace
+    .conversation-shell.layout.lc-settings-open {
+    grid-template-columns: var(--chat-rail, 80px) 185px minmax(0, 1fr);
+  }
+  #app.tenant-ui .lc-settings-page,
+  #app.tenant-ui .lc-settings-open .admin {
+    padding: 24px 20px;
+  }
+  .lc-group-toolbar {
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 600px) {
+  #app.tenant-ui.conversation-workspace
+    .conversation-shell.layout.lc-settings-open {
+    grid-template-columns: var(--chat-rail, 68px) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  #app.tenant-ui .lc-settings-open > .sidebar {
+    grid-row: 1 / 3;
+  }
+  #app.tenant-ui .lc-settings-nav {
+    grid-column: 2;
+    max-height: 230px;
+    padding: 16px 10px;
+    border-bottom: 1px solid var(--line);
+  }
+  #app.tenant-ui .lc-settings-nav h2 {
+    margin-bottom: 14px;
+  }
+  #app.tenant-ui .lc-settings-nav button {
+    display: inline-flex;
+    width: auto;
+    font-size: 12px;
+    padding: 8px;
+  }
+  #app.tenant-ui .lc-settings-nav .lc-org-caption {
+    margin-top: 14px;
+  }
+  #app.tenant-ui .lc-settings-open > .workspace {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  #app.tenant-ui .lc-page-heading {
+    flex-wrap: wrap;
+  }
+  #app.tenant-ui .lc-settings-page,
+  #app.tenant-ui .lc-settings-open .admin {
+    padding: 20px 14px;
+  }
+  #app.tenant-ui .lc-group-toolbar {
+    flex-wrap: wrap;
+  }
+  #app.tenant-ui .lc-group-row {
+    flex-wrap: wrap;
+  }
+}
+
+#app.tenant-ui.conversation-workspace .lc-settings-open > .sidebar {
+  position: relative;
+  inset: auto;
+  width: auto;
+  height: 100%;
+  min-height: 0;
+  grid-column: 1;
+  grid-row: 1;
+}
+#app.tenant-ui.conversation-workspace .lc-settings-open > .workspace {
+  height: 100%;
+  min-height: 0;
+  padding: 0;
+}
+@media (max-width: 600px) {
+  #app.tenant-ui.conversation-workspace .lc-settings-open > .sidebar {
+    grid-row: 1 / 3;
+  }
+}

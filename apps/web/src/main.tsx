@@ -7,6 +7,16 @@ import "./styles/tenant-workspace.css";
 import "./styles/conversation-workspace.css";
 import "./styles/user-directory.css";
 import "./styles/sign-in.css";
+import "./styles/settings.css";
+import {
+  AccountMenu,
+  SettingsNav,
+  PersonalSettings,
+  OrganizationOverview,
+  OrganizationMembers,
+  organizationSetting,
+  type SettingPage,
+} from "./settings-ui.js";
 import light from "./branding/logisticall_wordmark_light.svg";
 import dark from "./branding/logisticall_wordmark_dark.svg";
 import brand from "./branding/logisticall_icon_centered.svg";
@@ -53,9 +63,34 @@ function App() {
     }
   });
   const [page, setPage] = useState<Page>("Settings");
+  const [setting, setSetting] = useState<SettingPage>("Profile");
+  const admin = Boolean(
+    state.context && state.permissions.includes("groups.manage"),
+  );
+  const currentSetting =
+    organizationSetting(setting) && !admin ? "Profile" : setting;
+  const openSettings = (p: SettingPage) => {
+    setSetting(p);
+    setPage("Settings");
+  };
   useEffect(() => {
     void controller.load();
   }, []);
+  useEffect(() => {
+    const active = state.organizations.filter(
+      (o) =>
+        o.membership_status === "active" && o.organization_status === "active",
+    );
+    if (
+      state.phase === "ready" &&
+      !state.context &&
+      !state.switching &&
+      !state.error &&
+      state.nextOffset === null &&
+      active.length === 1
+    )
+      void controller.select(active[0]!.organization_id);
+  }, [state]);
   useEffect(() => {
     const root = document.getElementById("app")!;
     root.className =
@@ -108,11 +143,11 @@ function App() {
         </section>
       </main>
     );
-  const selector = (
+  const selector = (id: string) => (
     <>
-      <label htmlFor="organization">Organization</label>
+      <label htmlFor={id}>Organization</label>
       <select
-        id="organization"
+        id={id}
         value={state.context?.organization_id ?? ""}
         disabled={state.switching}
         onChange={(e) => {
@@ -148,7 +183,9 @@ function App() {
     </>
   );
   return (
-    <div className="layout conversation-shell">
+    <div
+      className={`layout conversation-shell${page === "Settings" || !state.context ? " lc-settings-open" : ""}`}
+    >
       <aside className="sidebar">
         <div className="rail-brand logisticall-logo" aria-label="LogistiCall">
           <span className="brand-full">
@@ -199,140 +236,57 @@ function App() {
           >
             <Icon name={theme === "dark" ? "sun" : "moon"} />
           </button>
-          <details className="account-menu">
-            <summary aria-label="Account and workspace">
-              <span className="avatar tone-0">
-                ?
-                <span
-                  className="presence-dot"
-                  data-presence={presence.status}
-                  role="img"
-                  aria-label={`Your presence: ${presence.status}`}
-                />
-              </span>
-            </summary>
-            <div className="account-popover">
-              <label
-                className="user-status-label"
-                htmlFor="user-presence-choice"
-              >
-                Your status
-              </label>
-              <select
-                id="user-presence-choice"
-                aria-label="Your status"
-                value={presence.mode}
-                disabled={!state.context}
-                onChange={(e) =>
-                  presence.setMode(e.target.value as PresenceMode)
-                }
-              >
-                <option value="auto">Automatic</option>
-                <option value="available">Available</option>
-                <option value="away">Away</option>
-                <option value="busy">Busy</option>
-              </select>
-              <small role="status">
-                {state.context
-                  ? `Presence: ${presence.status}`
-                  : "Choose an organization to share presence"}
-              </small>
-              {state.context && (
-                <>
-                  <button
-                    className="button"
-                    onClick={() => setPage("Group inboxes")}
-                  >
-                    Group inboxes
-                  </button>
-                  <button
-                    className="button"
-                    onClick={() => setPage("Network directory")}
-                  >
-                    Network directory
-                  </button>
-                  {state.permissions.includes("groups.manage") && (
-                    <button
-                      className="button"
-                      onClick={() => setPage("Organization administration")}
-                    >
-                      Organization administration
-                    </button>
-                  )}
-                </>
-              )}
-              <strong>Your account</strong>
-              <small>{state.context?.name ?? "Choose an organization"}</small>
-              <button className="button" onClick={() => setPage("Settings")}>
-                My profile
-              </button>
-              <button
-                className="button"
-                onClick={() => void controller.logout()}
-              >
-                Sign out
-              </button>
-            </div>
-          </details>
+          <AccountMenu
+            state={state}
+            selector={selector("account-organization")}
+            presence={presence}
+            onSettings={openSettings}
+            onLogout={() => void controller.logout()}
+          />
           <button
             className="icon"
             aria-label="Settings"
+            aria-current={page === "Settings" ? "page" : undefined}
             onClick={() => setPage("Settings")}
           >
             <Icon name="settings" />
           </button>
         </div>
       </aside>
+      {(page === "Settings" || !state.context) && (
+        <SettingsNav
+          page={currentSetting}
+          setPage={openSettings}
+          admin={admin}
+          organization={state.context?.name}
+        />
+      )}
       <main className="workspace" id="main-content">
         {page === "Settings" || !state.context ? (
-          <section className="admin">
-            <div className="page-heading">
-              <div>
-                <h1>My profile</h1>
-                <p>Your personal account and workspace.</p>
-              </div>
-              <div className="actions" />
-            </div>
-            {state.error && <p role="alert">{state.error}</p>}
-            <section className="panel padded">
-              <h2>Workspace</h2>
-              {selector}
-              {state.switching && (
-                <p role="status">Checking organization access…</p>
-              )}
-              {!state.organizations.length && (
-                <p>
-                  Your account has no organization memberships. Contact your
-                  administrator for an invitation.
-                </p>
-              )}
-              {state.context && (
-                <>
-                  <h3>{state.context.name}</h3>
-                  <p>Organization role: {state.context.role_id}</p>
-                  {state.permissions.includes(
-                    "organization.profile.update",
-                  ) && (
-                    <button
-                      className="button"
-                      onClick={() => setPage("Organization administration")}
-                    >
-                      Organization administration
-                    </button>
-                  )}
-                </>
-              )}
-            </section>
-            <section className="panel padded">
-              <h2>Appearance</h2>
-              <button
-                className="button"
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              >
-                Use {theme === "dark" ? "light" : "dark"} mode
-              </button>
-            </section>
-          </section>
+          currentSetting === "Groups" && admin ? (
+            <OrganizationGroups
+              key={state.context!.organization_id}
+              organizationId={state.context!.organization_id}
+              organizationName={state.context!.name}
+              csrf={state.session!.csrfToken}
+            />
+          ) : currentSetting === "Overview" && admin ? (
+            <OrganizationOverview state={state} />
+          ) : currentSetting === "Members" && admin ? (
+            <OrganizationMembers
+              key={state.context!.organization_id}
+              organizationId={state.context!.organization_id}
+            />
+          ) : (
+            <PersonalSettings
+              key={state.session!.userId}
+              page={currentSetting}
+              state={state}
+              selector={selector("profile-organization")}
+              theme={theme}
+              setTheme={setTheme}
+            />
+          )
         ) : page === "Organization administration" ? (
           state.permissions.includes("groups.manage") ? (
             <OrganizationGroups

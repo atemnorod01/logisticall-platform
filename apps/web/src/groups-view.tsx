@@ -12,6 +12,7 @@ import {
   type DirectoryContact,
 } from "../../../packages/types/src/index.js";
 import { Icon } from "./ui.js";
+import { Modal } from "./settings-ui.js";
 function useGroupRequests(organizationId: string, csrf: string) {
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
@@ -76,12 +77,34 @@ function useGroupRequests(organizationId: string, csrf: string) {
   return { request, run, busy, error };
 }
 type Props = { organizationId: string; organizationName: string; csrf: string };
+function GroupEditor({
+  creating,
+  close,
+  children,
+}: {
+  creating: boolean;
+  close: () => void;
+  children: React.ReactNode;
+}) {
+  return creating ? (
+    <Modal title="New group" onClose={close}>
+      {children}
+    </Modal>
+  ) : (
+    <section className="lc-form">{children}</section>
+  );
+}
 export function OrganizationGroups({
   organizationId,
   organizationName,
   csrf,
 }: Props) {
   const api = useGroupRequests(organizationId, csrf);
+  const [adding, setAdding] = useState(false);
+  const [creating, setCreating] = useState(false),
+    [tab, setTab] = useState<"Members" | "Settings">("Members"),
+    [showArchived, setShowArchived] = useState(false),
+    [groupSearch, setGroupSearch] = useState("");
   const [groups, setGroups] = useState<Group[]>([]),
     [next, setNext] = useState<number | null>(null);
   const [detail, setDetail] = useState<z.infer<typeof groupDetail> | null>(
@@ -110,6 +133,8 @@ export function OrganizationGroups({
   async function select(id: string) {
     const value = groupDetail.parse(await api.request(`groups/${id}`));
     setDetail(value);
+    setCreating(false);
+    setAdding(false);
     setName(value.group.name);
     setDescription(value.group.description);
     setVisibility(value.group.visibility);
@@ -121,6 +146,7 @@ export function OrganizationGroups({
     void api.run(() => list(), clear);
   }, []);
   const fresh = () => {
+    setCreating(true);
     setDetail(null);
     setName("");
     setDescription("");
@@ -136,175 +162,253 @@ export function OrganizationGroups({
       if (detail) await select(detail.group.id);
     }, clear);
   return (
-    <section className="admin">
-      <div className="page-heading">
+    <section className="admin lc-group-admin">
+      {detail && (
+        <button
+          className="lc-group-back"
+          disabled={api.busy}
+          onClick={() => {
+            setDetail(null);
+            setTab("Members");
+          }}
+        >
+          ← All groups
+        </button>
+      )}
+      <header className="lc-page-heading">
         <div>
-          <div className="eyebrow">{organizationName}</div>
-          <h1>Organization administration</h1>
-          <p>Manage your organization’s groups and shared inbox membership.</p>
+          <span className="lc-caption">{organizationName} / Groups</span>
+          <h1>{detail ? detail.group.name : "Groups"}</h1>
+          <p>
+            {detail
+              ? `${detail.members.length} {detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Network visible" : "Private"}`
+              : "Shared inboxes managed by your organization."}
+          </p>
         </div>
         <div className="actions">
           <button className="button" disabled={api.busy} onClick={reload}>
             Refresh
           </button>
-          <button
-            className="button primary"
-            disabled={api.busy}
-            onClick={fresh}
-          >
-            New group
-          </button>
+          {!detail && (
+            <button
+              className="button primary"
+              disabled={api.busy}
+              onClick={fresh}
+            >
+              New group
+            </button>
+          )}
         </div>
-      </div>
-      {api.error && <p role="alert">{api.error}</p>}
+      </header>
+      {api.error && !creating && <p role="alert">{api.error}</p>}
       {api.busy && <p role="status">Updating groups…</p>}
-      <section className="panel padded">
-        <h2>Groups</h2>
-        <p>
-          Only organization owners and admins can change groups or membership.
-        </p>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>Group</th>
-                <th>Visibility</th>
-                <th>Status</th>
-                <th>Manage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {groups.map((g) => (
-                <tr key={g.id}>
-                  <td>{g.name}</td>
-                  <td>{g.visibility === "network" ? "Network" : "Private"}</td>
-                  <td>{g.archived ? "Archived" : "Active"}</td>
-                  <td>
-                    <button
-                      className="button"
-                      disabled={api.busy}
-                      onClick={() => void api.run(() => select(g.id), clear)}
-                      aria-label={`Manage ${g.name}`}
-                    >
-                      Manage
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      {!detail && (
+        <>
+          <div className="lc-group-toolbar">
+            <input
+              type="search"
+              aria-label="Search groups"
+              placeholder="Search loaded groups"
+              value={groupSearch}
+              onChange={(e) => setGroupSearch(e.target.value)}
+            />
+            <label>
+              <input
+                type="checkbox"
+                checked={showArchived}
+                onChange={(e) => setShowArchived(e.target.checked)}
+              />
+              Show archived
+            </label>
+          </div>
+          {groups
+            .filter(
+              (g) =>
+                (showArchived || !g.archived) &&
+                g.name.toLowerCase().includes(groupSearch.toLowerCase()),
+            )
+            .map((g) => (
+              <button
+                key={g.id}
+                className="lc-group-row"
+                disabled={api.busy}
+                onClick={() => {
+                  setTab("Members");
+                  void api.run(() => select(g.id), clear);
+                }}
+                aria-label={`Manage ${g.name}`}
+              >
+                <Icon name="message" />
+                <span>
+                  <strong>{g.name}</strong>
+                  <small>
+                    {g.archived
+                      ? "Archived"
+                      : g.description || "Shared group inbox"}
+                  </small>
+                </span>
+                <em>
+                  {g.visibility === "network" ? "Network visible" : "Private"}
+                </em>
+              </button>
+            ))}
+          {!api.busy &&
+            !api.error &&
+            !groups.some(
+              (g) =>
+                (showArchived || !g.archived) &&
+                g.name.toLowerCase().includes(groupSearch.toLowerCase()),
+            ) && (
+              <p className="lc-feedback">
+                No groups to show. Create a group or include archived groups.
+              </p>
+            )}
+          {next !== null && (
+            <button
+              className="button"
+              disabled={api.busy}
+              onClick={() => void api.run(() => list(next), clear)}
+            >
+              Load more groups
+            </button>
+          )}
+        </>
+      )}
+      {detail && (
+        <div
+          className="lc-group-tabs"
+          role="tablist"
+          aria-label="Group details"
+        >
+          {(["Members", "Settings"] as const).map((t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              className={tab === t ? "active" : ""}
+              onClick={() => setTab(t)}
+            >
+              {t}
+            </button>
+          ))}
         </div>
-        {!groups.length && !api.busy && !api.error && (
-          <p>No groups yet. Create a group such as Dispatch.</p>
-        )}
-        {next !== null && (
-          <button
-            className="button"
-            disabled={api.busy}
-            onClick={() => void api.run(() => list(next), clear)}
-          >
-            Load more groups
-          </button>
-        )}
-      </section>
-      <section className="panel padded">
-        <h2>{detail ? `Edit ${detail.group.name}` : "Create group"}</h2>
-        <form
-          className="narrow"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void api.run(async () => {
-              const result = z.object({ group: groupSchema }).parse(
-                await api.request(
-                  detail ? `groups/${detail.group.id}` : "groups",
-                  detail ? "PATCH" : "POST",
-                  detail
-                    ? {
-                        name,
-                        description,
-                        visibility,
-                        archived,
-                        version: detail.group.version,
-                      }
-                    : { id: createId, name, description, visibility },
-                ),
-              );
-              await list();
-              await select(result.group.id);
-            }, clear);
+      )}
+      {(creating || (detail && tab === "Settings")) && (
+        <GroupEditor
+          creating={creating}
+          close={() => {
+            if (!api.busy) setCreating(false);
           }}
         >
-          <label htmlFor="group-name">Group name</label>
-          <input
-            id="group-name"
-            required
-            maxLength={80}
-            value={name}
-            disabled={api.busy}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <label htmlFor="group-description">Description</label>
-          <input
-            id="group-description"
-            maxLength={500}
-            value={description}
-            disabled={api.busy}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-          <label htmlFor="group-visibility">Discoverability</label>
-          <select
-            id="group-visibility"
-            value={visibility}
-            disabled={api.busy}
-            onChange={(e) =>
-              setVisibility(e.target.value as "private" | "network")
-            }
+          {api.error && creating && <p role="alert">{api.error}</p>}
+          <form
+            className="narrow"
+            onSubmit={(e) => {
+              e.preventDefault();
+              void api.run(async () => {
+                const result = z.object({ group: groupSchema }).parse(
+                  await api.request(
+                    detail ? `groups/${detail.group.id}` : "groups",
+                    detail ? "PATCH" : "POST",
+                    detail
+                      ? {
+                          name,
+                          description,
+                          visibility,
+                          archived,
+                          version: detail.group.version,
+                        }
+                      : { id: createId, name, description, visibility },
+                  ),
+                );
+                await list();
+                await select(result.group.id);
+              }, clear);
+            }}
           >
-            <option value="private">Private — assigned members only</option>
-            <option value="network">
-              Discoverable in the LogistiCall network
-            </option>
-          </select>
-          <p className="note">
-            Network discovery shares the group name, description and
-            organization name with signed-in network participants. It does not
-            reveal members or grant inbox access.
-          </p>
-          {detail && (
-            <label htmlFor="group-status">
-              Group status
-              <select
-                id="group-status"
-                value={archived ? "archived" : "active"}
-                disabled={api.busy}
-                onChange={(e) => setArchived(e.target.value === "archived")}
-              >
-                <option value="active">Active</option>
-                <option value="archived">
-                  Archived — hide from discovery and close inbox access
-                </option>
-              </select>
-            </label>
-          )}
-          <button
-            className="button primary"
-            disabled={api.busy || !name.trim()}
-          >
-            {detail ? "Save group" : "Create group"}
-          </button>
-        </form>
-      </section>
-      {detail && (
+            <label htmlFor="group-name">Group name</label>
+            <input
+              id="group-name"
+              required
+              maxLength={80}
+              value={name}
+              disabled={api.busy}
+              onChange={(e) => setName(e.target.value)}
+            />
+            <label htmlFor="group-description">Description</label>
+            <input
+              id="group-description"
+              maxLength={500}
+              value={description}
+              disabled={api.busy}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <label htmlFor="group-visibility">Discoverability</label>
+            <select
+              id="group-visibility"
+              value={visibility}
+              disabled={api.busy}
+              onChange={(e) =>
+                setVisibility(e.target.value as "private" | "network")
+              }
+            >
+              <option value="private">Private — assigned members only</option>
+              <option value="network">
+                Discoverable in the LogistiCall network
+              </option>
+            </select>
+            <p className="note">
+              Network discovery shares the group name, description and
+              organization name with signed-in network participants. It does not
+              reveal members or grant inbox access.
+            </p>
+            {detail && (
+              <label htmlFor="group-status">
+                Group status
+                <select
+                  id="group-status"
+                  value={archived ? "archived" : "active"}
+                  disabled={api.busy}
+                  onChange={(e) => setArchived(e.target.value === "archived")}
+                >
+                  <option value="active">Active</option>
+                  <option value="archived">
+                    Archived — hide from discovery and close inbox access
+                  </option>
+                </select>
+              </label>
+            )}
+            <button
+              className="button primary"
+              disabled={api.busy || !name.trim()}
+            >
+              {detail ? "Save group" : "Create group"}
+            </button>
+          </form>
+        </GroupEditor>
+      )}
+      {detail && tab === "Members" && (
         <section className="panel padded">
-          <h2>Group members</h2>
+          <div className="lc-page-heading">
+            <h2>Group members</h2>
+            {!detail.group.archived && (
+              <button
+                className="button"
+                disabled={api.busy}
+                onClick={() => setAdding(true)}
+              >
+                Add members
+              </button>
+            )}
+          </div>
           <p>
             Assigned users can open this group’s shared inbox. Members cannot
             join or leave themselves. Administration alone does not grant inbox
             access.
           </p>
-          <ul>
+          <div>
             {detail.members.map((m) => (
-              <li key={m.user_id}>
+              <div className="lc-member-row" key={m.user_id}>
                 {m.name}{" "}
                 <button
                   className="button"
@@ -324,12 +428,18 @@ export function OrganizationGroups({
                 >
                   Remove
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
           {!detail.members.length && <p>No members assigned.</p>}
-          {!detail.group.archived && (
-            <>
+          {adding && !detail.group.archived && (
+            <Modal
+              title="Add members"
+              onClose={() => {
+                if (!api.busy) setAdding(false);
+              }}
+            >
+              {api.error && <p role="alert">{api.error}</p>}
               <form
                 className="narrow"
                 onSubmit={(e) => {
@@ -407,24 +517,10 @@ export function OrganizationGroups({
                   </p>
                 </div>
               )}
-            </>
+            </Modal>
           )}
         </section>
       )}
-      <section className="panel padded">
-        <h2>Shared communication channels</h2>
-        <p>
-          Groups have a stable identity for in-network messaging and calling.
-          Email addresses, PSTN numbers, routing and group presence are not
-          connected yet.
-        </p>
-        <button className="button" disabled>
-          Assign email address
-        </button>{" "}
-        <button className="button" disabled>
-          Assign phone number
-        </button>
-      </section>
     </section>
   );
 }

@@ -85,13 +85,22 @@ export function iamIdentity(baseUrl: string, fetcher: typeof fetch = fetch) {
       signal: AbortSignal.timeout(5000),
     });
     if (!response.ok) throw new IamFailure(response.status === 403 ? 403 : 503);
-    const value = (await response.json()) as { user_id?: unknown };
+    const value = (await response.json()) as {
+      user_id?: unknown;
+      display_name?: unknown;
+    };
     if (
       typeof value.user_id !== "string" ||
       !/^[0-9a-f-]{36}$/i.test(value.user_id)
     )
       throw new IamFailure(503);
-    return { user_id: value.user_id };
+    return {
+      user_id: value.user_id,
+      display_name:
+        typeof value.display_name === "string"
+          ? value.display_name.slice(0, 254)
+          : null,
+    };
   };
 }
 
