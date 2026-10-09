@@ -34,7 +34,7 @@ export function tokenVerifier(
         (a) =>
           a &&
           typeof a === "object" &&
-          ["password", "oauth"].includes(a.method),
+          ["password", "oauth", "oauth_provider/authorization_code"].includes(a.method),
       )
     )
       throw new Error("Ineligible authentication");
