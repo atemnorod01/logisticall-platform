@@ -1,5 +1,39 @@
 import type { ReactNode } from "react";
 const paths: Record<string, ReactNode> = {
+  user: (
+    <>
+      <circle cx="12" cy="8" r="4" />
+      <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+    </>
+  ),
+  bell: (
+    <>
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" />
+    </>
+  ),
+  headphones: (
+    <>
+      <path d="M3 14v-3a9 9 0 0 1 18 0v3" />
+      <rect x="3" y="12" width="4" height="9" rx="2" />
+      <rect x="17" y="12" width="4" height="9" rx="2" />
+    </>
+  ),
+  appearance: (
+    <>
+      <path d="M12 3v2M3 12h2M5.6 5.6 7 7M19 5l-1.5 1.5M15 8a6 6 0 1 0 6 7 7 7 0 0 1-6-7Z" />
+    </>
+  ),
+  building: (
+    <>
+      <rect x="7" y="3" width="10" height="18" rx="1" />
+      <path d="M7 7H3v14h18V7h-4M10 7h4M10 11h4M10 15h4M11 21v-3h2v3" />
+    </>
+  ),
+  inbox: (
+    <>
+      <path d="m3 13 3-9h12l3 9v7H3ZM3 13h5l2 3h4l2-3h5" />
+    </>
+  ),
   star: (
     <path d="m12 3 2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3l-5.6 2.9 1.1-6.2L3 9.6l6.2-.9Z" />
   ),

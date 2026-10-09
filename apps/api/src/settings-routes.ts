@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   profileEdit,
   organizationEdit,
+  organizationProfile,
   inviteEdit,
   invitationRows,
   invitationLink,
@@ -37,11 +38,27 @@ export function settingsRoutes(
       );
   });
   const prefix = "/v1/organizations/:organizationId";
+  app.get(prefix + "/profile", async (req) => {
+    const p = params(req),
+      token = await options.authorize(req, p.organizationId);
+    return organizationProfile.parse(
+      await options.request(
+        token,
+        `/organizations/${p.organizationId}/profile`,
+      ),
+    );
+  });
   app.patch(prefix + "/profile", async (req) => {
     const p = params(req),
       token = await options.authorize(req, p.organizationId);
     return z
-      .object({ organization_id: z.uuid(), name: z.string().max(120) })
+      .object({
+        organization_id: z.uuid(),
+        name: z.string().max(120),
+        organization_type:
+          organizationProfile.shape.organization_type.optional(),
+        description: organizationProfile.shape.description.optional(),
+      })
       .parse(
         await options.request(
           token,

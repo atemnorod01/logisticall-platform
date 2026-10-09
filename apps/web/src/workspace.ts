@@ -1,4 +1,8 @@
 import {
+  organizationEdit,
+  organizationProfile,
+} from "../../../packages/types/src/settings.js";
+import {
   organizationContext,
   organizationMemberships,
   type OrganizationContext,
@@ -207,23 +211,21 @@ export function workspaceController(fetcher: typeof fetch = fetch) {
         session: { ...state.session!, displayName: value.display_name },
       });
     },
-    async saveOrganization(name: string) {
+    async saveOrganization(input: z.infer<typeof organizationEdit>) {
       const ticket = epoch,
         org = state.context!.organization_id;
-      const value = z
-        .object({ organization_id: z.uuid(), name: z.string().max(120) })
-        .parse(
-          await (
-            await request(`/v1/organizations/${org}/profile`, {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-Token": state.session!.csrfToken,
-              },
-              body: JSON.stringify({ name }),
-            })
-          ).json(),
-        );
+      const value = organizationProfile.parse(
+        await (
+          await request(`/v1/organizations/${org}/profile`, {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRF-Token": state.session!.csrfToken,
+            },
+            body: JSON.stringify(input),
+          })
+        ).json(),
+      );
       if (ticket !== epoch || value.organization_id !== org)
         throw Error("Organization changed");
       update({
@@ -233,6 +235,7 @@ export function workspaceController(fetcher: typeof fetch = fetch) {
           o.organization_id === org ? { ...o, name: value.name } : o,
         ),
       });
+      return value;
     },
     async logout() {
       const csrf = state.session?.csrfToken;

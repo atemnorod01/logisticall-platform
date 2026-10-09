@@ -285,7 +285,7 @@ function App() {
             <OrganizationOverview
               key={state.context!.organization_id}
               state={state}
-              onSaveName={controller.saveOrganization}
+              onSave={controller.saveOrganization}
             />
           ) : currentSetting === "Members" && admin ? (
             <OrganizationMembers

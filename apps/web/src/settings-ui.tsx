@@ -1,3 +1,9 @@
+import {
+  organizationProfile,
+  organizationEdit,
+  organizationType,
+} from "../../../packages/types/src/settings.js";
+import { z } from "zod";
 import { InvitationManager } from "./invitations-view.js";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Avatar, Icon } from "./ui.js";
@@ -174,12 +180,12 @@ export function SettingsNav({
           <Icon
             name={
               p === "Profile"
-                ? "users"
+                ? "user"
                 : p === "Appearance"
-                  ? "sun"
+                  ? "appearance"
                   : p === "Audio & video"
-                    ? "phone"
-                    : "settings"
+                    ? "headphones"
+                    : "bell"
             }
           />
           {p}
@@ -189,6 +195,7 @@ export function SettingsNav({
         <>
           <span className="lc-caption lc-org-caption">Organization</span>
           <strong className="lc-org-name">{organization}</strong>
+          <span className="lc-org-role">Organization admin</span>
           {(["Overview", "Members", "Groups"] as SettingPage[]).map((p) => (
             <button
               key={p}
@@ -199,10 +206,10 @@ export function SettingsNav({
               <Icon
                 name={
                   p === "Groups"
-                    ? "message"
+                    ? "inbox"
                     : p === "Members"
                       ? "users"
-                      : "settings"
+                      : "building"
                 }
               />
               {p}
@@ -436,34 +443,166 @@ export function PersonalSettings({
 }
 export function OrganizationOverview({
   state,
-  onSaveName,
+  onSave,
 }: {
   state: WorkspaceState;
-  onSaveName: (name: string) => Promise<void>;
+  onSave: (
+    input: z.infer<typeof organizationEdit>,
+  ) => Promise<z.infer<typeof organizationProfile>>;
 }) {
+  const [saved, setSaved] = useState<z.infer<
+    typeof organizationProfile
+  > | null>(null);
+  const [name, setName] = useState(state.context?.name || "");
+  const [type, setType] = useState<z.infer<typeof organizationType>>("other");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(true),
+    [busy, setBusy] = useState(false);
+  const [error, setError] = useState(""),
+    [notice, setNotice] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const lock = useRef(false),
+    live = useRef(true);
+  const org = state.context!.organization_id;
+  useEffect(() => {
+    live.current = true;
+    const abort = new AbortController();
+    setLoading(true);
+    setError("");
+    fetch(`/v1/organizations/${org}/profile`, {
+      credentials: "same-origin",
+      cache: "no-store",
+      redirect: "error",
+      signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10000)]),
+    })
+      .then(async (response) => {
+        if (!response.ok) throw Error();
+        const value = organizationProfile.parse(await response.json());
+        if (value.organization_id !== org) throw Error();
+        if (abort.signal.aborted) return;
+        setSaved(value);
+        setName(value.name);
+        setType(value.organization_type);
+        setDescription(value.description);
+      })
+      .catch(() => {
+        if (!abort.signal.aborted)
+          setError(
+            "Organization details could not be loaded. Please try again.",
+          );
+      })
+      .finally(() => {
+        if (!abort.signal.aborted) setLoading(false);
+      });
+    return () => {
+      live.current = false;
+      abort.abort();
+    };
+  }, [org, attempt]);
+  const dirty =
+    saved &&
+    (name.trim() !== saved.name ||
+      type !== saved.organization_type ||
+      description.trim() !== saved.description);
   return (
-    <section className="lc-settings-page">
+    <section className="lc-settings-page lc-organization-overview">
       <header className="lc-page-heading">
         <div>
-          <span className="lc-caption">Organization settings</span>
-          <h1>Overview</h1>
-          <p>Your current organization.</p>
+          <p className="lc-breadcrumb">Settings / {state.context?.name}</p>
+          <h1>Organization overview</h1>
+          <p>Your organization’s identity in LogistiCall.</p>
         </div>
       </header>
-      <NameEditor
-        label="Organization name"
-        value={state.context?.name || ""}
-        maxLength={120}
-        onSave={onSaveName}
-      />
-      <div className="lc-setting-row">
-        <strong>Your role</strong>
-        <span>{state.context?.role_id}</span>
-      </div>
-      <div className="lc-setting-row">
-        <strong>Status</strong>
-        <span>Active</span>
-      </div>
+      {loading ? (
+        <p role="status">Loading organization details…</p>
+      ) : !saved ? (
+        <div role="alert">
+          <p>{error}</p>
+          <button className="button" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </button>
+        </div>
+      ) : (
+        <form
+          className="lc-organization-form"
+          onSubmit={async (event) => {
+            event.preventDefault();
+            if (lock.current || !dirty) return;
+            lock.current = true;
+            setBusy(true);
+            setError("");
+            setNotice("");
+            try {
+              const value = await onSave({
+                name: name.trim(),
+                organization_type: type,
+                description: description.trim(),
+              });
+              if (live.current) {
+                setSaved(value);
+                setName(value.name);
+                setType(value.organization_type);
+                setDescription(value.description);
+                setNotice("Changes saved.");
+              }
+            } catch {
+              if (live.current)
+                setError("Your changes could not be saved. Please try again.");
+            } finally {
+              lock.current = false;
+              if (live.current) setBusy(false);
+            }
+          }}
+          onChange={() => setNotice("")}
+        >
+          <label>
+            Organization name
+            <input
+              required
+              maxLength={120}
+              value={name}
+              disabled={busy}
+              onChange={(event) => setName(event.target.value)}
+            />
+          </label>
+          <label>
+            Organization type
+            <select
+              value={type}
+              disabled={busy}
+              onChange={(event) =>
+                setType(organizationType.parse(event.target.value))
+              }
+            >
+              <option value="broker">Broker</option>
+              <option value="carrier">Carrier</option>
+              <option value="shipper">Shipper</option>
+              <option value="factoring">Factoring</option>
+              <option value="other">Other</option>
+            </select>
+          </label>
+          <label>
+            Description
+            <textarea
+              maxLength={1000}
+              rows={3}
+              value={description}
+              disabled={busy}
+              onChange={(event) => setDescription(event.target.value)}
+            />
+          </label>
+          {error && <p role="alert">{error}</p>}
+          <div className="lc-organization-actions">
+            <span role="status">{notice}</span>
+            <button
+              className="button primary"
+              disabled={busy || !dirty || !name.trim()}
+            >
+              {busy ? "Saving…" : "Save changes"}
+            </button>
+          </div>
+        </form>
+      )}
     </section>
   );
 }
