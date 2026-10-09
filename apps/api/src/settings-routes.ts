@@ -1,6 +1,8 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
+  managedMember,
+  memberEdit,
   profileEdit,
   organizationEdit,
   organizationProfile,
@@ -11,6 +13,9 @@ import {
 export function settingsRoutes(
   app: FastifyInstance,
   options: {
+    presence?:
+      | ((org: string, ids: string[]) => Promise<Record<string, string>>)
+      | undefined;
     authorize: (req: FastifyRequest, org?: string) => Promise<string>;
     request: (
       token: string,
@@ -38,6 +43,66 @@ export function settingsRoutes(
       );
   });
   const prefix = "/v1/organizations/:organizationId";
+  app.get(prefix + "/members", async (req) => {
+    const p = params(req),
+      token = await options.authorize(req, p.organizationId);
+    const q = z
+      .object({
+        offset: z.coerce.number().int().min(0).max(100000).default(0),
+        search: z.string().max(100).default(""),
+      })
+      .strict()
+      .parse(req.query);
+    const members = z
+      .array(managedMember)
+      .max(50)
+      .parse(
+        await options.request(
+          token,
+          `/organizations/${p.organizationId}/members?offset=${q.offset}&search=${encodeURIComponent(q.search)}`,
+        ),
+      );
+    let statuses: Record<string, string> = {};
+    try {
+      statuses =
+        (await options.presence?.(
+          p.organizationId,
+          members.filter((m) => m.status === "active").map((m) => m.user_id),
+        )) ?? {};
+    } catch {
+      /* Keep identity management available when presence fails. */
+    }
+    return {
+      members: members.map((m) => ({
+        ...m,
+        presence:
+          m.status === "active"
+            ? (statuses[m.user_id] ?? "unknown")
+            : "offline",
+      })),
+      nextOffset:
+        members.length === 50 && q.offset + 50 <= 100000 ? q.offset + 50 : null,
+    };
+  });
+  for (const method of ["GET", "PATCH"] as const)
+    app.route({
+      method,
+      url: prefix + "/members/:userId",
+      handler: async (req) => {
+        const p = z
+            .object({ organizationId: z.uuid(), userId: z.uuid() })
+            .parse(req.params),
+          token = await options.authorize(req, p.organizationId);
+        return managedMember.parse(
+          await options.request(
+            token,
+            `/organizations/${p.organizationId}/members/${p.userId}`,
+            method,
+            method === "PATCH" ? memberEdit.parse(req.body) : undefined,
+          ),
+        );
+      },
+    });
   app.get(prefix + "/profile", async (req) => {
     const p = params(req),
       token = await options.authorize(req, p.organizationId);

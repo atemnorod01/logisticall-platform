@@ -1002,3 +1002,100 @@
 #app.tenant-ui.conversation-workspace .lc-settings-open .rail-bottom {
   --presence-surround: var(--panel);
 }
+#app.tenant-ui .lc-member-feedback {
+  min-height: 48px;
+}
+#app.tenant-ui .lc-member-feedback p {
+  margin: 10px 0;
+}
+#app.tenant-ui .lc-member-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+#app.tenant-ui .lc-assignment-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+#app.tenant-ui .lc-assignment-row input {
+  width: 16px;
+  height: 16px;
+}
+#app.tenant-ui .lc-members-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+#app.tenant-ui .lc-members-split.is-editing {
+  grid-template-columns: minmax(240px, 1fr) minmax(340px, 440px);
+}
+#app.tenant-ui .lc-members-list {
+  min-width: 0;
+}
+#app.tenant-ui .lc-members-list .lc-member-row.is-selected {
+  background: var(--settings-nav-active, rgba(128, 128, 150, 0.12));
+  border-radius: 8px;
+}
+#app.tenant-ui .lc-member-editor {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid light-dark(#dcdde5, #353744);
+  border-radius: 12px;
+  max-height: calc(100vh - 310px);
+  min-height: 320px;
+  overflow-y: auto;
+  background: light-dark(#fafafb, #1c1e28);
+  animation: lc-member-enter 160ms ease-out;
+}
+#app.tenant-ui .lc-member-editor-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+#app.tenant-ui .lc-member-editor-heading h2 {
+  font-size: 18px;
+  margin: 0;
+}
+#app.tenant-ui .lc-member-editor .lc-group-tabs {
+  margin-top: 16px;
+  gap: 16px;
+}
+#app.tenant-ui .lc-member-editor .lc-form {
+  gap: 16px;
+}
+#app.tenant-ui .lc-member-editor .lc-member-row {
+  margin: 0;
+  padding: 0 0 16px;
+}
+#app.tenant-ui .lc-member-editor .lc-member-feedback {
+  min-height: 24px;
+}
+@keyframes lc-member-enter {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app.tenant-ui .lc-member-editor {
+    animation: none;
+  }
+}
+@media (max-width: 1050px) {
+  #app.tenant-ui .lc-members-split.is-editing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #app.tenant-ui .lc-member-editor {
+    max-height: 600px;
+  }
+}
+#app.tenant-ui .lc-member-editor-shell { position: relative; align-self: stretch; min-height: 420px; }
+#app.tenant-ui .lc-member-editor-shell .lc-member-editor { position: absolute; inset: 0; min-height: 0; max-height: none; }
+#app.tenant-ui .lc-member-editor .lc-form { margin-top: 0; }

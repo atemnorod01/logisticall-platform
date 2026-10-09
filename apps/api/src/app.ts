@@ -289,6 +289,9 @@ export function buildApp(
     },
   );
   settingsRoutes(app, {
+    presence: deps.presence
+      ? (org, ids) => deps.presence!.read(org, ids)
+      : undefined,
     request: deps.settings ?? iamSettings(config.iamApi),
     async authorize(req, org) {
       if (req.headers["x-iam-impersonation"] !== undefined)
