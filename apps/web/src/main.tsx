@@ -13,6 +13,19 @@ import { Icon } from "./ui.js";
 import { usePresence, type PresenceMode } from "./presence.js";
 import { Contacts } from "./contacts-view.js";
 import { Calls, Conversations } from "./communication-views.js";
+import {
+  OrganizationGroups,
+  GroupInboxes,
+  NetworkGroups,
+} from "./groups-view.js";
+type Page =
+  | "Conversations"
+  | "Calls"
+  | "Contacts"
+  | "Settings"
+  | "Organization administration"
+  | "Group inboxes"
+  | "Network directory";
 const controller = workspaceController();
 function Wordmark() {
   return (
@@ -38,9 +51,7 @@ function App() {
       return "dark";
     }
   });
-  const [page, setPage] = useState<
-    "Conversations" | "Calls" | "Contacts" | "Settings"
-  >("Settings");
+  const [page, setPage] = useState<Page>("Settings");
   useEffect(() => {
     void controller.load();
   }, []);
@@ -214,6 +225,30 @@ function App() {
                   ? `Presence: ${presence.status}`
                   : "Choose an organization to share presence"}
               </small>
+              {state.context && (
+                <>
+                  <button
+                    className="button"
+                    onClick={() => setPage("Group inboxes")}
+                  >
+                    Group inboxes
+                  </button>
+                  <button
+                    className="button"
+                    onClick={() => setPage("Network directory")}
+                  >
+                    Network directory
+                  </button>
+                  {state.permissions.includes("groups.manage") && (
+                    <button
+                      className="button"
+                      onClick={() => setPage("Organization administration")}
+                    >
+                      Organization administration
+                    </button>
+                  )}
+                </>
+              )}
               <strong>Your account</strong>
               <small>{state.context?.name ?? "Choose an organization"}</small>
               <button className="button" onClick={() => setPage("Settings")}>
@@ -266,7 +301,12 @@ function App() {
                   {state.permissions.includes(
                     "organization.profile.update",
                   ) && (
-                    <p>Organization administration will be available here.</p>
+                    <button
+                      className="button"
+                      onClick={() => setPage("Organization administration")}
+                    >
+                      Organization administration
+                    </button>
                   )}
                 </>
               )}
@@ -281,6 +321,34 @@ function App() {
               </button>
             </section>
           </section>
+        ) : page === "Organization administration" ? (
+          state.permissions.includes("groups.manage") ? (
+            <OrganizationGroups
+              key={state.context.organization_id}
+              organizationId={state.context.organization_id}
+              organizationName={state.context.name}
+              csrf={state.session!.csrfToken}
+            />
+          ) : (
+            <section className="admin">
+              <h1>Access unavailable</h1>
+              <p>Organization administrator access is required.</p>
+            </section>
+          )
+        ) : page === "Group inboxes" ? (
+          <GroupInboxes
+            key={`${state.session!.userId}:${state.context.organization_id}`}
+            organizationId={state.context.organization_id}
+            organizationName={state.context.name}
+            csrf={state.session!.csrfToken}
+          />
+        ) : page === "Network directory" ? (
+          <NetworkGroups
+            key={state.context.organization_id}
+            organizationId={state.context.organization_id}
+            organizationName={state.context.name}
+            csrf={state.session!.csrfToken}
+          />
         ) : page === "Contacts" ? (
           <Contacts
             key={`${state.session!.userId}:${state.context.organization_id}`}

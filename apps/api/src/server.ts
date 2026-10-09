@@ -1,3 +1,4 @@
+import { postgresGroups } from "./groups-store.js";
 import { postgresPresence } from "./presence.js";
 import { z } from "zod";
 import { Pool } from "pg";
@@ -16,6 +17,7 @@ const config = z
     AUTH_MODE: z.enum(["browser", "protocol"]).default("browser"),
     APP_ORIGIN: https.optional(),
     SESSION_DATABASE_URL: z.string().optional(),
+    PLATFORM_DATABASE_URL: z.string().optional(),
     SESSION_ENCRYPTION_KEY: z
       .string()
       .regex(/^[0-9a-f]{64}$/i)
@@ -80,14 +82,57 @@ if (config.AUTH_MODE === "browser") {
   });
 } else if (process.env.NODE_ENV === "production")
   throw Error("Protocol-only mode is disabled in production");
+let groupsPool: Pool | undefined;
+if (config.PLATFORM_DATABASE_URL) {
+  const url = new URL(config.PLATFORM_DATABASE_URL);
+  if ([...url.searchParams.keys()].some((k) => k.startsWith("ssl")))
+    throw Error("Database TLS overrides are not allowed");
+  groupsPool = new Pool({
+    connectionString: config.PLATFORM_DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: true,
+      ...(config.SESSION_DATABASE_CA ? { ca: config.SESSION_DATABASE_CA } : {}),
+    },
+    max: 5,
+    connectionTimeoutMillis: 5000,
+    idleTimeoutMillis: 30000,
+    statement_timeout: 5000,
+    query_timeout: 6000,
+  });
+  const result = await groupsPool.query(
+    "select r.rolsuper,r.rolbypassrls,pg_has_role(current_user,'platform_group_runtime','USAGE') as groups_access,has_schema_privilege(current_user,'platform_auth','USAGE') as session_access from pg_roles r where rolname=current_user",
+  );
+  const role = result.rows[0];
+  if (
+    !role?.groups_access ||
+    role.session_access ||
+    role.rolsuper ||
+    role.rolbypassrls
+  ) {
+    await groupsPool.end();
+    throw Error("Use a dedicated restricted groups database login");
+  }
+  groupsPool.on("error", () =>
+    console.error("Groups database connection failed"),
+  );
+}
 const app = buildApp(
   {
     issuer: config.IAM_ISSUER,
     clientId: config.IAM_CLIENT_ID,
     iamApi: config.IAM_API_URL,
   },
-  browser ? { browser, presence: postgresPresence(pool!) } : {},
+  {
+    ...(browser ? { browser, presence: postgresPresence(pool!) } : {}),
+    ...(groupsPool ? { groups: postgresGroups(groupsPool) } : {}),
+  },
 );
+if (groupsPool) {
+  const groups = groupsPool;
+  app.addHook("onClose", async () => {
+    await groups.end();
+  });
+}
 if (pool) {
   const sessions = pool;
   let cleaning = false;

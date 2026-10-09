@@ -1,4 +1,7 @@
 import Fastify from "fastify";
+import { groupRoutes } from "./groups-routes.js";
+import { GroupFailure, type GroupStore } from "./groups-store.js";
+import { iamGroupEligibility } from "./iam.js";
 import type { PresenceStore } from "./presence.js";
 import { readCookie } from "./auth/browser.js";
 import { digest } from "./auth/crypto.js";
@@ -20,6 +23,8 @@ export function buildApp(
     organizations?: ReturnType<typeof iamOrganizations>;
     directory?: ReturnType<typeof iamDirectory>;
     presence?: PresenceStore;
+    groups?: GroupStore;
+    groupEligibility?: ReturnType<typeof iamGroupEligibility>;
     browser?: ReturnType<typeof browserSessions>;
   } = {},
 ) {
@@ -38,10 +43,14 @@ export function buildApp(
   });
   app.setErrorHandler((error, _request, reply) => {
     // Database/provider error text may contain connection or account details.
+    if (error instanceof z.ZodError)
+      return reply.code(400).send({ message: "Invalid request" });
     const status =
-      typeof (error as { statusCode?: unknown }).statusCode === "number"
-        ? (error as { statusCode: number }).statusCode
-        : 500;
+      error instanceof IamFailure
+        ? error.status
+        : typeof (error as { statusCode?: unknown }).statusCode === "number"
+          ? (error as { statusCode: number }).statusCode
+          : 500;
     return reply.code(status >= 400 && status < 500 ? status : 503).send({
       message:
         status >= 400 && status < 500
@@ -276,5 +285,45 @@ export function buildApp(
       }
     },
   );
+  groupRoutes(app, {
+    store: deps.groups,
+    eligibility: deps.groupEligibility ?? iamGroupEligibility(config.iamApi),
+    async authorize(req, organizationId) {
+      if (req.headers["x-iam-impersonation"] !== undefined)
+        throw new GroupFailure(403);
+      const token = deps.browser
+        ? await deps.browser.accessToken(req)
+        : /^Bearer ([^\s]+)$/i.exec(req.headers.authorization ?? "")?.[1];
+      if (!token) throw new GroupFailure(401);
+      let actor;
+      try {
+        actor = await verify(token);
+      } catch {
+        throw new GroupFailure(401);
+      }
+      let membership;
+      try {
+        membership = await context(token, organizationId);
+      } catch (error) {
+        throw new GroupFailure(
+          error instanceof IamFailure ? error.status : 503,
+        );
+      }
+      if (
+        membership.user_id !== actor.userId ||
+        membership.organization_id !== organizationId
+      )
+        throw new GroupFailure(403);
+      return {
+        actor: {
+          userId: actor.userId,
+          organizationId,
+          organizationName: membership.name,
+        },
+        token,
+        manage: permissionsFor(membership).includes("groups.manage"),
+      };
+    },
+  });
   return app;
 }

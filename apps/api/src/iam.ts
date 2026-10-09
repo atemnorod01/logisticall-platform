@@ -1,3 +1,4 @@
+import { z } from "zod";
 import {
   directoryResult,
   organizationContext,
@@ -135,5 +136,76 @@ export function iamDirectory(baseUrl: string, fetcher: typeof fetch = fetch) {
     } catch (error) {
       throw error instanceof IamFailure ? error : new IamFailure(503);
     }
+  };
+}
+
+export function iamGroupEligibility(
+  baseUrl: string,
+  fetcher: typeof fetch = fetch,
+) {
+  const base = new URL(baseUrl);
+  if (base.protocol !== "https:") throw Error("HTTPS IAM API required");
+  async function request(token: string, path: string, body?: unknown) {
+    try {
+      const response = await fetcher(new URL(path, base), {
+        method: body === undefined ? "GET" : "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        redirect: "error",
+        signal: AbortSignal.timeout(5000),
+      });
+      if (!response.ok)
+        throw new IamFailure(
+          [401, 403].includes(response.status) ? response.status : 503,
+        );
+      return await response.json();
+    } catch (error) {
+      throw error instanceof IamFailure ? error : new IamFailure(503);
+    }
+  }
+  return {
+    async member(token: string, organization: string, user: string) {
+      try {
+        const result = z
+          .object({
+            organization_id: z.uuid(),
+            user_id: z.uuid(),
+            name: z.string().min(1).max(254),
+            membership_key: z.string().min(1).max(100),
+          })
+          .parse(
+            await request(
+              token,
+              `/v1/integration/organizations/${organization}/group-member/${user}`,
+            ),
+          );
+        if (result.organization_id !== organization || result.user_id !== user)
+          throw Error();
+        return result;
+      } catch (error) {
+        throw error instanceof IamFailure ? error : new IamFailure(503);
+      }
+    },
+    async active(token: string, organization: string, ids: string[]) {
+      try {
+        const result = z
+          .array(z.uuid())
+          .max(50)
+          .parse(
+            await request(
+              token,
+              `/v1/integration/organizations/${organization}/active-organizations`,
+              { ids },
+            ),
+          );
+        if (result.some((id) => !ids.includes(id))) throw Error();
+        return result;
+      } catch (error) {
+        throw error instanceof IamFailure ? error : new IamFailure(503);
+      }
+    },
   };
 }
