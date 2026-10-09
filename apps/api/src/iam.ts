@@ -88,6 +88,7 @@ export function iamIdentity(baseUrl: string, fetcher: typeof fetch = fetch) {
     const value = (await response.json()) as {
       user_id?: unknown;
       display_name?: unknown;
+      platform_admin?: unknown;
     };
     if (
       typeof value.user_id !== "string" ||
@@ -96,6 +97,7 @@ export function iamIdentity(baseUrl: string, fetcher: typeof fetch = fetch) {
       throw new IamFailure(503);
     return {
       user_id: value.user_id,
+      platform_admin: value.platform_admin === true,
       display_name:
         typeof value.display_name === "string"
           ? value.display_name.slice(0, 254)
@@ -216,5 +218,38 @@ export function iamGroupEligibility(
         throw error instanceof IamFailure ? error : new IamFailure(503);
       }
     },
+  };
+}
+
+export function iamSettings(baseUrl: string, fetcher: typeof fetch = fetch) {
+  const base = new URL(baseUrl);
+  if (base.protocol !== "https:") throw Error("HTTPS IAM API required");
+  return async (
+    token: string,
+    path: string,
+    method = "GET",
+    body?: unknown,
+  ): Promise<unknown> => {
+    try {
+      const response = await fetcher(new URL("/v1/integration" + path, base), {
+        method,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+        redirect: "error",
+        signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok)
+        throw new IamFailure(
+          [400, 401, 403, 409].includes(response.status)
+            ? response.status
+            : 503,
+        );
+      return await response.json();
+    } catch (error) {
+      throw error instanceof IamFailure ? error : new IamFailure(503);
+    }
   };
 }

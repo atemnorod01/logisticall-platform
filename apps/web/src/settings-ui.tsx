@@ -1,3 +1,4 @@
+import { InvitationManager } from "./invitations-view.js";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Avatar, Icon } from "./ui.js";
 import {
@@ -79,7 +80,6 @@ export function AccountMenu({
             <Avatar name={name} />
             <div>
               <strong>{name || "Your account"}</strong>
-              <small>Personal account</small>
             </div>
           </div>
           <div className="lc-account-org">
@@ -145,11 +145,13 @@ export function SettingsNav({
   setPage,
   admin,
   organization,
+  platformAdmin,
 }: {
   page: SettingPage;
   setPage: (p: SettingPage) => void;
   admin: boolean;
   organization?: string | undefined;
+  platformAdmin: boolean;
 }) {
   return (
     <aside className="lc-settings-nav" aria-label="Settings navigation">
@@ -208,6 +210,18 @@ export function SettingsNav({
           ))}
         </>
       )}
+      {platformAdmin && (
+        <div className="lc-platform-nav">
+          <span className="lc-caption lc-org-caption">Platform</span>
+          <a
+            href="https://logisticall-iam-staging.pages.dev/"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Platform administration ↗
+          </a>
+        </div>
+      )}
     </aside>
   );
 }
@@ -263,12 +277,14 @@ export function PersonalSettings({
   selector,
   theme,
   setTheme,
+  onSaveName,
 }: {
   page: SettingPage;
   state: WorkspaceState;
   selector: ReactNode;
   theme: string;
   setTheme: (t: string) => void;
+  onSaveName: (name: string) => Promise<void>;
 }) {
   const [notice, setNotice] = useState("");
   const [notifications, setNotifications] = useState(() => {
@@ -314,9 +330,14 @@ export function PersonalSettings({
             <Avatar name={state.session?.displayName || ""} large />
             <div>
               <h2>{state.session?.displayName || "Your account"}</h2>
-              <p>Your identity is managed by LogistiCall IAM.</p>
             </div>
           </div>
+          <NameEditor
+            label="Your name"
+            value={state.session?.displayName || ""}
+            maxLength={100}
+            onSave={onSaveName}
+          />
           <div className="lc-form">
             <h3>Workspace</h3>
             {selector}
@@ -413,7 +434,13 @@ export function PersonalSettings({
     </section>
   );
 }
-export function OrganizationOverview({ state }: { state: WorkspaceState }) {
+export function OrganizationOverview({
+  state,
+  onSaveName,
+}: {
+  state: WorkspaceState;
+  onSaveName: (name: string) => Promise<void>;
+}) {
   return (
     <section className="lc-settings-page">
       <header className="lc-page-heading">
@@ -423,10 +450,12 @@ export function OrganizationOverview({ state }: { state: WorkspaceState }) {
           <p>Your current organization.</p>
         </div>
       </header>
-      <div className="lc-setting-row">
-        <strong>Organization name</strong>
-        <span>{state.context?.name}</span>
-      </div>
+      <NameEditor
+        label="Organization name"
+        value={state.context?.name || ""}
+        maxLength={120}
+        onSave={onSaveName}
+      />
       <div className="lc-setting-row">
         <strong>Your role</strong>
         <span>{state.context?.role_id}</span>
@@ -435,17 +464,17 @@ export function OrganizationOverview({ state }: { state: WorkspaceState }) {
         <strong>Status</strong>
         <span>Active</span>
       </div>
-      <p className="lc-feedback">
-        Organization identity and access are managed in LogistiCall IAM.
-      </p>
     </section>
   );
 }
 export function OrganizationMembers({
   organizationId,
+  csrf,
 }: {
   organizationId: string;
+  csrf: string;
 }) {
+  const [inviting, setInviting] = useState(false);
   const [rows, setRows] = useState<DirectoryContact[]>([]),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
@@ -496,8 +525,11 @@ export function OrganizationMembers({
         <div>
           <span className="lc-caption">Organization settings</span>
           <h1>Members</h1>
-          <p>Active members of your organization.</p>
+          <p>People in your organization.</p>
         </div>
+        <button className="button primary" onClick={() => setInviting(true)}>
+          Invite member
+        </button>
       </header>
       <form
         className="lc-search"
@@ -539,6 +571,72 @@ export function OrganizationMembers({
           Load more members
         </button>
       )}
+      <InvitationManager
+        organizationId={organizationId}
+        csrf={csrf}
+        creating={inviting}
+        onClose={() => setInviting(false)}
+      />
     </section>
+  );
+}
+
+function NameEditor({
+  label,
+  value,
+  maxLength,
+  onSave,
+}: {
+  label: string;
+  value: string;
+  maxLength: number;
+  onSave: (name: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(value),
+    [busy, setBusy] = useState(false),
+    [notice, setNotice] = useState("");
+  const lock = useRef(false);
+  useEffect(() => setName(value), [value]);
+  return (
+    <form
+      className="lc-form"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        if (lock.current) return;
+        lock.current = true;
+        setBusy(true);
+        setNotice("");
+        try {
+          await onSave(name.trim());
+          setNotice("Changes saved.");
+        } catch {
+          setNotice("Changes could not be saved. Please try again.");
+        } finally {
+          lock.current = false;
+          setBusy(false);
+        }
+      }}
+    >
+      <label>
+        {label}
+        <input
+          value={name}
+          required
+          maxLength={maxLength}
+          disabled={busy}
+          onChange={(e) => {
+            setName(e.target.value);
+            setNotice("");
+          }}
+        />
+      </label>
+      <button
+        className="button primary"
+        disabled={busy || !name.trim() || name.trim() === value}
+      >
+        {busy ? "Saving…" : "Save changes"}
+      </button>
+      {notice && <p role="status">{notice}</p>}
+    </form>
   );
 }

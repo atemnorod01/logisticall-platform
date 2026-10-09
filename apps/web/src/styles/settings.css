@@ -556,3 +556,29 @@
   gap: 8px;
   margin-top: 24px;
 }
+#app.tenant-ui .lc-invitations {
+  margin-top: 40px;
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+#app.tenant-ui .lc-invitations > p {
+  font-size: 13px;
+  margin: 10px 0 16px;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-invitations .lc-modal p {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+#app.tenant-ui .lc-platform-nav a {
+  display: block;
+  margin: 6px 12px;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: none;
+  line-height: 1.6;
+}
+#app.tenant-ui .lc-platform-nav a:hover {
+  text-decoration: underline;
+}

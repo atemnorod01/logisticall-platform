@@ -9,6 +9,7 @@ const sessionSchema = z.object({
   userId: z.uuid(),
   csrfToken: z.string(),
   displayName: z.string().max(254).nullable().optional(),
+  platformAdmin: z.boolean().default(false),
 });
 const pageSchema = z.object({
   organizations: organizationMemberships,
@@ -181,6 +182,57 @@ export function workspaceController(fetcher: typeof fetch = fetch) {
               "This organization is unavailable or your access has changed. Choose another organization.",
           });
       }
+    },
+    async saveProfile(name: string) {
+      const ticket = epoch,
+        user = state.session?.userId;
+      const value = z
+        .object({ user_id: z.uuid(), display_name: z.string().max(100) })
+        .parse(
+          await (
+            await request("/v1/me/profile", {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": state.session!.csrfToken,
+              },
+              body: JSON.stringify({ name }),
+            })
+          ).json(),
+        );
+      if (ticket !== epoch || value.user_id !== user)
+        throw Error("Account changed");
+      update({
+        ...state,
+        session: { ...state.session!, displayName: value.display_name },
+      });
+    },
+    async saveOrganization(name: string) {
+      const ticket = epoch,
+        org = state.context!.organization_id;
+      const value = z
+        .object({ organization_id: z.uuid(), name: z.string().max(120) })
+        .parse(
+          await (
+            await request(`/v1/organizations/${org}/profile`, {
+              method: "PATCH",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token": state.session!.csrfToken,
+              },
+              body: JSON.stringify({ name }),
+            })
+          ).json(),
+        );
+      if (ticket !== epoch || value.organization_id !== org)
+        throw Error("Organization changed");
+      update({
+        ...state,
+        context: { ...state.context!, name: value.name },
+        organizations: state.organizations.map((o) =>
+          o.organization_id === org ? { ...o, name: value.name } : o,
+        ),
+      });
     },
     async logout() {
       const csrf = state.session?.csrfToken;

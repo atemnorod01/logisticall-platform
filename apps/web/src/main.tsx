@@ -268,6 +268,7 @@ function App() {
           page={currentSetting}
           setPage={openSettings}
           admin={admin}
+          platformAdmin={state.session?.platformAdmin === true}
           organization={state.context?.name}
         />
       )}
@@ -281,16 +282,22 @@ function App() {
               csrf={state.session!.csrfToken}
             />
           ) : currentSetting === "Overview" && admin ? (
-            <OrganizationOverview state={state} />
+            <OrganizationOverview
+              key={state.context!.organization_id}
+              state={state}
+              onSaveName={controller.saveOrganization}
+            />
           ) : currentSetting === "Members" && admin ? (
             <OrganizationMembers
               key={state.context!.organization_id}
               organizationId={state.context!.organization_id}
+              csrf={state.session!.csrfToken}
             />
           ) : (
             <PersonalSettings
               key={state.session!.userId}
               page={currentSetting}
+              onSaveName={controller.saveProfile}
               state={state}
               selector={selector("profile-organization")}
               theme={theme}

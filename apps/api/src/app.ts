@@ -1,3 +1,5 @@
+import { settingsRoutes } from "./settings-routes.js";
+import { iamSettings } from "./iam.js";
 import Fastify from "fastify";
 import { groupRoutes } from "./groups-routes.js";
 import { GroupFailure, type GroupStore } from "./groups-store.js";
@@ -18,6 +20,7 @@ import {
 export function buildApp(
   config: { issuer: string; clientId: string; iamApi: string },
   deps: {
+    settings?: ReturnType<typeof iamSettings>;
     verify?: ReturnType<typeof tokenVerifier>;
     context?: ReturnType<typeof iamGateway>;
     organizations?: ReturnType<typeof iamOrganizations>;
@@ -285,6 +288,35 @@ export function buildApp(
       }
     },
   );
+  settingsRoutes(app, {
+    request: deps.settings ?? iamSettings(config.iamApi),
+    async authorize(req, org) {
+      if (req.headers["x-iam-impersonation"] !== undefined)
+        throw new IamFailure(403);
+      const token = deps.browser
+        ? await deps.browser.accessToken(req)
+        : /^Bearer ([^\s]+)$/i.exec(req.headers.authorization ?? "")?.[1];
+      if (!token) throw new IamFailure(401);
+      let actor;
+      try {
+        actor = await verify(token);
+      } catch {
+        throw new IamFailure(401);
+      }
+      if (org) {
+        const c = await context(token, org);
+        if (
+          c.user_id !== actor.userId ||
+          c.organization_id !== org ||
+          c.membership_status !== "active" ||
+          c.organization_status !== "active" ||
+          !["admin", "owner"].includes(c.role_id)
+        )
+          throw new IamFailure(403);
+      }
+      return token;
+    },
+  });
   groupRoutes(app, {
     store: deps.groups,
     eligibility: deps.groupEligibility ?? iamGroupEligibility(config.iamApi),
