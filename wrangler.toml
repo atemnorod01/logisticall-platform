@@ -1,0 +1,5 @@
+name = "logisticall-platform-staging"
+pages_build_output_dir = "./apps/web/dist"
+compatibility_date = "2026-10-09"
+# APP_ORIGIN and API_ORIGIN must be set to verified staging HTTPS origins
+# in the Pages environment before deployment. No secrets belong in this file.

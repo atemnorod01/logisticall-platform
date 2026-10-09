@@ -1,4 +1,14 @@
 node_modules/
 dist/
+coverage/
 .env
 .env.*
+!.env.example
+.pnpm-store/
+.DS_Store
+
+# Local Supabase CLI connection metadata
+**/supabase/.temp/
+
+# Local Cloudflare tooling output
+.wrangler/

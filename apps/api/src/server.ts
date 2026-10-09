@@ -5,6 +5,7 @@ import { browserSessions } from './auth/browser.js';
 import { discoverProvider } from './auth/provider.js';
 import { postgresSessionStore } from './auth/store.js';
 import { iamIdentity } from './iam.js';
+import { postgresLoginAdmission } from './auth/admission.js';
 const https = z.url().refine(v => new URL(v).protocol === 'https:');
 const config = z.object({
   IAM_ISSUER: https, IAM_CLIENT_ID: z.string().min(1), IAM_API_URL: https,
@@ -12,6 +13,7 @@ const config = z.object({
   APP_ORIGIN: https.optional(), SESSION_DATABASE_URL: z.string().optional(),
   SESSION_ENCRYPTION_KEY: z.string().regex(/^[0-9a-f]{64}$/i).optional(),
   SESSION_DATABASE_CA: z.string().optional(),
+  LOGIN_PER_MINUTE: z.coerce.number().int().min(1).max(10000).default(120),
   PORT: z.coerce.number().int().min(1).max(65535).default(3001),
   HOST: z.string().default('127.0.0.1'),
 }).parse(process.env);
@@ -30,7 +32,7 @@ if (config.AUTH_MODE === 'browser') {
   if (!check.rows[0]?.session_access || check.rows[0]?.tenant_access) { await pool.end(); throw Error('Use a dedicated session database login'); }
   pool.on('error', () => { console.error('Session database connection failed'); });
   const provider = await discoverProvider(config.IAM_ISSUER, config.IAM_CLIENT_ID, new URL('/auth/callback', config.APP_ORIGIN).href).catch(async (error) => { await pool!.end(); throw error; });
-  browser = browserSessions({ origin: config.APP_ORIGIN, key: Buffer.from(config.SESSION_ENCRYPTION_KEY, 'hex'), store: postgresSessionStore(pool), provider, identity: iamIdentity(config.IAM_API_URL) });
+  browser = browserSessions({ origin: config.APP_ORIGIN, key: Buffer.from(config.SESSION_ENCRYPTION_KEY, 'hex'), store: postgresSessionStore(pool), provider, identity: iamIdentity(config.IAM_API_URL), admitLogin: postgresLoginAdmission(pool, config.LOGIN_PER_MINUTE) });
 } else if (process.env.NODE_ENV === 'production') throw Error('Protocol-only mode is disabled in production');
 const app = buildApp({ issuer: config.IAM_ISSUER, clientId: config.IAM_CLIENT_ID, iamApi: config.IAM_API_URL }, browser ? { browser } : {});
 if (pool) {
@@ -42,6 +44,7 @@ if (pool) {
     void Promise.all([
       sessions.query('delete from platform_auth.login_transactions where expires_at<$1', [Date.now()]),
       sessions.query('delete from platform_auth.sessions where idle_expires_at<$1 or absolute_expires_at<$1', [Date.now()]),
+      sessions.query("delete from platform_auth.login_admission where window_start < date_trunc('minute',clock_timestamp()) - interval '2 minutes'"),
     ]).catch(() => { console.error('Expired session cleanup failed'); }).finally(() => { cleaning = false; });
   }, 60_000);
   cleanup.unref();

@@ -10,12 +10,19 @@
     "skipLibCheck": true,
     "types": [
       "node"
+    ],
+    "jsx": "react-jsx",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
     ]
   },
   "include": [
     "apps",
     "packages",
     "tests",
-    "vitest.config.ts"
+    "vitest.config.ts",
+    "functions"
   ]
 }

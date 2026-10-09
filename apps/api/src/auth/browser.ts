@@ -18,6 +18,7 @@ export function browserSessions(options: {
   origin: string; key: Buffer; store: SessionStore; provider: Provider;
   identity: (token: string) => Promise<{ user_id: string }>;
   now?: () => number;
+  admitLogin?: () => Promise<boolean>;
 }) {
   const { store, provider, identity } = options;
   const origin = new URL(options.origin);
@@ -67,6 +68,12 @@ export function browserSessions(options: {
         }
       });
       app.get('/auth/login', async (_req, reply) => {
+        try {
+          if (options.admitLogin && !await options.admitLogin())
+            return reply.code(429).header('Retry-After', '60').send({ message: 'Sign-in is busy. Please try again shortly.' });
+        } catch {
+          return reply.code(503).header('Retry-After', '60').send({ message: 'Sign-in is temporarily unavailable.' });
+        }
         const login: Login = { state: randomToken(), nonce: randomToken(), verifier: randomToken() };
         const browser = randomToken();
         const location = await provider.authorize(login);
