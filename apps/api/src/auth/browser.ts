@@ -111,8 +111,17 @@ export function browserSessions(options: {
         } catch (error) {
           // Only fixed stage labels and known library codes; never exception text, URLs, cookies or tokens.
           const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
-          const known = ['OAUTH_INVALID_RESPONSE', 'OAUTH_RESPONSE_BODY_ERROR', 'OAUTH_JWT_CLAIM_COMPARISON_FAILED', 'ERR_JWT_CLAIM_VALIDATION_FAILED', 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED', 'ERR_JWT_EXPIRED'];
-          console.error(JSON.stringify({ event: 'auth_callback_failed', phase, code: typeof code === 'string' && known.includes(code) ? code : 'unclassified' }));
+          const known = ['OAUTH_INVALID_RESPONSE', 'OAUTH_RESPONSE_BODY_ERROR', 'OAUTH_JWT_CLAIM_COMPARISON_FAILED', 'ERR_JWT_CLAIM_VALIDATION_FAILED', 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED', 'ERR_JWT_EXPIRED', 'LC_ACCESS_TOKEN_INVALID', 'LC_SUBJECT_MISMATCH', 'LC_TOKEN_RESPONSE_INCOMPLETE', 'OAUTH_UNSUPPORTED_OPERATION', 'OAUTH_WWW_AUTHENTICATE_CHALLENGE', 'OAUTH_AUTHORIZATION_RESPONSE_ERROR', 'OAUTH_PARSE_ERROR', 'OAUTH_INVALID_REQUEST', 'OAUTH_RESPONSE_IS_NOT_JSON', 'OAUTH_RESPONSE_IS_NOT_CONFORM', 'OAUTH_JWT_TIMESTAMP_CHECK_FAILED', 'OAUTH_JSON_ATTRIBUTE_COMPARISON_FAILED', 'OAUTH_KEY_SELECTION_FAILED', 'OAUTH_MISSING_SERVER_METADATA', 'OAUTH_INVALID_SERVER_METADATA', 'OAUTH_TIMEOUT', 'OAUTH_ABORT'];
+          const causes: string[] = [];
+          let current: unknown = error;
+          for (let depth = 0; depth < 4 && current && typeof current === 'object'; depth++) {
+            const entry = current as { code?: unknown; name?: unknown; message?: unknown; cause?: unknown };
+            if (typeof entry.code === 'string' && known.includes(entry.code)) causes.push(entry.code);
+            else if (['ZodError','TypeError','ClientError'].includes(String(entry.name))) causes.push(String(entry.name));
+            if (['Invalid token context','Ineligible authentication','Subject mismatch','Incomplete token response','Expired access token'].includes(String(entry.message))) causes.push(String(entry.message));
+            current = entry.cause;
+          }
+          console.error(JSON.stringify({ causes, event: 'auth_callback_failed', phase, code: typeof code === 'string' && known.includes(code) ? code : 'unclassified' }));
           return reply.code(401).send({ message: 'Sign-in failed. Start sign-in again.' });
         }
       });

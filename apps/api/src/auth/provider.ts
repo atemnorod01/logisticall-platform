@@ -19,10 +19,12 @@ export async function discoverProvider(issuer: string, clientId: string, callbac
   oidc.enableNonRepudiationChecks(config);
   const verify = tokenVerifier(issuer, clientId, dependencies.key);
   async function validate(result: Awaited<ReturnType<typeof oidc.authorizationCodeGrant>>, subject?: string): Promise<Tokens> {
-    const actor = await verify(result.access_token);
+    let actor;
+    try { actor = await verify(result.access_token); }
+    catch (error) { throw Object.assign(Error('Access token validation failed'), { cause: error, code: 'LC_ACCESS_TOKEN_INVALID' }); }
     const claims = result.claims();
-    if ((claims && claims.sub !== actor.userId) || (subject && subject !== actor.userId)) throw Error('Subject mismatch');
-    if (!result.refresh_token || result.token_type.toLowerCase() !== 'bearer') throw Error('Incomplete token response');
+    if ((claims && claims.sub !== actor.userId) || (subject && subject !== actor.userId)) throw Object.assign(Error('Subject mismatch'), { code: 'LC_SUBJECT_MISMATCH' });
+    if (!result.refresh_token || result.token_type.toLowerCase() !== 'bearer') throw Object.assign(Error('Incomplete token response'), { code: 'LC_TOKEN_RESPONSE_INCOMPLETE' });
     const exp = decodeJwt(result.access_token).exp! * 1000;
     if (exp <= Date.now()) throw Error('Expired access token');
     return { access: result.access_token, refresh: result.refresh_token, userId: actor.userId, expires: exp };
