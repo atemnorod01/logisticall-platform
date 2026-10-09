@@ -841,12 +841,7 @@
   }
 }
 #app.tenant-ui .lc-settings-open {
-  --panel: light-dark(#fff, #20222e);
-  --surface: light-dark(#eff0f5, #2d3040);
-  --ink: light-dark(#222435, #f1f1f6);
   --text: var(--ink);
-  --muted: light-dark(#6c7080, #a4a8b9);
-  --line: light-dark(#e6e7ee, #343744);
 }
 #app.tenant-ui .lc-settings-open .lc-settings-nav {
   background: var(--lc-settings-field-background);
@@ -856,7 +851,7 @@
   background: var(--panel);
 }
 #app.tenant-ui.conversation-workspace .lc-settings-open > .sidebar {
-  background: var(--panel);
+  background: var(--bg);
   border-right: 1px solid var(--line);
 }
 
@@ -983,8 +978,8 @@
 
 /* One field surface across legacy forms, search, pickers and dialogs. */
 #app.tenant-ui .lc-settings-open {
-  --lc-settings-field-background: light-dark(#fafafb, #1c1e28);
-  --lc-settings-input-background: light-dark(#f0f1f5, #161821);
+  --lc-settings-field-background: var(--panel);
+  --lc-settings-input-background: var(--surface);
 }
 #app.tenant-ui
   .lc-settings-open
@@ -999,7 +994,7 @@
 }
 
 #app.tenant-ui.conversation-workspace .lc-settings-open .rail-bottom {
-  --presence-surround: var(--panel);
+  --presence-surround: var(--bg);
 }
 #app.tenant-ui .lc-member-feedback {
   min-height: 48px;
@@ -1040,12 +1035,12 @@
 #app.tenant-ui .lc-member-editor {
   min-width: 0;
   padding: 20px;
-  border: 1px solid light-dark(#dcdde5, #353744);
+  border: 1px solid var(--line);
   border-radius: 12px;
   max-height: calc(100vh - 310px);
   min-height: 320px;
   overflow-y: auto;
-  background: light-dark(#fafafb, #1c1e28);
+  background: var(--panel);
   animation: lc-member-enter 160ms ease-out;
 }
 #app.tenant-ui .lc-member-editor-heading {
@@ -1217,9 +1212,9 @@
 
 #app.tenant-ui .lc-profile-identity .lc-profile-email { margin: 6px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
 
-/* The main rail keeps identical viewport geometry on every workspace page. */
+/* Reserve the same rail edge on every page without a visible divider. */
 #app.tenant-ui.conversation-workspace .conversation-shell > .sidebar {
-  border-right: 1px solid var(--line);
+  border-right: 1px solid transparent;
 }
 #app.tenant-ui .lc-settings-open > .lc-settings-nav {
   grid-column: 2;
@@ -1270,4 +1265,58 @@
   margin: 8px 0 0;
   font-size: 13px;
   line-height: 1.5;
+}
+
+/* Draw field focus rings inside their bounds so scroll panels cannot clip them. */
+#app.tenant-ui input:focus-visible,
+#app.tenant-ui select:focus-visible,
+#app.tenant-ui textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Settings uses the same inset, rounded panel edge as the other workspaces. */
+#app.tenant-ui.conversation-workspace .conversation-shell.layout.lc-settings-open {
+  padding: 8px 8px 8px 0;
+}
+#app.tenant-ui .lc-settings-open > .lc-settings-nav {
+  border: 1px solid var(--line);
+  border-radius: 12px 0 0 12px;
+}
+#app.tenant-ui.conversation-workspace .lc-settings-open > .workspace {
+  border: 1px solid var(--line);
+  border-left: 0;
+  border-radius: 0 12px 12px 0;
+}
+@media (max-width: 600px) {
+  #app.tenant-ui .lc-settings-open > .lc-settings-nav {
+    border-radius: 12px 12px 0 0;
+  }
+  #app.tenant-ui.conversation-workspace .lc-settings-open > .workspace {
+    border-left: 1px solid var(--line);
+    border-top: 0;
+    border-radius: 0 0 12px 12px;
+  }
+}
+
+/* Compact settings navigation and a full usable editor on narrow windows. */
+#app.tenant-ui .lc-compact-settings-nav { display: none; }
+@media (max-width: 1050px) {
+  #app.tenant-ui .lc-members-split.is-editing .lc-members-list { display: none; }
+  #app.tenant-ui .lc-members-split.is-editing { overflow: hidden; }
+  #app.tenant-ui .lc-member-editor-shell { min-height: 0; }
+}
+@media (max-width: 600px) {
+  #app.tenant-ui .lc-settings-open > .lc-settings-nav { max-height: none; overflow: visible; padding: 16px; }
+  #app.tenant-ui .lc-settings-nav > :not(.lc-compact-settings-nav):not(.lc-platform-nav) { display: none; }
+  #app.tenant-ui .lc-compact-settings-nav { display: grid; gap: 8px; font-size: 13px; }
+  #app.tenant-ui .lc-settings-nav .lc-platform-nav { margin-top: 12px; }
+  #app.tenant-ui .lc-platform-nav .lc-caption { display: none; }
+  #app.tenant-ui .lc-settings-open .lc-members-page { height: auto; min-height: 100%; overflow: visible; }
+  #app.tenant-ui .lc-members-split { display: block; overflow: visible; }
+  #app.tenant-ui .lc-members-list { overflow: visible; max-height: none; }
+  #app.tenant-ui .lc-member-editor-shell .lc-member-editor { position: relative; min-height: 0; height: auto; overflow: visible; }
+  #app.tenant-ui .lc-member-editor-body { overflow: visible; }
+  #app.tenant-ui .lc-member-editor-footer { position: sticky; bottom: 0; }
+  #app.tenant-ui .lc-members-page .lc-settings-header { flex-wrap: wrap; height: auto; }
 }

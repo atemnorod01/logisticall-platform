@@ -169,6 +169,17 @@ export function SettingsNav({
   return (
     <aside className="lc-settings-nav" aria-label="Settings navigation">
       <h2>Settings</h2>
+      <label className="lc-compact-settings-nav">
+        Settings
+        <select aria-label="Settings page" value={page} onChange={(e) => setPage(e.target.value as SettingPage)}>
+          <optgroup label="Personal">
+            {(["Profile", "Notifications", "Audio & video", "Appearance"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+          </optgroup>
+          {admin && <optgroup label={organization || "Organization"}>
+            {(["Overview", "Members", "Groups"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+          </optgroup>}
+        </select>
+      </label>
       <span className="lc-caption">Personal</span>
       {(
         [
