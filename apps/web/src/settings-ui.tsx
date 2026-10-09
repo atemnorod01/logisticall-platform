@@ -449,6 +449,7 @@ export function OrganizationMembers({
   const [rows, setRows] = useState<DirectoryContact[]>([]),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
+    [refresh, setRefresh] = useState(0),
     [next, setNext] = useState<number | null>(null),
     [offset, setOffset] = useState(0),
     [busy, setBusy] = useState(true),
@@ -488,7 +489,7 @@ export function OrganizationMembers({
         if (!abort.signal.aborted) setBusy(false);
       });
     return () => abort.abort();
-  }, [organizationId, offset, query]);
+  }, [organizationId, offset, query, refresh]);
   return (
     <section className="lc-settings-page">
       <header className="lc-page-heading">
@@ -505,6 +506,7 @@ export function OrganizationMembers({
           setOffset(0);
           setRows([]);
           setQuery(search.trim());
+          setRefresh((n) => n + 1);
         }}
       >
         <input
