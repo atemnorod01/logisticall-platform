@@ -61,12 +61,8 @@ function App() {
   if (state.phase !== "ready")
     return (
       <main className="auth-panel">
-        <div className="brand">ATEM</div>
-        <h1>
-          Your team.
-          <br />
-          Your devices.
-        </h1>
+        <div className="brand">LogistiCall</div>
+        <h1>Your workspace.</h1>
         {state.phase === "anonymous" ? (
           <>
             <p>Sign in with your LogistiCall account.</p>
