@@ -349,7 +349,9 @@ export function PersonalSettings({
             <h3>Workspace</h3>
             {selector}
             {state.switching && (
-              <p role="status">Checking organization access…</p>
+              <p className="sr-only" role="status">
+                Checking organization access…
+              </p>
             )}
             {state.context && <p>Organization role: {state.context.role_id}</p>}
             {!state.organizations.length && (
@@ -505,7 +507,10 @@ export function OrganizationOverview({
       type !== saved.organization_type ||
       description.trim() !== saved.description);
   return (
-    <section className="lc-settings-page lc-organization-overview">
+    <section
+      className="lc-settings-page lc-organization-overview"
+      aria-busy={loading || busy}
+    >
       <header className="lc-page-heading">
         <div>
           <p className="lc-breadcrumb">Settings / {state.context?.name}</p>
@@ -514,7 +519,9 @@ export function OrganizationOverview({
         </div>
       </header>
       {loading ? (
-        <p role="status">Loading organization details…</p>
+        <p className="sr-only" role="status">
+          Loading organization details…
+        </p>
       ) : !saved ? (
         <div role="alert">
           <p>{error}</p>
@@ -660,7 +667,7 @@ export function OrganizationMembers({
     return () => abort.abort();
   }, [organizationId, offset, query, refresh]);
   return (
-    <section className="lc-settings-page">
+    <section className="lc-settings-page" aria-busy={busy}>
       <header className="lc-page-heading">
         <div>
           <span className="lc-caption">Organization settings</span>
@@ -719,7 +726,6 @@ export function OrganizationMembers({
           onSubmit={(e) => {
             e.preventDefault();
             setOffset(0);
-            setRows([]);
             setQuery(search.trim());
             setRefresh((n) => n + 1);
           }}
@@ -734,7 +740,11 @@ export function OrganizationMembers({
           <button className="button">Search</button>
         </form>
         {error && <p role="alert">{error}</p>}
-        {busy && <p role="status">Loading members…</p>}
+        {busy && (
+          <p className="sr-only" role="status">
+            Loading members…
+          </p>
+        )}
         {rows.map((p) => (
           <div className="lc-member-row" key={p.id}>
             <Avatar name={p.name} presence={p.presence} />
@@ -787,7 +797,7 @@ function NameEditor({
   useEffect(() => setName(value), [value]);
   return (
     <form
-      className="lc-form"
+      className="lc-form lc-single-field-form"
       onSubmit={async (e) => {
         e.preventDefault();
         if (lock.current) return;
@@ -824,7 +834,9 @@ function NameEditor({
       >
         {busy ? "Saving…" : "Save changes"}
       </button>
-      {notice && <p role="status">{notice}</p>}
+      <p className="lc-save-notice" role="status">
+        {notice}
+      </p>
     </form>
   );
 }

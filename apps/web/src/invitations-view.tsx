@@ -130,6 +130,7 @@ export function InvitationManager({
     <>
       <section
         className="lc-invitations"
+        aria-busy={loading || busy}
         id="organization-invitations-panel"
         role="tabpanel"
         aria-labelledby="organization-invitations-tab"
@@ -139,7 +140,11 @@ export function InvitationManager({
           New users join as members. Invitation links are shared by you; no
           email is sent.
         </p>
-        {loading && <p role="status">Loading invitations…</p>}
+        {loading && (
+          <p className="sr-only" role="status">
+            Loading invitations…
+          </p>
+        )}
         {error && !creating && !linkOpen && (
           <p role="alert">
             {error}{" "}

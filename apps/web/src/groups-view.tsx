@@ -270,7 +270,11 @@ function AddGroupMembers({
                 </label>
               );
             })}
-            {loading && <p role="status">Loading members…</p>}
+            {loading && (
+              <p className="sr-only" role="status">
+                Loading members…
+              </p>
+            )}
             {loadError && (
               <div role="alert">
                 <p>{loadError}</p>
@@ -434,6 +438,7 @@ export function OrganizationGroups({
   return (
     <section
       className={`admin lc-group-admin${detail ? " lc-group-detail" : ""}`}
+      aria-busy={api.busy}
     >
       {detail && (
         <button
@@ -486,7 +491,11 @@ export function OrganizationGroups({
           </button>
         </p>
       )}
-      {api.busy && <p role="status">Updating groups…</p>}
+      {api.busy && (
+        <p className="sr-only" role="status">
+          Loading group details…
+        </p>
+      )}
       {!detail && (
         <>
           <div className="lc-group-toolbar">
@@ -842,7 +851,11 @@ export function GroupInboxes({
         </button>
       </div>
       {api.error && <p role="alert">{api.error}</p>}
-      {api.busy && <p role="status">Checking group access…</p>}
+      {api.busy && (
+        <p className="sr-only" role="status">
+          Checking group access…
+        </p>
+      )}
       <section className="panel padded">
         {groups.map((g) => (
           <button
@@ -952,7 +965,11 @@ export function NetworkGroups({
         </button>
       </form>
       {api.error && <p role="alert">{api.error}</p>}
-      {api.busy && <p role="status">Loading network groups…</p>}
+      {api.busy && (
+        <p className="sr-only" role="status">
+          Loading network groups…
+        </p>
+      )}
       {rows.map((g) => (
         <section key={`${g.organization_id}:${g.id}`} className="panel padded">
           <div className="eyebrow">{g.organization_name}</div>

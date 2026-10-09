@@ -861,3 +861,74 @@
   background: var(--panel);
   border-right: 1px solid var(--line);
 }
+
+/* Settings share one content edge; feedback must not shift controls. */
+#app.tenant-ui .lc-settings-open .lc-settings-page,
+#app.tenant-ui .lc-settings-open .admin {
+  position: relative;
+  max-width: 1100px;
+  width: 100%;
+  padding: 32px;
+}
+#app.tenant-ui .lc-settings-open .lc-form,
+#app.tenant-ui .lc-settings-open .lc-organization-form,
+#app.tenant-ui .lc-settings-open .lc-group-admin .lc-group-form {
+  max-width: none;
+  width: 100%;
+}
+#app.tenant-ui .lc-settings-open > .workspace {
+  scrollbar-gutter: stable;
+}
+#app.tenant-ui .lc-settings-open [aria-busy="true"].lc-settings-page::before,
+#app.tenant-ui .lc-settings-open [aria-busy="true"].lc-group-admin::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 32px;
+  right: 32px;
+  height: 2px;
+  background: var(--muted);
+  opacity: 0.55;
+  pointer-events: none;
+}
+#app.tenant-ui .lc-settings-open .lc-single-field-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+#app.tenant-ui .lc-single-field-form label {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+#app.tenant-ui .lc-single-field-form input {
+  width: 100%;
+  margin: 0;
+  min-height: 40px;
+}
+#app.tenant-ui .lc-single-field-form .button {
+  min-width: 110px;
+  min-height: 40px;
+  margin: 0;
+}
+#app.tenant-ui .lc-single-field-form .lc-save-notice {
+  grid-column: 1 / -1;
+  min-height: 20px;
+  margin: 0;
+  font-size: 12px;
+}
+@media (max-width: 850px) {
+  #app.tenant-ui .lc-settings-open .lc-settings-page,
+  #app.tenant-ui .lc-settings-open .admin {
+    padding: 24px 20px;
+  }
+}
+@media (max-width: 600px) {
+  #app.tenant-ui .lc-settings-open .lc-settings-page,
+  #app.tenant-ui .lc-settings-open .admin {
+    padding: 20px 14px;
+  }
+}
