@@ -737,7 +737,7 @@ export function OrganizationGroups({
                 <button
                   className="lc-text-action"
                   disabled={api.busy || detail.group.archived}
-                  aria-label={`Remove ${m.name}`}
+                  aria-label={`Remove ${memberProfiles[m.user_id]?.name ?? m.name}`}
                   onClick={() =>
                     void api.run(async () => {
                       await api.request(
