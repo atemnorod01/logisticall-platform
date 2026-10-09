@@ -38,6 +38,7 @@ type Page =
   | "Group inboxes"
   | "Network directory";
 const controller = workspaceController();
+const refreshPresenceSession = () => controller.refreshSession();
 function Wordmark() {
   return (
     <>
@@ -52,6 +53,7 @@ function App() {
     state.context?.organization_id,
     state.session?.csrfToken,
     state.session?.userId,
+    refreshPresenceSession,
   );
   const [theme, setTheme] = useState(() => {
     try {

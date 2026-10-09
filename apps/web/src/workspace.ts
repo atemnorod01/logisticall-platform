@@ -117,6 +117,23 @@ export function workspaceController(fetcher: typeof fetch = fetch) {
           });
       }
     },
+    async refreshSession() {
+      const ticket = epoch;
+      try {
+        const session = sessionSchema.parse(await (await request("/auth/session")).json());
+        if (ticket !== epoch) return;
+        if (session.userId !== state.session?.userId) {
+          await this.load();
+          return;
+        }
+        update({ ...state, session });
+      } catch (error) {
+        if (ticket === epoch && (error as { status?: number }).status === 401) {
+          ++epoch;
+          anonymous();
+        }
+      }
+    },
     async more() {
       if (state.nextOffset === null || state.phase !== "ready") return;
       const ticket = epoch,
