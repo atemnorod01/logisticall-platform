@@ -361,6 +361,10 @@ export function OrganizationGroups({
   const [detail, setDetail] = useState<z.infer<typeof groupDetail> | null>(
     null,
   );
+  const [memberProfiles, setMemberProfiles] = useState<
+    Record<string, DirectoryContact>
+  >({});
+  const [profileError, setProfileError] = useState(false);
   const [createId, setCreateId] = useState(() => crypto.randomUUID());
   const [name, setName] = useState(""),
     [description, setDescription] = useState(""),
@@ -369,6 +373,7 @@ export function OrganizationGroups({
   const clear = () => {
     setGroups([]);
     setDetail(null);
+    setMemberProfiles({});
     setNext(null);
   };
   async function list(offset = 0) {
@@ -385,6 +390,29 @@ export function OrganizationGroups({
     setDescription(value.group.description);
     setVisibility(value.group.visibility);
     setArchived(value.group.archived);
+    setMemberProfiles({});
+    setProfileError(false);
+    const remaining = new Set(value.members.map((member) => member.user_id));
+    const profiles: Record<string, DirectoryContact> = {};
+    let offset: number | null = 0;
+    try {
+      while (remaining.size && offset !== null) {
+        const page = directoryPage.parse(
+          await api.request(`contacts?limit=100&offset=${offset}`),
+        );
+        if (page.organization_id !== organizationId)
+          throw Error("Invalid organization");
+        for (const contact of page.contacts) {
+          if (remaining.delete(contact.id)) profiles[contact.id] = contact;
+        }
+        if (page.nextOffset !== null && page.nextOffset <= offset)
+          throw Error("Invalid pagination");
+        offset = page.nextOffset;
+      }
+      setMemberProfiles(profiles);
+    } catch {
+      setProfileError(true);
+    }
   }
   useEffect(() => {
     void api.run(() => list(), clear);
@@ -404,7 +432,9 @@ export function OrganizationGroups({
       if (detail) await select(detail.group.id);
     }, clear);
   return (
-    <section className="admin lc-group-admin">
+    <section
+      className={`admin lc-group-admin${detail ? " lc-group-detail" : ""}`}
+    >
       {detail && (
         <button
           className="lc-group-back"
@@ -414,35 +444,48 @@ export function OrganizationGroups({
             setTab("Members");
           }}
         >
-          ← All groups
+          <Icon name="arrow-left" /> All groups
         </button>
       )}
       <header className="lc-page-heading">
-        <div>
-          <span className="lc-caption">{organizationName} / Groups</span>
-          <h1>{detail ? detail.group.name : "Groups"}</h1>
-          <p>
-            {detail
-              ? `${detail.members.length} ${detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Network visible" : "Private"}`
-              : "Shared inboxes managed by your organization."}
-          </p>
+        <div className={detail ? "lc-group-detail-heading" : undefined}>
+          {detail && (
+            <span className="lc-group-symbol">
+              <Icon name="inbox" />
+            </span>
+          )}
+          <div>
+            {!detail && (
+              <p className="lc-breadcrumb">Settings / {organizationName}</p>
+            )}
+            <h1>{detail ? detail.group.name : "Groups"}</h1>
+            <p>
+              {detail
+                ? `${detail.members.length} ${detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Visible in the network" : "Private group"}`
+                : "Shared inboxes managed by your organization."}
+            </p>
+          </div>
         </div>
         <div className="actions">
-          <button className="button" disabled={api.busy} onClick={reload}>
-            Refresh
-          </button>
           {!detail && (
             <button
               className="button primary"
               disabled={api.busy}
               onClick={fresh}
             >
-              New group
+              <Icon name="plus" /> New group
             </button>
           )}
         </div>
       </header>
-      {api.error && !creating && <p role="alert">{api.error}</p>}
+      {api.error && !creating && (
+        <p role="alert">
+          {api.error}{" "}
+          <button className="button" onClick={reload}>
+            Try again
+          </button>
+        </p>
+      )}
       {api.busy && <p role="status">Updating groups…</p>}
       {!detail && (
         <>
@@ -550,7 +593,7 @@ export function OrganizationGroups({
         >
           {api.error && creating && <p role="alert">{api.error}</p>}
           <form
-            className="narrow"
+            className="narrow lc-group-form"
             onSubmit={(e) => {
               e.preventDefault();
               void api.run(async () => {
@@ -584,7 +627,7 @@ export function OrganizationGroups({
               onChange={(e) => setName(e.target.value)}
             />
             <label htmlFor="group-description">Description</label>
-            <input
+            <textarea
               id="group-description"
               maxLength={500}
               value={description}
@@ -606,60 +649,93 @@ export function OrganizationGroups({
               </option>
             </select>
             <p className="note">
-              Network discovery shares the group name, description and
-              organization name with signed-in network participants. It does not
-              reveal members or grant inbox access.
+              Network participants can find the group. Members and inbox
+              contents stay private.
             </p>
-            {detail && (
-              <label htmlFor="group-status">
-                Group status
-                <select
-                  id="group-status"
-                  value={archived ? "archived" : "active"}
-                  disabled={api.busy}
-                  onChange={(e) => setArchived(e.target.value === "archived")}
-                >
-                  <option value="active">Active</option>
-                  <option value="archived">
-                    Archived — hide from discovery and close inbox access
-                  </option>
-                </select>
-              </label>
-            )}
-            <button
-              className="button primary"
-              disabled={api.busy || !name.trim()}
-            >
-              {detail ? "Save group" : "Create group"}
-            </button>
+            <div className="lc-group-form-actions">
+              <button
+                className="button primary"
+                disabled={api.busy || !name.trim()}
+              >
+                {detail ? "Save changes" : "Create group"}
+              </button>
+            </div>
           </form>
+          {detail && (
+            <div className="lc-setting-row lc-group-archive">
+              <div>
+                <h3>
+                  {detail.group.archived ? "Restore group" : "Archive group"}
+                </h3>
+                <p>
+                  {detail.group.archived
+                    ? "Make this group active again."
+                    : "Remove it from active groups and network discovery."}
+                </p>
+              </div>
+              <button
+                className="lc-text-action"
+                disabled={api.busy}
+                onClick={() =>
+                  void api.run(async () => {
+                    await api.request(`groups/${detail.group.id}`, "PATCH", {
+                      name: detail.group.name,
+                      description: detail.group.description,
+                      visibility: detail.group.visibility,
+                      archived: !detail.group.archived,
+                      version: detail.group.version,
+                    });
+                    await select(detail.group.id);
+                    await list();
+                  }, clear)
+                }
+              >
+                {detail.group.archived ? "Restore" : "Archive"}
+              </button>
+            </div>
+          )}
         </GroupEditor>
       )}
       {detail && tab === "Members" && (
-        <section className="panel padded">
+        <section className="panel padded lc-group-members">
           <div className="lc-page-heading">
-            <h2>Group members</h2>
+            <div>
+              <h2>Group members</h2>
+              <p>Only organization admins can change membership.</p>
+            </div>
             {!detail.group.archived && (
               <button
                 className="button"
                 disabled={api.busy}
                 onClick={() => setAdding(true)}
               >
-                Add members
+                <Icon name="user-plus" /> Add members
               </button>
             )}
           </div>
-          <p>
-            Assigned users can open this group’s shared inbox. Members cannot
-            join or leave themselves. Administration alone does not grant inbox
-            access.
-          </p>
+          {profileError && (
+            <p role="alert">
+              Member contact details could not be loaded.{" "}
+              <button className="lc-text-action" onClick={reload}>
+                Try again
+              </button>
+            </p>
+          )}
           <div>
             {detail.members.map((m) => (
               <div className="lc-member-row" key={m.user_id}>
-                {m.name}{" "}
+                <Avatar name={memberProfiles[m.user_id]?.name ?? m.name} />
+                <div>
+                  <strong>{memberProfiles[m.user_id]?.name ?? m.name}</strong>
+                  <small>
+                    {memberProfiles[m.user_id]?.email ??
+                      (api.busy
+                        ? "Loading contact details…"
+                        : "Contact details unavailable")}
+                  </small>
+                </div>
                 <button
-                  className="button"
+                  className="lc-text-action"
                   disabled={api.busy || detail.group.archived}
                   aria-label={`Remove ${m.name}`}
                   onClick={() =>

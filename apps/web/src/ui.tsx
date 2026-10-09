@@ -1,5 +1,12 @@
 import type { ReactNode } from "react";
 const paths: Record<string, ReactNode> = {
+  "arrow-left": <path d="M19 12H5m7-7-7 7 7 7" />,
+  "user-plus": (
+    <>
+      <circle cx="9" cy="7" r="3" />
+      <path d="M3 21v-3a6 6 0 0 1 12 0v3M19 8v6m-3-3h6" />
+    </>
+  ),
   chevron: <path d="m9 5 7 7-7 7" />,
   user: (
     <>

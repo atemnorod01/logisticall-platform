@@ -661,3 +661,203 @@
   width: 18px;
   height: 18px;
 }
+
+/* Group screens follow the approved settings prototype. */
+#app.tenant-ui .lc-settings-open .lc-group-admin {
+  max-width: 714px;
+  padding: 32px 30px 40px;
+}
+#app.tenant-ui .lc-group-admin .lc-breadcrumb {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 0 0 14px;
+}
+#app.tenant-ui .lc-group-admin .lc-page-heading {
+  margin-bottom: 28px;
+}
+#app.tenant-ui .lc-group-admin .lc-page-heading p {
+  margin: 0;
+  line-height: 1.5;
+}
+#app.tenant-ui .lc-group-admin .button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 8px 13px;
+  border-radius: 7px;
+  font-size: 12px;
+  white-space: nowrap;
+  background: transparent;
+}
+#app.tenant-ui .lc-group-admin .button svg {
+  width: 14px;
+  height: 14px;
+}
+#app.tenant-ui .lc-group-admin .button.primary {
+  background: var(--ink);
+  color: var(--panel);
+  border-color: var(--ink);
+}
+#app.tenant-ui .lc-group-back {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 22px;
+}
+#app.tenant-ui .lc-group-back svg {
+  width: 14px;
+  height: 14px;
+}
+#app.tenant-ui .lc-group-detail-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+#app.tenant-ui .lc-group-detail-heading h1 {
+  margin-bottom: 3px;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+#app.tenant-ui .lc-group-detail-heading .lc-group-symbol {
+  display: grid;
+  place-items: center;
+  flex: 0 0 44px;
+  height: 44px;
+  border-radius: 9px;
+  background: var(--surface);
+}
+#app.tenant-ui .lc-group-detail .lc-group-tabs {
+  margin: 0 0 24px;
+  gap: 23px;
+}
+#app.tenant-ui .lc-group-tabs button {
+  font-size: 13px;
+  padding-bottom: 13px;
+}
+#app.tenant-ui .lc-group-members h2 {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+#app.tenant-ui .lc-group-members .lc-member-row {
+  gap: 11px;
+  padding: 16px 0;
+  min-height: 71px;
+}
+#app.tenant-ui .lc-group-members .avatar {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  font-size: 11px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+#app.tenant-ui .lc-group-members .lc-member-row strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+}
+#app.tenant-ui .lc-group-members .lc-member-row small {
+  font-size: 11px;
+  margin-top: 3px;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-group-admin .lc-text-action {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 5px 0;
+  font-size: 12px;
+  flex-shrink: 0;
+  border-radius: 0;
+}
+#app.tenant-ui .lc-group-admin .lc-text-action:hover {
+  text-decoration: underline;
+}
+#app.tenant-ui .lc-group-admin button:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+}
+#app.tenant-ui .lc-group-admin .lc-group-form {
+  max-width: 500px;
+}
+#app.tenant-ui .lc-group-form label {
+  font-size: 12px;
+  font-weight: 500;
+  margin: 0 0 7px;
+}
+#app.tenant-ui .lc-group-form input,
+#app.tenant-ui .lc-group-form select,
+#app.tenant-ui .lc-group-form textarea {
+  display: block;
+  width: 100%;
+  min-height: 39px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  padding: 9px 11px;
+  font: inherit;
+  font-size: 13px;
+  margin: 0 0 20px;
+}
+#app.tenant-ui .lc-group-form textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+#app.tenant-ui .lc-group-form .note {
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: -12px 0 20px;
+  font-size: 11px;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-group-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 8px;
+}
+#app.tenant-ui .lc-group-archive {
+  margin-top: 28px;
+}
+#app.tenant-ui .lc-group-archive h3 {
+  font-size: 15px;
+  font-weight: 500;
+  margin: 0;
+}
+#app.tenant-ui .lc-group-archive p {
+  font-size: 12px;
+  margin: 3px 0 0;
+}
+#app.tenant-ui .lc-group-archive .lc-text-action {
+  color: var(--danger, #df8585);
+}
+@media (max-width: 850px) {
+  #app.tenant-ui .lc-settings-open .lc-group-admin {
+    padding: 28px 20px;
+  }
+}
+#app.tenant-ui .lc-settings-open {
+  --panel: light-dark(#fff, #20222e);
+  --surface: light-dark(#eff0f5, #2d3040);
+  --ink: light-dark(#222435, #f1f1f6);
+  --text: var(--ink);
+  --muted: light-dark(#6c7080, #a4a8b9);
+  --line: light-dark(#e6e7ee, #343744);
+}
+#app.tenant-ui .lc-settings-open .lc-settings-nav {
+  background: light-dark(#fafafb, #1c1e28);
+}
+#app.tenant-ui .lc-settings-open .lc-group-admin .lc-group-form input,
+#app.tenant-ui .lc-settings-open .lc-group-admin .lc-group-form select {
+  background: var(--panel);
+}
+#app.tenant-ui.conversation-workspace .lc-settings-open > .sidebar {
+  background: var(--panel);
+  border-right: 1px solid var(--line);
+}
