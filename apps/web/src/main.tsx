@@ -143,45 +143,55 @@ function App() {
         </section>
       </main>
     );
-  const selector = (id: string) => (
-    <>
-      <label htmlFor={id}>Organization</label>
-      <select
-        id={id}
-        value={state.context?.organization_id ?? ""}
-        disabled={state.switching}
-        onChange={(e) => {
-          setPage("Settings");
-          void controller.select(e.target.value);
-        }}
-      >
-        <option value="" disabled>
-          Choose an organization
-        </option>
-        {state.organizations.map((org) => (
-          <option
-            key={org.organization_id}
-            value={org.organization_id}
-            disabled={
-              org.organization_status !== "active" ||
-              org.membership_status !== "active"
-            }
-          >
-            {org.name}
-            {org.organization_status !== "active" ||
-            org.membership_status !== "active"
-              ? " — access unavailable"
-              : ""}
+  const selector = (id: string) =>
+    state.organizations.length === 1 && state.nextOffset === null ? (
+      <div className="lc-single-organization">
+        <span className="lc-caption">Organization</span>
+        <strong>{state.organizations[0]!.name}</strong>
+        {(state.organizations[0]!.organization_status !== "active" ||
+          state.organizations[0]!.membership_status !== "active") && (
+          <p>Access unavailable</p>
+        )}
+      </div>
+    ) : (
+      <>
+        <label htmlFor={id}>Organization</label>
+        <select
+          id={id}
+          value={state.context?.organization_id ?? ""}
+          disabled={state.switching}
+          onChange={(e) => {
+            setPage("Settings");
+            void controller.select(e.target.value);
+          }}
+        >
+          <option value="" disabled>
+            Choose an organization
           </option>
-        ))}
-      </select>
-      {state.nextOffset !== null && (
-        <button className="button" onClick={() => void controller.more()}>
-          Load more organizations
-        </button>
-      )}
-    </>
-  );
+          {state.organizations.map((org) => (
+            <option
+              key={org.organization_id}
+              value={org.organization_id}
+              disabled={
+                org.organization_status !== "active" ||
+                org.membership_status !== "active"
+              }
+            >
+              {org.name}
+              {org.organization_status !== "active" ||
+              org.membership_status !== "active"
+                ? " — access unavailable"
+                : ""}
+            </option>
+          ))}
+        </select>
+        {state.nextOffset !== null && (
+          <button className="button" onClick={() => void controller.more()}>
+            Load more organizations
+          </button>
+        )}
+      </>
+    );
   return (
     <div
       className={`layout conversation-shell${page === "Settings" || !state.context ? " lc-settings-open" : ""}`}
