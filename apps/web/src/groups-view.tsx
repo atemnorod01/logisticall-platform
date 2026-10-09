@@ -11,7 +11,8 @@ import {
   directoryPage,
   type DirectoryContact,
 } from "../../../packages/types/src/index.js";
-import { Icon } from "./ui.js";
+import { Avatar, Icon } from "./ui.js";
+import { addGroupMembers } from "./group-member-add.js";
 import { Modal } from "./settings-ui.js";
 function useGroupRequests(organizationId: string, csrf: string) {
   const [error, setError] = useState(""),
@@ -94,6 +95,256 @@ function GroupEditor({
     <section className="lc-form">{children}</section>
   );
 }
+function AddGroupMembers({
+  organizationId,
+  csrf,
+  detail,
+  onClose,
+}: {
+  organizationId: string;
+  csrf: string;
+  detail: z.infer<typeof groupDetail>;
+  onClose: () => void;
+}) {
+  const api = useGroupRequests(organizationId, csrf);
+  const [query, setQuery] = useState("");
+  const [rows, setRows] = useState<DirectoryContact[]>([]);
+  const [selected, setSelected] = useState<DirectoryContact[]>([]);
+  const [assigned, setAssigned] = useState(
+    () => new Set(detail.members.map((m) => m.user_id)),
+  );
+  const [offset, setOffset] = useState(0),
+    [next, setNext] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true),
+    [saving, setSaving] = useState(false);
+  const [error, setError] = useState(""),
+    [loadError, setLoadError] = useState("");
+  const [retry, setRetry] = useState(0),
+    [open, setOpen] = useState(true);
+  const locked = useRef(false),
+    live = useRef(true);
+  useEffect(
+    () => () => {
+      live.current = false;
+    },
+    [],
+  );
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setLoadError("");
+    const timer = setTimeout(
+      () => {
+        void api
+          .request(
+            `contacts?limit=50&offset=${offset}&search=${encodeURIComponent(query.trim())}`,
+          )
+          .then((value) => {
+            const data = directoryPage.parse(value);
+            if (data.organization_id !== organizationId) throw Error();
+            if (active) {
+              setRows((old) =>
+                offset ? [...old, ...data.contacts] : data.contacts,
+              );
+              setNext(data.nextOffset);
+            }
+          })
+          .catch(() => {
+            if (active) setLoadError("Members could not be loaded. Try again.");
+          })
+          .finally(() => {
+            if (active) setLoading(false);
+          });
+      },
+      query ? 200 : 0,
+    );
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [query, offset, retry, organizationId]);
+  const options = rows.filter((p) => !assigned.has(p.id));
+  const capacity = 200 - assigned.size;
+  const close = () => {
+    if (!locked.current) onClose();
+  };
+  async function save() {
+    if (locked.current || !selected.length) return;
+    locked.current = true;
+    setSaving(true);
+    setError("");
+    let completed = 0;
+    try {
+      await addGroupMembers(
+        api.request,
+        detail.group.id,
+        selected.map((p) => p.id),
+        (id) => {
+          completed++;
+          if (live.current) {
+            setAssigned((old) => new Set([...old, id]));
+            setSelected((old) => old.filter((p) => p.id !== id));
+          }
+        },
+      );
+      if (live.current) onClose();
+    } catch {
+      if (live.current)
+        setError(
+          completed
+            ? `${completed} added. The remaining people could not be added. Retry or cancel to review the group.`
+            : "Members could not be added. Your access or the group may have changed. Retry or cancel to review the group.",
+        );
+    } finally {
+      locked.current = false;
+      if (live.current) setSaving(false);
+    }
+  }
+  return (
+    <Modal title="Add members" onClose={close}>
+      <div className="lc-member-picker">
+        <p>
+          Select people from your organization to add to {detail.group.name}.
+        </p>
+        <label htmlFor="group-member-search">Organization members</label>
+        <div className="lc-picker-search">
+          <input
+            id="group-member-search"
+            autoFocus
+            placeholder="Search name or email"
+            value={query}
+            maxLength={100}
+            disabled={saving}
+            aria-expanded={open}
+            aria-controls="group-member-options"
+            onFocus={() => setOpen(true)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOffset(0);
+              setRows([]);
+              setNext(null);
+              setOpen(true);
+            }}
+          />
+          <button
+            type="button"
+            aria-label={open ? "Collapse member list" : "Expand member list"}
+            aria-expanded={open}
+            disabled={saving}
+            onClick={() => setOpen(!open)}
+          >
+            {open ? "▴" : "▾"}
+          </button>
+        </div>
+        {open && (
+          <div
+            id="group-member-options"
+            className="lc-picker-options"
+            role="group"
+            aria-label="Organization members"
+          >
+            {options.map((p) => {
+              const checked = selected.some((s) => s.id === p.id);
+              return (
+                <label className="lc-picker-option" key={p.id}>
+                  <Avatar name={p.name} />
+                  <span>
+                    <strong>{p.name}</strong>
+                    <small>{p.email}</small>
+                  </span>
+                  <input
+                    type="checkbox"
+                    aria-label={p.name}
+                    checked={checked}
+                    disabled={
+                      saving || (!checked && selected.length >= capacity)
+                    }
+                    onChange={(e) =>
+                      setSelected((old) =>
+                        e.target.checked
+                          ? [...old, p]
+                          : old.filter((s) => s.id !== p.id),
+                      )
+                    }
+                  />
+                </label>
+              );
+            })}
+            {loading && <p role="status">Loading members…</p>}
+            {loadError && (
+              <div role="alert">
+                <p>{loadError}</p>
+                <button
+                  type="button"
+                  className="button"
+                  onClick={() => setRetry((n) => n + 1)}
+                >
+                  Try again
+                </button>
+              </div>
+            )}
+            {!loading && !loadError && !options.length && (
+              <p>
+                {query
+                  ? "No matching members available."
+                  : "No unassigned members on this page."}
+              </p>
+            )}
+            {next !== null && !loadError && (
+              <button
+                type="button"
+                className="button"
+                disabled={loading || saving}
+                onClick={() => setOffset(next)}
+              >
+                Load more members
+              </button>
+            )}
+          </div>
+        )}
+        {selected.length > 0 && (
+          <div className="lc-picker-selected" aria-label="Selected members">
+            {selected.map((p) => (
+              <button
+                type="button"
+                key={p.id}
+                disabled={saving}
+                aria-label={`Deselect ${p.name}`}
+                onClick={() =>
+                  setSelected((old) => old.filter((s) => s.id !== p.id))
+                }
+              >
+                {p.name} ×
+              </button>
+            ))}
+          </div>
+        )}
+        {capacity <= selected.length && (
+          <p role="status">Group limit: 200 members.</p>
+        )}
+        {error && <p role="alert">{error}</p>}
+        <div className="lc-picker-actions">
+          <button
+            type="button"
+            className="button"
+            disabled={saving}
+            onClick={close}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="button primary"
+            disabled={saving || !selected.length}
+            onClick={() => void save()}
+          >
+            {saving ? "Adding…" : `Add selected (${selected.length})`}
+          </button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
 export function OrganizationGroups({
   organizationId,
   organizationName,
@@ -115,14 +366,9 @@ export function OrganizationGroups({
     [description, setDescription] = useState(""),
     [visibility, setVisibility] = useState<"private" | "network">("private"),
     [archived, setArchived] = useState(false);
-  const [search, setSearch] = useState(""),
-    [candidates, setCandidates] = useState<DirectoryContact[]>([]),
-    [candidate, setCandidate] = useState("");
   const clear = () => {
     setGroups([]);
     setDetail(null);
-    setCandidates([]);
-    setCandidate("");
     setNext(null);
   };
   async function list(offset = 0) {
@@ -139,8 +385,6 @@ export function OrganizationGroups({
     setDescription(value.group.description);
     setVisibility(value.group.visibility);
     setArchived(value.group.archived);
-    setCandidates([]);
-    setCandidate("");
   }
   useEffect(() => {
     void api.run(() => list(), clear);
@@ -153,8 +397,6 @@ export function OrganizationGroups({
     setVisibility("private");
     setArchived(false);
     setCreateId(crypto.randomUUID());
-    setCandidates([]);
-    setCandidate("");
   };
   const reload = () =>
     void api.run(async () => {
@@ -181,7 +423,7 @@ export function OrganizationGroups({
           <h1>{detail ? detail.group.name : "Groups"}</h1>
           <p>
             {detail
-              ? `${detail.members.length} {detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Network visible" : "Private"}`
+              ? `${detail.members.length} ${detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Network visible" : "Private"}`
               : "Shared inboxes managed by your organization."}
           </p>
         </div>
@@ -433,91 +675,15 @@ export function OrganizationGroups({
           </div>
           {!detail.members.length && <p>No members assigned.</p>}
           {adding && !detail.group.archived && (
-            <Modal
-              title="Add members"
+            <AddGroupMembers
+              organizationId={organizationId}
+              csrf={csrf}
+              detail={detail}
               onClose={() => {
-                if (!api.busy) setAdding(false);
+                setAdding(false);
+                reload();
               }}
-            >
-              {api.error && <p role="alert">{api.error}</p>}
-              <form
-                className="narrow"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void api.run(async () => {
-                    const data = directoryPage.parse(
-                      await api.request(
-                        `contacts?limit=50&search=${encodeURIComponent(search)}`,
-                      ),
-                    );
-                    if (data.organization_id !== organizationId) throw Error();
-                    setCandidates(data.contacts);
-                    setCandidate("");
-                  }, clear);
-                }}
-              >
-                <label htmlFor="group-member-search">
-                  Find an active organization member
-                </label>
-                <input
-                  id="group-member-search"
-                  maxLength={100}
-                  value={search}
-                  disabled={api.busy}
-                  onChange={(e) => setSearch(e.target.value)}
-                />
-                <button className="button" disabled={api.busy}>
-                  Find members
-                </button>
-              </form>
-              {candidates.length > 0 && (
-                <div className="narrow">
-                  <label htmlFor="group-member-choice">
-                    Organization member
-                  </label>
-                  <select
-                    id="group-member-choice"
-                    value={candidate}
-                    disabled={api.busy}
-                    onChange={(e) => setCandidate(e.target.value)}
-                  >
-                    <option value="">Choose a member</option>
-                    {candidates
-                      .filter(
-                        (c) => !detail.members.some((m) => m.user_id === c.id),
-                      )
-                      .map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name} — {c.email}
-                        </option>
-                      ))}
-                  </select>
-                  <button
-                    className="button primary"
-                    disabled={
-                      api.busy || !candidate || detail.members.length >= 200
-                    }
-                    onClick={() =>
-                      void api.run(async () => {
-                        await api.request(
-                          `groups/${detail.group.id}/members`,
-                          "POST",
-                          { user_id: candidate, version: detail.group.version },
-                        );
-                        await select(detail.group.id);
-                        await list();
-                      }, clear)
-                    }
-                  >
-                    Add to group
-                  </button>
-                  <p className="note">
-                    Search is limited to 50 matches. Refine the name or email
-                    for larger directories.
-                  </p>
-                </div>
-              )}
-            </Modal>
+            />
           )}
         </section>
       )}
