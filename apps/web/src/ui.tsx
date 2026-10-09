@@ -152,3 +152,26 @@ export function Avatar({
     </span>
   );
 }
+
+export function SettingsHeader({
+  section,
+  title,
+  description,
+  actions,
+}: {
+  section: "Personal settings" | "Organization settings";
+  title: string;
+  description: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="lc-page-heading lc-settings-header">
+      <div className="lc-settings-header-copy">
+        <span className="lc-caption">{section}</span>
+        <h1>{title}</h1>
+        <p>{description}</p>
+      </div>
+      {actions && <div className="lc-settings-header-actions">{actions}</div>}
+    </header>
+  );
+}

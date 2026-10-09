@@ -932,3 +932,53 @@
     padding: 20px 14px;
   }
 }
+
+/* One shared header for every top-level settings page. */
+#app.tenant-ui .lc-settings-open .lc-settings-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 82px;
+  margin: 0 0 32px;
+  font-family: inherit;
+}
+#app.tenant-ui .lc-settings-header-copy {
+  min-width: 0;
+}
+#app.tenant-ui .lc-settings-open .lc-settings-header .lc-caption {
+  display: block;
+  font-size: 10px;
+  line-height: 14px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-settings-open .lc-settings-header h1 {
+  font-family: inherit;
+  font-size: 25px;
+  line-height: 30px;
+  font-weight: 600;
+  letter-spacing: -0.6px;
+  margin: 0 0 8px;
+}
+#app.tenant-ui .lc-settings-open .lc-settings-header p {
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: normal;
+  margin: 0;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-settings-header-actions {
+  flex-shrink: 0;
+}
+#app.tenant-ui .lc-settings-open .lc-settings-header + .lc-profile-identity,
+#app.tenant-ui .lc-settings-open .lc-settings-header + .lc-form,
+#app.tenant-ui .lc-settings-open .lc-settings-header + .lc-organization-form,
+#app.tenant-ui .lc-settings-open .lc-settings-header + .lc-group-tabs {
+  margin-top: 0;
+}

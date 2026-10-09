@@ -6,7 +6,7 @@ import {
 import { z } from "zod";
 import { InvitationManager } from "./invitations-view.js";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Avatar, Icon } from "./ui.js";
+import { Avatar, Icon, SettingsHeader } from "./ui.js";
 import {
   directoryPage,
   type DirectoryContact,
@@ -324,12 +324,22 @@ export function PersonalSettings({
   }, [page]);
   return (
     <section className="lc-settings-page">
-      <header className="lc-page-heading">
-        <div>
-          <span className="lc-caption">Personal settings</span>
-          <h1>{page}</h1>
-        </div>
-      </header>
+      <SettingsHeader
+        section="Personal settings"
+        title={page}
+        description={
+          {
+            Profile: "Manage your name and workspace.",
+            Notifications:
+              "Choose your notification preferences for this browser.",
+            "Audio & video": "Review your microphone, speaker and camera.",
+            Appearance: "Choose the appearance for this browser.",
+            Overview: "Manage your organization.",
+            Members: "People in your organization.",
+            Groups: "Shared inboxes managed by your organization.",
+          }[page]
+        }
+      />
       {state.error && <p role="alert">{state.error}</p>}
       {page === "Profile" ? (
         <>
@@ -362,7 +372,6 @@ export function PersonalSettings({
       ) : page === "Appearance" ? (
         <div className="lc-form">
           <h3>Theme</h3>
-          <p>Choose the appearance for this browser.</p>
           <div className="lc-theme-options">
             {["light", "dark"].map((t) => (
               <button
@@ -511,13 +520,11 @@ export function OrganizationOverview({
       className="lc-settings-page lc-organization-overview"
       aria-busy={loading || busy}
     >
-      <header className="lc-page-heading">
-        <div>
-          <p className="lc-breadcrumb">Settings / {state.context?.name}</p>
-          <h1>Organization overview</h1>
-          <p>Your organization’s identity in LogistiCall.</p>
-        </div>
-      </header>
+      <SettingsHeader
+        section="Organization settings"
+        title="Organization overview"
+        description="Your organization’s identity in LogistiCall."
+      />
       {loading ? (
         <p className="sr-only" role="status">
           Loading organization details…
@@ -668,16 +675,16 @@ export function OrganizationMembers({
   }, [organizationId, offset, query, refresh]);
   return (
     <section className="lc-settings-page" aria-busy={busy}>
-      <header className="lc-page-heading">
-        <div>
-          <span className="lc-caption">Organization settings</span>
-          <h1>Members</h1>
-          <p>People in your organization.</p>
-        </div>
-        <button className="button primary" onClick={() => setInviting(true)}>
-          Invite member
-        </button>
-      </header>
+      <SettingsHeader
+        section="Organization settings"
+        title="Members"
+        description="People in your organization."
+        actions={
+          <button className="button primary" onClick={() => setInviting(true)}>
+            Invite member
+          </button>
+        }
+      />
       <div
         className="lc-group-tabs"
         role="tablist"

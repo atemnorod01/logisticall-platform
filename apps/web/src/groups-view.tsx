@@ -11,7 +11,7 @@ import {
   directoryPage,
   type DirectoryContact,
 } from "../../../packages/types/src/index.js";
-import { Avatar, Icon } from "./ui.js";
+import { Avatar, Icon, SettingsHeader } from "./ui.js";
 import { addGroupMembers } from "./group-member-add.js";
 import { Modal } from "./settings-ui.js";
 function useGroupRequests(organizationId: string, csrf: string) {
@@ -452,27 +452,12 @@ export function OrganizationGroups({
           <Icon name="arrow-left" /> All groups
         </button>
       )}
-      <header className="lc-page-heading">
-        <div className={detail ? "lc-group-detail-heading" : undefined}>
-          {detail && (
-            <span className="lc-group-symbol">
-              <Icon name="inbox" />
-            </span>
-          )}
-          <div>
-            {!detail && (
-              <p className="lc-breadcrumb">Settings / {organizationName}</p>
-            )}
-            <h1>{detail ? detail.group.name : "Groups"}</h1>
-            <p>
-              {detail
-                ? `${detail.members.length} ${detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Visible in the network" : "Private group"}`
-                : "Shared inboxes managed by your organization."}
-            </p>
-          </div>
-        </div>
-        <div className="actions">
-          {!detail && (
+      {!detail ? (
+        <SettingsHeader
+          section="Organization settings"
+          title="Groups"
+          description="Shared inboxes managed by your organization."
+          actions={
             <button
               className="button primary"
               disabled={api.busy}
@@ -480,9 +465,38 @@ export function OrganizationGroups({
             >
               <Icon name="plus" /> New group
             </button>
-          )}
-        </div>
-      </header>
+          }
+        />
+      ) : (
+        <header className="lc-page-heading">
+          <div className={detail ? "lc-group-detail-heading" : undefined}>
+            {detail && (
+              <span className="lc-group-symbol">
+                <Icon name="inbox" />
+              </span>
+            )}
+            <div>
+              <h1>{detail ? detail.group.name : "Groups"}</h1>
+              <p>
+                {detail
+                  ? `${detail.members.length} ${detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Visible in the network" : "Private group"}`
+                  : "Shared inboxes managed by your organization."}
+              </p>
+            </div>
+          </div>
+          <div className="actions">
+            {!detail && (
+              <button
+                className="button primary"
+                disabled={api.busy}
+                onClick={fresh}
+              >
+                <Icon name="plus" /> New group
+              </button>
+            )}
+          </div>
+        </header>
+      )}
       {api.error && !creating && (
         <p role="alert">
           {api.error}{" "}
