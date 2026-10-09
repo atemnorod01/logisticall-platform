@@ -6,6 +6,7 @@ import "./styles/style.css";
 import "./styles/tenant-workspace.css";
 import "./styles/conversation-workspace.css";
 import "./styles/user-directory.css";
+import "./styles/sign-in.css";
 import light from "./branding/logisticall_wordmark_light.svg";
 import dark from "./branding/logisticall_wordmark_dark.svg";
 import brand from "./branding/logisticall_icon_centered.svg";
@@ -44,7 +45,7 @@ function App() {
   );
   const [theme, setTheme] = useState(() => {
     try {
-      return localStorage.getItem("atem.workspace.theme") === "light"
+      return localStorage.getItem("logisticall.workspace.theme") === "light"
         ? "light"
         : "dark";
     } catch {
@@ -60,40 +61,51 @@ function App() {
     root.className =
       state.phase === "ready"
         ? `tenant-ui conversation-workspace${page !== "Conversations" ? " workspace-pages" : ""}`
-        : "";
+        : "logisticall-auth";
     document.body.dataset.tenantTheme = theme;
     root.style.colorScheme = theme;
     try {
-      localStorage.setItem("atem.workspace.theme", theme);
+      localStorage.setItem("logisticall.workspace.theme", theme);
     } catch {
       /* Preference storage is optional. */
     }
   }, [state.phase, theme, page]);
   if (state.phase !== "ready")
     return (
-      <main className="auth-panel">
-        <div className="brand">LogistiCall</div>
-        <h1>Your workspace.</h1>
-        {state.phase === "anonymous" ? (
-          <>
-            <p>Sign in with your LogistiCall account.</p>
-            <a className="button primary full" href="/auth/login">
-              Sign in
-            </a>
-            <p className="note">
-              Your administrator assigns access to your organization.
-            </p>
-          </>
-        ) : (
-          <>
-            <p role="status">{state.error ?? "Opening your workspace…"}</p>
-            {state.phase === "error" && (
-              <button className="button" onClick={() => void controller.load()}>
-                Try again
-              </button>
-            )}
-          </>
-        )}
+      <main className="workspace-signin">
+        <section
+          className="workspace-signin-card"
+          aria-labelledby="signin-heading"
+        >
+          <div className="workspace-signin-brand">
+            <img src={brand} alt="" />
+            <img src={light} alt="LogistiCall" />
+          </div>
+          <h1 id="signin-heading">Sign in to LogistiCall</h1>
+          {state.phase === "anonymous" ? (
+            <>
+              <p>Sign in with your LogistiCall account.</p>
+              <a className="button primary full" href="/auth/login">
+                Sign in
+              </a>
+              <p className="note">
+                Your administrator assigns access to your organization.
+              </p>
+            </>
+          ) : (
+            <>
+              <p role="status">{state.error ?? "Opening your workspace…"}</p>
+              {state.phase === "error" && (
+                <button
+                  className="button"
+                  onClick={() => void controller.load()}
+                >
+                  Try again
+                </button>
+              )}
+            </>
+          )}
+        </section>
       </main>
     );
   const selector = (

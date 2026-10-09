@@ -29,10 +29,10 @@ export function Contacts({
     }
   };
   const [favorites, setFavorites] = useState(() =>
-    contactIds(storage(), `atem.contact.favorites.${scope}`),
+    contactIds(storage(), `logisticall.contact.favorites.${scope}`),
   );
   const [recent, setRecent] = useState(() =>
-    contactIds(storage(), `atem.contact.recent.${scope}`),
+    contactIds(storage(), `logisticall.contact.recent.${scope}`),
   );
   const [preferenceError, setPreferenceError] = useState("");
   useEffect(() => () => controller.dispose(), [controller]);
@@ -60,7 +60,7 @@ export function Contacts({
     try {
       const store = storage();
       if (!store) throw Error();
-      store.setItem(`atem.contact.${kind}.${scope}`, JSON.stringify(ids));
+      store.setItem(`logisticall.contact.${kind}.${scope}`, JSON.stringify(ids));
     } catch {
       setPreferenceError(
         "Preferences are available for this visit only. Browser storage is unavailable.",

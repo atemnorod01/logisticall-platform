@@ -1,0 +1,99 @@
+/* LogistiCall web sign-in, isolated from the imported workspace styles. */
+body:has(#app.logisticall-auth) {
+  margin: 0;
+  background: #f3f4f7;
+  color: #1a1b2e;
+  color-scheme: light;
+}
+#app.logisticall-auth {
+  min-height: 100dvh;
+  background: #f3f4f7;
+  color-scheme: light;
+}
+.workspace-signin {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 32px 20px;
+  background: #f3f4f7;
+  color: #1a1b2e;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    sans-serif;
+}
+.workspace-signin-card {
+  width: 100%;
+  max-width: 440px;
+  padding: 40px;
+  border: 1px solid #dedfe7;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 12px 40px #1a1b2e08;
+}
+.workspace-signin-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 36px;
+}
+.workspace-signin-brand img:first-child {
+  width: 44px;
+  height: 44px;
+}
+.workspace-signin-brand img:last-child {
+  width: 168px;
+  height: auto;
+}
+.workspace-signin h1 {
+  font-size: 26px;
+  line-height: 1.25;
+  letter-spacing: -0.6px;
+  margin: 0 0 12px;
+  color: #1a1b2e;
+}
+.workspace-signin p {
+  font-size: 14px;
+  line-height: 1.6;
+  color: #606477;
+}
+.workspace-signin .button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 28px;
+  padding: 12px 18px;
+  background: #1a1b2e;
+  color: #fff;
+  border: 1px solid #1a1b2e;
+  border-radius: 10px;
+  text-decoration: none;
+  font-weight: 600;
+}
+.workspace-signin .button:focus-visible {
+  outline: 3px solid #7478ab;
+  outline-offset: 4px;
+}
+.workspace-signin .note {
+  margin: 20px 0 0;
+  padding: 0;
+  background: none;
+  border: 0;
+  font-size: 12px;
+  color: #707487;
+}
+@media (max-width: 480px) {
+  .workspace-signin {
+    padding: 20px 16px;
+  }
+  .workspace-signin-card {
+    padding: 28px 24px;
+  }
+  .workspace-signin h1 {
+    font-size: 24px;
+  }
+}
