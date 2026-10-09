@@ -851,7 +851,7 @@
   --line: light-dark(#e6e7ee, #343744);
 }
 #app.tenant-ui .lc-settings-open .lc-settings-nav {
-  background: light-dark(#fafafb, #1c1e28);
+  background: var(--lc-settings-field-background);
 }
 #app.tenant-ui .lc-settings-open .lc-group-admin .lc-group-form input,
 #app.tenant-ui .lc-settings-open .lc-group-admin .lc-group-form select {
@@ -981,4 +981,20 @@
 #app.tenant-ui .lc-settings-open .lc-settings-header + .lc-organization-form,
 #app.tenant-ui .lc-settings-open .lc-settings-header + .lc-group-tabs {
   margin-top: 0;
+}
+
+/* One field surface across legacy forms, search, pickers and dialogs. */
+#app.tenant-ui .lc-settings-open {
+  --lc-settings-field-background: light-dark(#fafafb, #1c1e28);
+}
+#app.tenant-ui
+  .lc-settings-open
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+    [type="button"]
+  ):not([type="submit"]):not([type="hidden"]),
+#app.tenant-ui .lc-settings-open select,
+#app.tenant-ui .lc-settings-open textarea,
+#app.tenant-ui .lc-settings-open .lc-picker-search {
+  /* Override the imported legacy field surfaces without changing layout. */
+  background-color: var(--lc-settings-field-background) !important;
 }
