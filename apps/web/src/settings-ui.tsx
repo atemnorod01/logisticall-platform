@@ -87,6 +87,7 @@ export function AccountMenu({
             <Avatar name={name} />
             <div>
               <strong>{name || "Your account"}</strong>
+              {state.session?.email && <small>{state.session.email}</small>}
             </div>
           </div>
           <div className="lc-account-org">

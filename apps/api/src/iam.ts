@@ -88,6 +88,7 @@ export function iamIdentity(baseUrl: string, fetcher: typeof fetch = fetch) {
     const value = (await response.json()) as {
       user_id?: unknown;
       display_name?: unknown;
+      email?: unknown;
       platform_admin?: unknown;
     };
     if (
@@ -97,6 +98,7 @@ export function iamIdentity(baseUrl: string, fetcher: typeof fetch = fetch) {
       throw new IamFailure(503);
     return {
       user_id: value.user_id,
+      email: typeof value.email === "string" ? value.email.slice(0, 254) : null,
       platform_admin: value.platform_admin === true,
       display_name:
         typeof value.display_name === "string"

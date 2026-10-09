@@ -16,7 +16,7 @@ export class SessionError extends Error { constructor(public statusCode = 401) {
 type StoredSession = { tokens: Tokens; csrf: string };
 export function browserSessions(options: {
   origin: string; key: Buffer; store: SessionStore; provider: Provider;
-  identity: (token: string) => Promise<{ user_id: string; display_name?: string | null; platform_admin?: boolean }>;
+  identity: (token: string) => Promise<{ user_id: string; display_name?: string | null; email?: string | null; platform_admin?: boolean }>;
   now?: () => number;
   admitLogin?: () => Promise<boolean>;
 }) {
@@ -130,7 +130,7 @@ export function browserSessions(options: {
           const value = await session(req);
           const actor = await identity(value.tokens.access);
           if (actor.user_id !== value.tokens.userId) { await store.revoke(value.id); throw new SessionError(); }
-          return { userId: actor.user_id, displayName: actor.display_name ?? null, platformAdmin: actor.platform_admin === true, csrfToken: value.csrf };
+          return { userId: actor.user_id, displayName: actor.display_name ?? null, email: actor.email ?? null, platformAdmin: actor.platform_admin === true, csrfToken: value.csrf };
         } catch (error) {
           return reply.code(error instanceof SessionError ? error.statusCode : 503).send({ message: 'Session unavailable' });
         }

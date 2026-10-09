@@ -12,6 +12,7 @@ import { z } from "zod";
 const sessionSchema = z.object({
   userId: z.uuid(),
   csrfToken: z.string(),
+  email: z.string().max(254).nullable().optional(),
   displayName: z.string().max(254).nullable().optional(),
   platformAdmin: z.boolean().default(false),
 });
@@ -33,7 +34,11 @@ export type WorkspaceState = {
   switching: boolean;
   error?: string;
 };
-export function workspaceController(fetcher: typeof fetch = fetch) {
+const organizationPreference = {
+  getItem(key: string) { try { return localStorage.getItem(key); } catch { return null; } },
+  setItem(key: string, value: string) { try { localStorage.setItem(key, value); } catch {} },
+};
+export function workspaceController(fetcher: typeof fetch = fetch, preferences = organizationPreference) {
   let state: WorkspaceState = {
     phase: "loading",
     organizations: [],
@@ -102,6 +107,8 @@ export function workspaceController(fetcher: typeof fetch = fetch) {
           permissions: [],
           switching: false,
         });
+        const previous = preferences.getItem(`logisticall.last-organization.${session.userId}`);
+        if (previous && z.uuid().safeParse(previous).success) await this.select(previous);
       } catch (error) {
         if (ticket !== epoch) return;
         if ((error as { status?: number }).status === 401) anonymous();
@@ -192,6 +199,7 @@ export function workspaceController(fetcher: typeof fetch = fetch) {
           permissions: result.permissions,
           switching: false,
         });
+        preferences.setItem(`logisticall.last-organization.${state.session!.userId}`, id);
       } catch (error) {
         if (ticket !== epoch) return;
         if ((error as { status?: number }).status === 401) anonymous();
