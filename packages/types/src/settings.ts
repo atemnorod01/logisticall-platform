@@ -37,28 +37,3 @@ export const invitationLink = z.object({
   expires_at: z.string().nullable(),
   requires_sign_in: z.boolean(),
 });
-export const managedMember = z.object({
-  user_id: z.uuid(),
-  name: z.string(),
-  email: z.email(),
-  role_id: z.enum(["owner", "admin", "member"]),
-  status: z.enum(["active", "suspended"]),
-  presence: z.string().optional(),
-  can_edit_name: z.boolean(),
-  can_edit_access: z.boolean(),
-  can_edit_role: z.boolean(),
-});
-export const memberEdit = z
-  .object({
-    name: z.string().trim().min(1).max(100),
-    role_id: managedMember.shape.role_id,
-    status: managedMember.shape.status,
-    expected: managedMember
-      .pick({ name: true, role_id: true, status: true })
-      .strict(),
-  })
-  .strict();
-export const managedMemberPage = z.object({
-  members: z.array(managedMember).max(50),
-  nextOffset: z.number().int().nullable(),
-});

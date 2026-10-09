@@ -1,8 +1,3 @@
-import { MemberEditor } from "./member-editor.js";
-import {
-  managedMemberPage,
-  managedMember,
-} from "../../../packages/types/src/settings.js";
 import {
   organizationProfile,
   organizationEdit,
@@ -634,10 +629,9 @@ export function OrganizationMembers({
   organizationId: string;
   csrf: string;
 }) {
-  const [editing, setEditing] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [tab, setTab] = useState<"members" | "invitations">("members");
-  const [rows, setRows] = useState<z.infer<typeof managedMember>[]>([]),
+  const [rows, setRows] = useState<DirectoryContact[]>([]),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
     [refresh, setRefresh] = useState(0),
@@ -646,19 +640,19 @@ export function OrganizationMembers({
     [busy, setBusy] = useState(true),
     [error, setError] = useState("");
   useEffect(() => {
-    if (tab !== "members" || inviting || editing) return;
+    if (tab !== "members" || inviting) return;
     return refreshWhileVisible(() => {
       setOffset(0);
       setRefresh((n) => n + 1);
     });
-  }, [tab, inviting, editing]);
+  }, [tab, inviting]);
   useEffect(() => {
     if (tab !== "members") return;
     const abort = new AbortController();
     setBusy(true);
     setError("");
     fetch(
-      `/v1/organizations/${encodeURIComponent(organizationId)}/members?offset=${offset}&search=${encodeURIComponent(query)}`,
+      `/v1/organizations/${encodeURIComponent(organizationId)}/contacts?limit=50&offset=${offset}&search=${encodeURIComponent(query)}`,
       {
         credentials: "same-origin",
         cache: "no-store",
@@ -668,9 +662,12 @@ export function OrganizationMembers({
     )
       .then(async (r) => {
         if (!r.ok) throw Error();
-        const data = managedMemberPage.parse(await r.json());
+        const data = directoryPage.parse(await r.json());
+        if (data.organization_id !== organizationId) throw Error();
         if (!abort.signal.aborted) {
-          setRows((old) => (offset ? [...old, ...data.members] : data.members));
+          setRows((old) =>
+            offset ? [...old, ...data.contacts] : data.contacts,
+          );
           setNext(data.nextOffset);
         }
       })
@@ -769,61 +766,27 @@ export function OrganizationMembers({
             Loading members…
           </p>
         )}
-        <div className={`lc-members-split ${editing ? "is-editing" : ""}`}>
-          <div className="lc-members-list">
-            {rows.map((p) => (
-              <div
-                className={`lc-member-row ${editing === p.user_id ? "is-selected" : ""}`}
-                key={p.user_id}
-              >
-                <Avatar name={p.name} presence={p.presence ?? "unknown"} />
-                <div>
-                  <strong>{p.name}</strong>
-                  <small>{p.email}</small>
-                  <small>
-                    {p.role_id === "owner"
-                      ? "Owner"
-                      : p.role_id === "admin"
-                        ? "Organization admin"
-                        : "Member"}{" "}
-                    · {p.status === "active" ? "Active" : "Suspended"}
-                  </small>
-                </div>
-                <button
-                  className="button"
-                  onClick={() => setEditing(p.user_id)}
-                >
-                  Edit member
-                </button>
-              </div>
-            ))}
-            {!busy && !error && !rows.length && (
-              <p>No members match your search.</p>
-            )}
-            {next !== null && (
-              <button
-                className="button"
-                disabled={busy}
-                onClick={() => setOffset(next)}
-              >
-                Load more members
-              </button>
-            )}
+        {rows.map((p) => (
+          <div className="lc-member-row" key={p.id}>
+            <Avatar name={p.name} presence={p.presence} />
+            <div>
+              <strong>{p.name}</strong>
+              <small>{p.email}</small>
+            </div>
           </div>
-          {editing && (
-            <div className="lc-member-editor-shell"><MemberEditor
-              key={`${organizationId}:${editing}`}
-              organizationId={organizationId}
-              userId={editing}
-              csrf={csrf}
-              onSaved={() => {
-                setOffset(0);
-                setRefresh((n) => n + 1);
-              }}
-              onBack={() => setEditing(null)}
-            /></div>
-          )}
-        </div>
+        ))}
+        {!busy && !error && !rows.length && (
+          <p>No members match your search.</p>
+        )}
+        {next !== null && (
+          <button
+            className="button"
+            disabled={busy}
+            onClick={() => setOffset(next)}
+          >
+            Load more members
+          </button>
+        )}
       </div>
       <InvitationManager
         organizationId={organizationId}
