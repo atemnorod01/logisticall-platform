@@ -66,7 +66,7 @@
 #app.tenant-ui .lc-settings-page,
 #app.tenant-ui .lc-settings-open .admin {
   padding: 32px;
-  max-width: 1100px;
+  max-width: var(--lc-content-max, 880px);
   margin: 0;
   width: 100%;
   height: auto;
@@ -866,7 +866,7 @@
 #app.tenant-ui .lc-settings-open .lc-settings-page,
 #app.tenant-ui .lc-settings-open .admin {
   position: relative;
-  max-width: 1100px;
+  max-width: var(--lc-content-max, 880px);
   width: 100%;
   padding: 32px;
 }
@@ -1002,3 +1002,218 @@
 #app.tenant-ui.conversation-workspace .lc-settings-open .rail-bottom {
   --presence-surround: var(--panel);
 }
+#app.tenant-ui .lc-member-feedback {
+  min-height: 48px;
+}
+#app.tenant-ui .lc-member-feedback p {
+  margin: 10px 0;
+}
+#app.tenant-ui .lc-member-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+#app.tenant-ui .lc-assignment-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+}
+#app.tenant-ui .lc-assignment-row input {
+  width: 16px;
+  height: 16px;
+}
+#app.tenant-ui .lc-members-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+#app.tenant-ui .lc-members-split.is-editing {
+  grid-template-columns: minmax(240px, 1fr) minmax(340px, 440px);
+}
+#app.tenant-ui .lc-members-list {
+  min-width: 0;
+}
+#app.tenant-ui .lc-members-list .lc-member-row.is-selected {
+  background: var(--settings-nav-active, rgba(128, 128, 150, 0.12));
+  border-radius: 8px;
+}
+#app.tenant-ui .lc-member-editor {
+  min-width: 0;
+  padding: 20px;
+  border: 1px solid light-dark(#dcdde5, #353744);
+  border-radius: 12px;
+  max-height: calc(100vh - 310px);
+  min-height: 320px;
+  overflow-y: auto;
+  background: light-dark(#fafafb, #1c1e28);
+  animation: lc-member-enter 160ms ease-out;
+}
+#app.tenant-ui .lc-member-editor-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+#app.tenant-ui .lc-member-editor-heading h2 {
+  font-size: 18px;
+  margin: 0;
+}
+#app.tenant-ui .lc-member-editor .lc-group-tabs {
+  margin-top: 16px;
+  gap: 16px;
+}
+#app.tenant-ui .lc-member-editor .lc-form {
+  gap: 16px;
+}
+#app.tenant-ui .lc-member-editor .lc-member-row {
+  margin: 0;
+  padding: 0 0 16px;
+}
+#app.tenant-ui .lc-member-editor .lc-member-feedback {
+  min-height: 24px;
+}
+@keyframes lc-member-enter {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #app.tenant-ui .lc-member-editor {
+    animation: none;
+  }
+}
+@media (max-width: 1050px) {
+  #app.tenant-ui .lc-members-split.is-editing {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #app.tenant-ui .lc-member-editor {
+    max-height: 600px;
+  }
+}
+#app.tenant-ui .lc-member-editor-shell {
+  position: relative;
+  align-self: stretch;
+  min-height: 420px;
+}
+#app.tenant-ui .lc-member-editor-shell .lc-member-editor {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  max-height: none;
+}
+#app.tenant-ui .lc-member-editor .lc-form {
+  margin-top: 0;
+}
+
+/* Shared content width and a viewport-bounded member workspace. */
+#app.tenant-ui {
+  --lc-content-max: 880px;
+}
+#app.tenant-ui .lc-settings-open .lc-members-page {
+  height: 100%;
+  min-height: 540px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#app.tenant-ui .lc-members-page > .lc-settings-header,
+#app.tenant-ui .lc-members-page > .lc-group-tabs {
+  flex-shrink: 0;
+}
+#app.tenant-ui #organization-members-panel:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+#app.tenant-ui #organization-members-panel > .lc-search {
+  flex-shrink: 0;
+}
+#app.tenant-ui .lc-members-split {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  align-items: stretch;
+}
+#app.tenant-ui .lc-members-split.is-editing {
+  grid-template-columns: minmax(210px, 1fr) minmax(320px, 390px);
+  gap: 16px;
+}
+#app.tenant-ui .lc-members-list {
+  overflow-y: auto;
+  min-height: 0;
+}
+#app.tenant-ui .lc-members-list .lc-member-row {
+  gap: 10px;
+}
+#app.tenant-ui .lc-members-list .lc-member-row small {
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-members-list .lc-member-row button {
+  padding: 8px;
+}
+#app.tenant-ui .lc-member-editor-shell {
+  min-height: 0;
+}
+#app.tenant-ui .lc-member-editor-shell .lc-member-editor {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 20px 20px 0;
+}
+#app.tenant-ui .lc-member-editor-heading,
+#app.tenant-ui .lc-member-editor > .lc-group-tabs {
+  flex-shrink: 0;
+}
+#app.tenant-ui .lc-member-editor-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+#app.tenant-ui .lc-member-editor-footer {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0;
+  border-top: 1px solid var(--line);
+  background: var(--lc-settings-field-background);
+}
+#app.tenant-ui .lc-member-pagination {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 16px 0;
+  background: var(--panel);
+  border-top: 1px solid var(--line);
+}
+#app.tenant-ui .lc-member-pagination span {
+  flex: 1;
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 1050px) {
+  #app.tenant-ui .lc-members-split.is-editing {
+    grid-template-columns: minmax(0, 1fr);
+    overflow-y: auto;
+  }
+  #app.tenant-ui .lc-members-split.is-editing .lc-members-list {
+    max-height: 240px;
+  }
+  #app.tenant-ui .lc-member-editor-shell {
+    min-height: 420px;
+  }
+}
+
+#app.tenant-ui .lc-members-list .lc-member-row { padding-left: 14px; padding-right: 14px; }
+
+#app.tenant-ui .lc-profile-identity .lc-profile-email { margin: 6px 0 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }

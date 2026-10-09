@@ -1,3 +1,8 @@
+import { MemberEditor } from "./member-editor.js";
+import {
+  managedMemberPage,
+  managedMember,
+} from "../../../packages/types/src/settings.js";
 import {
   organizationProfile,
   organizationEdit,
@@ -349,6 +354,7 @@ export function PersonalSettings({
             <Avatar name={state.session?.displayName || ""} large />
             <div>
               <h2>{state.session?.displayName || "Your account"}</h2>
+              {state.session?.email && <p className="lc-profile-email">{state.session.email}</p>}
             </div>
           </div>
           <NameEditor
@@ -629,9 +635,10 @@ export function OrganizationMembers({
   organizationId: string;
   csrf: string;
 }) {
+  const [editing, setEditing] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [tab, setTab] = useState<"members" | "invitations">("members");
-  const [rows, setRows] = useState<DirectoryContact[]>([]),
+  const [rows, setRows] = useState<z.infer<typeof managedMember>[]>([]),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
     [refresh, setRefresh] = useState(0),
@@ -640,19 +647,18 @@ export function OrganizationMembers({
     [busy, setBusy] = useState(true),
     [error, setError] = useState("");
   useEffect(() => {
-    if (tab !== "members" || inviting) return;
+    if (tab !== "members" || inviting || editing) return;
     return refreshWhileVisible(() => {
-      setOffset(0);
       setRefresh((n) => n + 1);
     });
-  }, [tab, inviting]);
+  }, [tab, inviting, editing]);
   useEffect(() => {
     if (tab !== "members") return;
     const abort = new AbortController();
     setBusy(true);
     setError("");
     fetch(
-      `/v1/organizations/${encodeURIComponent(organizationId)}/contacts?limit=50&offset=${offset}&search=${encodeURIComponent(query)}`,
+      `/v1/organizations/${encodeURIComponent(organizationId)}/members?offset=${offset}&search=${encodeURIComponent(query)}`,
       {
         credentials: "same-origin",
         cache: "no-store",
@@ -662,12 +668,9 @@ export function OrganizationMembers({
     )
       .then(async (r) => {
         if (!r.ok) throw Error();
-        const data = directoryPage.parse(await r.json());
-        if (data.organization_id !== organizationId) throw Error();
+        const data = managedMemberPage.parse(await r.json());
         if (!abort.signal.aborted) {
-          setRows((old) =>
-            offset ? [...old, ...data.contacts] : data.contacts,
-          );
+          setRows(data.members);
           setNext(data.nextOffset);
         }
       })
@@ -684,7 +687,7 @@ export function OrganizationMembers({
     return () => abort.abort();
   }, [organizationId, offset, query, refresh, tab]);
   return (
-    <section className="lc-settings-page" aria-busy={busy}>
+    <section className="lc-settings-page lc-members-page" aria-busy={busy}>
       <SettingsHeader
         section="Organization settings"
         title="Members"
@@ -766,27 +769,79 @@ export function OrganizationMembers({
             Loading members…
           </p>
         )}
-        {rows.map((p) => (
-          <div className="lc-member-row" key={p.id}>
-            <Avatar name={p.name} presence={p.presence} />
-            <div>
-              <strong>{p.name}</strong>
-              <small>{p.email}</small>
-            </div>
+        <div className={`lc-members-split ${editing ? "is-editing" : ""}`}>
+          <div className="lc-members-list">
+            {rows.map((p) => (
+              <div
+                className={`lc-member-row ${editing === p.user_id ? "is-selected" : ""}`}
+                key={p.user_id}
+              >
+                <Avatar name={p.name} presence={p.presence ?? "unknown"} />
+                <div>
+                  <strong>{p.name}</strong>
+                  <small>{p.email}</small>
+                  <small>
+                    {p.role_id === "owner"
+                      ? "Owner"
+                      : p.role_id === "admin"
+                        ? "Organization admin"
+                        : "Member"}{" "}
+                    · {p.status === "active" ? "Active" : "Suspended"}
+                  </small>
+                </div>
+                <button
+                  className="button"
+                  onClick={() => setEditing(p.user_id)}
+                >
+                  Edit user
+                </button>
+              </div>
+            ))}
+            {!busy && !error && !rows.length && (
+              <p>No members match your search.</p>
+            )}
+            <nav
+              className="lc-member-pagination"
+              aria-label="Member pagination"
+            >
+              <span>
+                Page {Math.floor(offset / 10) + 1} · {rows.length} users
+              </span>
+              <button
+                className="button"
+                disabled={busy || offset === 0}
+                onClick={() => {
+                  setOffset(Math.max(0, offset - 10));
+                }}
+              >
+                Previous
+              </button>
+              <button
+                className="button"
+                disabled={busy || next === null}
+                onClick={() => {
+                  if (next !== null) setOffset(next);
+                }}
+              >
+                Next
+              </button>
+            </nav>
           </div>
-        ))}
-        {!busy && !error && !rows.length && (
-          <p>No members match your search.</p>
-        )}
-        {next !== null && (
-          <button
-            className="button"
-            disabled={busy}
-            onClick={() => setOffset(next)}
-          >
-            Load more members
-          </button>
-        )}
+          {editing && (
+            <div className="lc-member-editor-shell">
+              <MemberEditor
+                key={`${organizationId}:${editing}`}
+                organizationId={organizationId}
+                userId={editing}
+                csrf={csrf}
+                onSaved={() => {
+                  setRefresh((n) => n + 1);
+                }}
+                onBack={() => setEditing(null)}
+              />
+            </div>
+          )}
+        </div>
       </div>
       <InvitationManager
         organizationId={organizationId}

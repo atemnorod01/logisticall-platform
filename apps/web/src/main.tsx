@@ -243,6 +243,14 @@ function App() {
           </button>
           <button
             className="icon"
+            aria-label="Settings"
+            aria-current={page === "Settings" ? "page" : undefined}
+            onClick={() => setPage("Settings")}
+          >
+            <Icon name="settings" />
+          </button>
+          <button
+            className="icon"
             aria-label={theme === "dark" ? "Show light mode" : "Show dark mode"}
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           >
@@ -253,18 +261,15 @@ function App() {
             selector={selector("account-organization")}
             presence={presence}
             onSettings={openSettings}
-            onLogout={() => void controller.logout().then((complete) => {
-              if (complete) window.location.assign("https://logisticall-iam-staging.pages.dev/workspace/sign-out");
-            })}
+            onLogout={() =>
+              void controller.logout().then((complete) => {
+                if (complete)
+                  window.location.assign(
+                    "https://logisticall-iam-staging.pages.dev/workspace/sign-out",
+                  );
+              })
+            }
           />
-          <button
-            className="icon"
-            aria-label="Settings"
-            aria-current={page === "Settings" ? "page" : undefined}
-            onClick={() => setPage("Settings")}
-          >
-            <Icon name="settings" />
-          </button>
         </div>
       </aside>
       {(page === "Settings" || !state.context) && (
