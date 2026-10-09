@@ -83,6 +83,7 @@ export function browserSessions(options: {
       });
       app.get('/auth/callback', async (req, reply) => {
         reply.header('Set-Cookie', cookie(LOGIN, '', 0));
+        let phase = 'callback_binding';
         try {
           // Never reconstruct the callback origin from Host or forwarded headers.
           const url = new URL(req.raw.url!, origin.origin);
@@ -90,19 +91,28 @@ export function browserSessions(options: {
           const browser = readCookie(req.headers.cookie, LOGIN);
           if (states.length !== 1 || !opaque.test(states[0]!) || !browser) throw new SessionError();
           const id = digest(states[0]!);
+          phase = 'login_state';
           const ciphertext = await store.consumeLogin(id, digest(browser), now());
           if (!ciphertext) throw new SessionError();
+          phase = 'login_decrypt';
           const login = vault.open<Login>(ciphertext, id);
+          phase = 'token_exchange';
           const tokens = await provider.exchange(url, login);
+          phase = 'iam_identity';
           if ((await identity(tokens.access)).user_id !== tokens.userId) throw new SessionError();
           const sid = randomToken(), sessionId = digest(sid);
           const value: StoredSession = { tokens, csrf: randomToken() };
+          phase = 'session_persist';
           await store.putSession(sessionId, vault.seal(value, sessionId), tokens.expires, now());
           const oldSid = readCookie(req.headers.cookie, SID);
           if (oldSid) await store.revoke(digest(oldSid));
           reply.header('Set-Cookie', cookie(SID, sid, ABSOLUTE / 1000));
           return reply.redirect('/');
-        } catch {
+        } catch (error) {
+          // Only fixed stage labels and known library codes; never exception text, URLs, cookies or tokens.
+          const code = error && typeof error === 'object' && 'code' in error ? error.code : undefined;
+          const known = ['OAUTH_INVALID_RESPONSE', 'OAUTH_RESPONSE_BODY_ERROR', 'OAUTH_JWT_CLAIM_COMPARISON_FAILED', 'ERR_JWT_CLAIM_VALIDATION_FAILED', 'ERR_JWS_SIGNATURE_VERIFICATION_FAILED', 'ERR_JWT_EXPIRED'];
+          console.error(JSON.stringify({ event: 'auth_callback_failed', phase, code: typeof code === 'string' && known.includes(code) ? code : 'unclassified' }));
           return reply.code(401).send({ message: 'Sign-in failed. Start sign-in again.' });
         }
       });
