@@ -114,7 +114,7 @@ function App() {
         >
           <div className="workspace-signin-brand">
             <img src={brand} alt="" />
-            <img src={light} alt="LogistiCall" />
+            <img src={theme === "dark" ? dark : light} alt="LogistiCall" />
           </div>
           <h1 id="signin-heading">Sign in to LogistiCall</h1>
           {state.phase === "anonymous" ? (
