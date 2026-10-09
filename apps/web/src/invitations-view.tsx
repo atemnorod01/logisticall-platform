@@ -9,11 +9,15 @@ export function InvitationManager({
   organizationId,
   csrf,
   creating,
+  visible,
+  onCreated,
   onClose,
 }: {
   organizationId: string;
   csrf: string;
   creating: boolean;
+  visible: boolean;
+  onCreated: () => void;
   onClose: () => void;
 }) {
   const [rows, setRows] = useState<z.infer<typeof invitationRows>>([]),
@@ -123,71 +127,80 @@ export function InvitationManager({
     }
   }
   return (
-    <section className="lc-invitations">
-      <h2>Invitations</h2>
-      <p>
-        New users join as members. Invitation links are shared by you; no email
-        is sent.
-      </p>
-      {loading && <p role="status">Loading invitations…</p>}
-      {error && !creating && !linkOpen && (
-        <p role="alert">
-          {error}{" "}
+    <>
+      <section
+        className="lc-invitations"
+        id="organization-invitations-panel"
+        role="tabpanel"
+        aria-labelledby="organization-invitations-tab"
+        hidden={!visible}
+      >
+        <p>
+          New users join as members. Invitation links are shared by you; no
+          email is sent.
+        </p>
+        {loading && <p role="status">Loading invitations…</p>}
+        {error && !creating && !linkOpen && (
+          <p role="alert">
+            {error}{" "}
+            <button
+              className="button"
+              disabled={busy}
+              onClick={() => void run(() => load())}
+            >
+              Refresh
+            </button>
+          </p>
+        )}
+        {!loading && !rows.length && !error && <p>No pending invitations.</p>}
+        {rows.map((row) => (
+          <div className="lc-member-row" key={row.id}>
+            <div>
+              <strong>{row.display_name || row.email}</strong>
+              <small>{row.email}</small>
+              <small>
+                {Date.parse(row.expires_at) > Date.now()
+                  ? "Pending"
+                  : "Expired"}{" "}
+                · Invitation expires{" "}
+                {new Date(row.expires_at).toLocaleDateString()}
+              </small>
+            </div>
+            {row.role_id === "member" && (
+              <>
+                <button
+                  className="button"
+                  disabled={busy || Date.parse(row.expires_at) <= Date.now()}
+                  onClick={() => void run(() => generate(row.id))}
+                >
+                  Create link
+                </button>
+                <button
+                  className="button"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(async () => {
+                      await request(`/${row.id}/revoke`, "POST", {});
+                      await load();
+                    })
+                  }
+                >
+                  Revoke
+                </button>
+              </>
+            )}
+          </div>
+        ))}
+        {next !== null && (
           <button
             className="button"
             disabled={busy}
-            onClick={() => void run(() => load())}
+            onClick={() => void run(() => load(next))}
           >
-            Refresh
+            Load more invitations
           </button>
-        </p>
-      )}
-      {!loading && !rows.length && !error && <p>No pending invitations.</p>}
-      {rows.map((row) => (
-        <div className="lc-member-row" key={row.id}>
-          <div>
-            <strong>{row.display_name || row.email}</strong>
-            <small>{row.email}</small>
-            <small>
-              {Date.parse(row.expires_at) > Date.now() ? "Pending" : "Expired"}{" "}
-              · Invitation expires{" "}
-              {new Date(row.expires_at).toLocaleDateString()}
-            </small>
-          </div>
-          {row.role_id === "member" && (
-            <>
-              <button
-                className="button"
-                disabled={busy || Date.parse(row.expires_at) <= Date.now()}
-                onClick={() => void run(() => generate(row.id))}
-              >
-                Create link
-              </button>
-              <button
-                className="button"
-                disabled={busy}
-                onClick={() =>
-                  void run(async () => {
-                    await request(`/${row.id}/revoke`, "POST", {});
-                    await load();
-                  })
-                }
-              >
-                Revoke
-              </button>
-            </>
-          )}
-        </div>
-      ))}
-      {next !== null && (
-        <button
-          className="button"
-          disabled={busy}
-          onClick={() => void run(() => load(next))}
-        >
-          Load more invitations
-        </button>
-      )}
+        )}
+      </section>
       {(creating || linkOpen) && (
         <Modal title={link ? "Invite link" : "Invite member"} onClose={close}>
           {error && <p role="alert">{error}</p>}
@@ -240,15 +253,16 @@ export function InvitationManager({
                 void run(async () => {
                   let id = createdId;
                   if (!id) {
-                    id = z
-                      .object({ id: z.uuid() })
-                      .parse(
-                        await request("", "POST", {
-                          name: name.trim(),
-                          email: email.trim(),
-                        }),
-                      ).id;
-                    if (live.current) setCreatedId(id);
+                    id = z.object({ id: z.uuid() }).parse(
+                      await request("", "POST", {
+                        name: name.trim(),
+                        email: email.trim(),
+                      }),
+                    ).id;
+                    if (live.current) {
+                      setCreatedId(id);
+                      onCreated();
+                    }
                   }
                   await load();
                   await generate(id);
@@ -307,6 +321,6 @@ export function InvitationManager({
           )}
         </Modal>
       )}
-    </section>
+    </>
   );
 }

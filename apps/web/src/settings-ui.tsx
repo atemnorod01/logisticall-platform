@@ -475,6 +475,7 @@ export function OrganizationMembers({
   csrf: string;
 }) {
   const [inviting, setInviting] = useState(false);
+  const [tab, setTab] = useState<"members" | "invitations">("members");
   const [rows, setRows] = useState<DirectoryContact[]>([]),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
@@ -531,50 +532,98 @@ export function OrganizationMembers({
           Invite member
         </button>
       </header>
-      <form
-        className="lc-search"
-        onSubmit={(e) => {
-          e.preventDefault();
-          setOffset(0);
-          setRows([]);
-          setQuery(search.trim());
-          setRefresh((n) => n + 1);
-        }}
+      <div
+        className="lc-group-tabs"
+        role="tablist"
+        aria-label="Organization members"
       >
-        <input
-          aria-label="Search members"
-          placeholder="Search name or email"
-          value={search}
-          maxLength={100}
-          onChange={(e) => setSearch(e.target.value)}
-        />
-        <button className="button">Search</button>
-      </form>
-      {error && <p role="alert">{error}</p>}
-      {busy && <p role="status">Loading members…</p>}
-      {rows.map((p) => (
-        <div className="lc-member-row" key={p.id}>
-          <Avatar name={p.name} presence={p.presence} />
-          <div>
-            <strong>{p.name}</strong>
-            <small>{p.email}</small>
-          </div>
-        </div>
-      ))}
-      {!busy && !error && !rows.length && <p>No members match your search.</p>}
-      {next !== null && (
-        <button
-          className="button"
-          disabled={busy}
-          onClick={() => setOffset(next)}
+        {(["members", "invitations"] as const).map((item) => (
+          <button
+            key={item}
+            id={`organization-${item}-tab`}
+            role="tab"
+            aria-selected={tab === item}
+            aria-controls={`organization-${item}-panel`}
+            tabIndex={tab === item ? 0 : -1}
+            className={tab === item ? "active" : ""}
+            onClick={() => setTab(item)}
+            onKeyDown={(event) => {
+              if (
+                !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
+              )
+                return;
+              event.preventDefault();
+              const next =
+                event.key === "Home"
+                  ? "members"
+                  : event.key === "End"
+                    ? "invitations"
+                    : item === "members"
+                      ? "invitations"
+                      : "members";
+              setTab(next);
+              document.getElementById(`organization-${next}-tab`)?.focus();
+            }}
+          >
+            {item === "members" ? "Members" : "Invitations"}
+          </button>
+        ))}
+      </div>
+      <div
+        id="organization-members-panel"
+        role="tabpanel"
+        aria-labelledby="organization-members-tab"
+        hidden={tab !== "members"}
+      >
+        <form
+          className="lc-search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            setOffset(0);
+            setRows([]);
+            setQuery(search.trim());
+            setRefresh((n) => n + 1);
+          }}
         >
-          Load more members
-        </button>
-      )}
+          <input
+            aria-label="Search members"
+            placeholder="Search name or email"
+            value={search}
+            maxLength={100}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <button className="button">Search</button>
+        </form>
+        {error && <p role="alert">{error}</p>}
+        {busy && <p role="status">Loading members…</p>}
+        {rows.map((p) => (
+          <div className="lc-member-row" key={p.id}>
+            <Avatar name={p.name} presence={p.presence} />
+            <div>
+              <strong>{p.name}</strong>
+              <small>{p.email}</small>
+            </div>
+          </div>
+        ))}
+        {!busy && !error && !rows.length && (
+          <p>No members match your search.</p>
+        )}
+        {next !== null && (
+          <button
+            className="button"
+            disabled={busy}
+            onClick={() => setOffset(next)}
+          >
+            Load more members
+          </button>
+        )}
+      </div>
       <InvitationManager
         organizationId={organizationId}
         csrf={csrf}
         creating={inviting}
+        visible={tab === "invitations"}
+        onCreated={() => setTab("invitations")}
         onClose={() => setInviting(false)}
       />
     </section>
