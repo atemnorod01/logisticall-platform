@@ -264,7 +264,7 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
     },
     async logout() {
       const csrf = state.session?.csrfToken;
-      if (!csrf) return;
+      if (!csrf) return false;
       const ticket = ++epoch;
       const { context: _context, ...remaining } = state;
       update({ ...remaining, permissions: [], switching: false });
@@ -273,7 +273,7 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
           method: "POST",
           headers: { "X-CSRF-Token": csrf },
         });
-        if (ticket === epoch) anonymous();
+        if (ticket === epoch) { anonymous(); return true; }
       } catch {
         if (ticket === epoch)
           update({
@@ -281,6 +281,7 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
             error: "Sign-out did not complete. Please try again.",
           });
       }
+      return false;
     },
   };
 }

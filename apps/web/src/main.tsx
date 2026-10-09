@@ -253,7 +253,9 @@ function App() {
             selector={selector("account-organization")}
             presence={presence}
             onSettings={openSettings}
-            onLogout={() => void controller.logout()}
+            onLogout={() => void controller.logout().then((complete) => {
+              if (complete) window.location.assign("https://logisticall-iam-staging.pages.dev/workspace/sign-out");
+            })}
           />
           <button
             className="icon"
