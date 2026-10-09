@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import { refreshWhileVisible } from "./refresh-visible.js";
 import { Modal } from "./settings-ui.js";
 import {
   invitationRows,
@@ -100,8 +101,11 @@ export function InvitationManager({
     }
   }
   useEffect(() => {
-    void run(() => load());
-  }, []);
+    if (!visible || creating || linkOpen) return;
+    const refresh = () => void run(() => load());
+    refresh();
+    return refreshWhileVisible(refresh);
+  }, [visible, creating, linkOpen, organizationId]);
   useEffect(() => {
     if (creating) {
       setName("");

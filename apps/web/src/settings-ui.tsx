@@ -4,6 +4,7 @@ import {
   organizationType,
 } from "../../../packages/types/src/settings.js";
 import { z } from "zod";
+import { refreshWhileVisible } from "./refresh-visible.js";
 import { InvitationManager } from "./invitations-view.js";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Avatar, Icon, SettingsHeader } from "./ui.js";
@@ -638,6 +639,14 @@ export function OrganizationMembers({
     [busy, setBusy] = useState(true),
     [error, setError] = useState("");
   useEffect(() => {
+    if (tab !== "members" || inviting) return;
+    return refreshWhileVisible(() => {
+      setOffset(0);
+      setRefresh((n) => n + 1);
+    });
+  }, [tab, inviting]);
+  useEffect(() => {
+    if (tab !== "members") return;
     const abort = new AbortController();
     setBusy(true);
     setError("");
@@ -672,7 +681,7 @@ export function OrganizationMembers({
         if (!abort.signal.aborted) setBusy(false);
       });
     return () => abort.abort();
-  }, [organizationId, offset, query, refresh]);
+  }, [organizationId, offset, query, refresh, tab]);
   return (
     <section className="lc-settings-page" aria-busy={busy}>
       <SettingsHeader
@@ -699,7 +708,10 @@ export function OrganizationMembers({
             aria-controls={`organization-${item}-panel`}
             tabIndex={tab === item ? 0 : -1}
             className={tab === item ? "active" : ""}
-            onClick={() => setTab(item)}
+            onClick={() => {
+              setOffset(0);
+              setTab(item);
+            }}
             onKeyDown={(event) => {
               if (
                 !["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)
@@ -714,6 +726,7 @@ export function OrganizationMembers({
                     : item === "members"
                       ? "invitations"
                       : "members";
+              setOffset(0);
               setTab(next);
               document.getElementById(`organization-${next}-tab`)?.focus();
             }}
