@@ -313,7 +313,7 @@
 #app.tenant-ui.conversation-workspace .chat-detail .sub,
 #app.tenant-ui.conversation-workspace .chat-detail .contact-hero p { font-size: 13px; }
 #app.tenant-ui.conversation-workspace .presence-dot,
-#app.tenant-ui.conversation-workspace .conversation-split-avatar .presence-dot { width: 12px; height: 12px; border: 1px solid var(--panel); box-shadow: none; right: -1px; bottom: -1px; }
+#app.tenant-ui.conversation-workspace .conversation-split-avatar .presence-dot { width: 12px; height: 12px; border: 2px solid var(--presence-surround, var(--panel)); box-shadow: none; right: -1px; bottom: -1px; }
 #app.tenant-ui.conversation-workspace .conversation-shell .sidebar { overflow: visible; }
 #app.tenant-ui.conversation-workspace .rail-bottom .account-menu { position: relative; }
 #app.tenant-ui.conversation-workspace .rail-bottom .account-popover { left: calc(100% + 12px); z-index: 60; padding: 14px; box-shadow: 0 8px 32px #0005; }
@@ -610,3 +610,6 @@ body[data-tenant-theme="dark"] .logisticall-logo .brand-dark { display:block; }
 
 /* Keep bubbles with a shared author/time visually together. */
 #app.tenant-ui.conversation-workspace .message-row.message-group-continuation { margin-top:-7px; }
+
+/* Keep a fine cutout around presence while preserving circular avatars. */
+#app.tenant-ui.conversation-workspace .rail-bottom { --presence-surround: var(--bg); }

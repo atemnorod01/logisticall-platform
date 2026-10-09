@@ -998,3 +998,7 @@
   /* Override the imported legacy field surfaces without changing layout. */
   background-color: var(--lc-settings-field-background) !important;
 }
+
+#app.tenant-ui.conversation-workspace .lc-settings-open .rail-bottom {
+  --presence-surround: var(--panel);
+}
