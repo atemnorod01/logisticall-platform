@@ -179,7 +179,7 @@ export function workspaceController(fetcher: typeof fetch = fetch, preferences =
       }
     },
     async select(id: string) {
-      if (state.phase !== "ready") return;
+      if (signingOut || state.phase !== "ready") return;
       const ticket = ++epoch;
       // Clear every tenant-scoped value BEFORE awaiting the new membership check.
       const { context: _context, error: _error, ...remaining } = state;
