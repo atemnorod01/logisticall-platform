@@ -1320,3 +1320,13 @@
   #app.tenant-ui .lc-member-editor-footer { position: sticky; bottom: 0; }
   #app.tenant-ui .lc-members-page .lc-settings-header { flex-wrap: wrap; height: auto; }
 }
+
+/* Password reset controls share the editor's field spacing. */
+#app.tenant-ui .lc-member-editor .lc-member-security {
+  display: grid;
+  gap: 16px;
+}
+#app.tenant-ui .lc-member-security h3,
+#app.tenant-ui .lc-member-security p { margin: 0; }
+#app.tenant-ui .lc-member-security label { display: grid; gap: 6px; }
+#app.tenant-ui .lc-member-security .button { justify-self: start; }

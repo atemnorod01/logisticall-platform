@@ -62,3 +62,8 @@ export const managedMemberPage = z.object({
   members: z.array(managedMember).max(50),
   nextOffset: z.number().int().nullable(),
 });
+
+export const passwordResetLink = z.object({
+  url: z.url().refine((v) => new URL(v).protocol === "https:"),
+  expires_at: z.iso.datetime(),
+});

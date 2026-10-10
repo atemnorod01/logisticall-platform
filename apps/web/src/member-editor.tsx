@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   managedMember,
   memberEdit,
+  passwordResetLink,
 } from "../../../packages/types/src/settings.js";
 import { groupDetail, groupList } from "../../../packages/types/src/groups.js";
 import { Avatar } from "./ui.js";
@@ -25,7 +26,7 @@ export function MemberEditor({
     [name, setName] = useState(""),
     [role, setRole] = useState<Member["role_id"]>("member"),
     [status, setStatus] = useState<Member["status"]>("active");
-  const [tab, setTab] = useState<"details" | "groups">("details"),
+  const [tab, setTab] = useState<"details" | "groups" | "security">("details"),
     [groups, setGroups] = useState<Assignment[]>([]),
     [selected, setSelected] = useState<string[]>([]),
     [search, setSearch] = useState("");
@@ -33,6 +34,8 @@ export function MemberEditor({
     [error, setError] = useState(""),
     [notice, setNotice] = useState(""),
     [groupsReady, setGroupsReady] = useState(false);
+  const [resetCopied, setResetCopied] = useState(false);
+  const [resetLink, setResetLink] = useState<z.infer<typeof passwordResetLink> | null>(null);
   const lock = useRef(false),
     abort = useRef<AbortController | null>(null);
   async function request(path: string, method = "GET", body?: unknown) {
@@ -86,6 +89,7 @@ export function MemberEditor({
   useEffect(() => {
     const controller = new AbortController();
     abort.current = controller;
+    setResetLink(null); setResetCopied(false);
     request(`members/${userId}`)
       .then((v) => {
         if (!controller.signal.aborted) accept(managedMember.parse(v));
@@ -105,6 +109,21 @@ export function MemberEditor({
         );
     });
   }, [tab]);
+  async function generateResetLink() {
+    if (lock.current) return;
+    lock.current = true;
+    setBusy(true); setError(""); setNotice(""); setResetLink(null); setResetCopied(false);
+    try {
+      const value = passwordResetLink.parse(await request(`members/${userId}/password-reset-link`, "POST", {}));
+      if (!abort.current?.signal.aborted) setResetLink(value);
+    } catch (e) {
+      if (!abort.current?.signal.aborted) setError((e as {status?: number}).status === 403
+        ? "Your role cannot reset this account. Contact a platform administrator."
+        : (e as {status?: number}).status === 409
+          ? "Please wait 30 seconds before generating another link."
+          : "The reset link could not be generated. Please try again.");
+    } finally { lock.current = false; setBusy(false); }
+  }
   async function saveDetails() {
     if (!member || lock.current) return;
     lock.current = true;
@@ -205,7 +224,7 @@ export function MemberEditor({
         role="tablist"
         aria-label="Member settings"
       >
-        {(["details", "groups"] as const).map((t) => (
+        {(["details", "groups", "security"] as const).map((t) => (
           <button
             key={t}
             role="tab"
@@ -214,11 +233,12 @@ export function MemberEditor({
             disabled={busy}
             onClick={() => {
               setTab(t);
+              setResetLink(null); setResetCopied(false);
               setNotice("");
               setError("");
             }}
           >
-            {t === "details" ? "General information" : "Group membership"}
+            {t === "details" ? "General information" : t === "groups" ? "Group membership" : "Security"}
           </button>
         ))}
       </div>
@@ -294,6 +314,26 @@ export function MemberEditor({
             </div>
           </form>
         )}
+        {member && tab === "security" && (
+          <div className="lc-form lc-member-security">
+            <div className="lc-member-row">
+              <Avatar name={member.name} />
+              <div><strong>{member.name}</strong><small>{member.email}</small></div>
+            </div>
+            <h3>Password reset</h3>
+            <p>Generate a one-time link and share it privately with this user. No email will be sent.</p>
+            <button className="button" disabled={busy} onClick={() => void generateResetLink()}>
+              {busy ? "Generating…" : "Generate password reset link"}
+            </button>
+            {resetLink && <>
+              <label>Password reset link<input readOnly value={resetLink.url} onFocus={e => e.target.select()} /></label>
+              <p>Expires {new Date(resetLink.expires_at).toLocaleString()}.</p>
+              <button className="button" style={{ minWidth: 90 }} aria-live="polite" onClick={() => void navigator.clipboard.writeText(resetLink.url)
+                .then(() => { setResetCopied(true); setError(""); })
+                .catch(() => { setResetCopied(false); setError("Select the link and copy it manually."); })}>{resetCopied ? "Copied" : "Copy link"}</button>
+            </>}
+          </div>
+        )}
         {member && tab === "groups" && (
           <div className="lc-form">
             <p>Group assignments apply only to this organization.</p>
@@ -338,7 +378,7 @@ export function MemberEditor({
           </div>
         )}
       </div>
-      <footer className="lc-member-editor-footer">
+      {tab !== "security" && <footer className="lc-member-editor-footer">
         <button
           className="button primary"
           disabled={
@@ -355,7 +395,7 @@ export function MemberEditor({
         >
           {busy ? "Saving…" : "Save changes"}
         </button>
-      </footer>
+      </footer>}
     </aside>
   );
 }

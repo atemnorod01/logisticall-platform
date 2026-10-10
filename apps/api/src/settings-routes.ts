@@ -2,6 +2,7 @@ import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
   managedMember,
+  passwordResetLink,
   memberEdit,
   profileEdit,
   organizationEdit,
@@ -103,6 +104,14 @@ export function settingsRoutes(
         );
       },
     });
+  app.post(prefix + "/members/:userId/password-reset-link", async (req, reply) => {
+    reply.header("Cache-Control", "no-store");
+    const p = z.object({ organizationId: z.uuid(), userId: z.uuid() }).parse(req.params);
+    z.object({}).strict().parse(req.body);
+    const token = await options.authorize(req, p.organizationId);
+    return passwordResetLink.parse(await options.request(token,
+      `/organizations/${p.organizationId}/members/${p.userId}/password-reset-link`, "POST", {}));
+  });
   app.get(prefix + "/profile", async (req) => {
     const p = params(req),
       token = await options.authorize(req, p.organizationId);
