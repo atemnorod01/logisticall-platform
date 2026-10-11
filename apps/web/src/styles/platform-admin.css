@@ -1,0 +1,185 @@
+#app.tenant-ui.conversation-workspace .lc-platform-admin {
+  --platform-accent: #b6a6ff;
+  --platform-fill: #353052;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow: auto;
+}
+body[data-tenant-theme="light"]
+  #app.tenant-ui.conversation-workspace
+  .lc-platform-admin {
+  --platform-accent: #6550af;
+  --platform-fill: #eee8ff;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-heading h1 {
+  margin: 0 0 6px;
+  font-size: calc(20px * var(--font-scale, 1));
+  line-height: 29px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-badge {
+  display: inline-block;
+  color: var(--platform-accent);
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--platform-fill);
+}
+#app.tenant-ui.conversation-workspace .lc-platform-tabs {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-tabs button {
+  padding: 12px 0;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  white-space: nowrap;
+  color: inherit;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-tabs .selected {
+  border-bottom-color: var(--platform-accent);
+  color: var(--platform-accent);
+}
+#app.tenant-ui.conversation-workspace .lc-platform-admin .primary {
+  background: var(--platform-accent);
+  border-color: var(--platform-accent);
+  color: #141024;
+}
+body[data-tenant-theme="light"]
+  #app.tenant-ui.conversation-workspace
+  .lc-platform-admin
+  .primary {
+  color: white;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar,
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar form {
+  flex: 1;
+  min-width: 0;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar input {
+  min-width: 0;
+  width: 100%;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 4px;
+  border-bottom: 1px solid var(--line);
+}
+#app.tenant-ui.conversation-workspace .lc-platform-row > div:first-child {
+  min-width: 0;
+  flex: 1;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-row strong,
+#app.tenant-ui.conversation-workspace .lc-platform-row small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-row small {
+  margin-top: 5px;
+  color: var(--muted);
+}
+#app.tenant-ui.conversation-workspace .lc-platform-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-status {
+  font-size: 12px;
+  text-transform: capitalize;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-invitation {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: auto;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-fields label {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-fields input,
+#app.tenant-ui.conversation-workspace .lc-platform-fields select {
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-form {
+  max-width: 900px;
+  width: 100%;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-form fieldset {
+  margin: 24px 0;
+  border: 1px solid var(--line);
+  padding: 16px;
+  border-radius: 10px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-form footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 24px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-result {
+  padding: 16px;
+  border: 1px solid var(--platform-accent);
+  border-radius: 10px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-result input {
+  width: 100%;
+  margin-bottom: 12px;
+}
+@media (max-width: 750px) {
+  #app.tenant-ui.conversation-workspace .lc-platform-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  #app.tenant-ui.conversation-workspace .lc-platform-row {
+    flex-direction: column;
+  }
+  #app.tenant-ui.conversation-workspace .lc-platform-row-actions {
+    justify-content: flex-start;
+  }
+}
+@media (max-width: 550px) {
+  #app.tenant-ui.conversation-workspace .lc-platform-fields {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

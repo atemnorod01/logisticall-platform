@@ -37,6 +37,7 @@ export function AccountMenu({
   presence,
   onSettings,
   onLogout,
+  onPlatformAdmin,
 }: {
   state: WorkspaceState;
   selector: ReactNode;
@@ -47,6 +48,7 @@ export function AccountMenu({
   };
   onSettings: (page: SettingPage) => void;
   onLogout: () => void;
+  onPlatformAdmin: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null),
@@ -141,6 +143,7 @@ export function AccountMenu({
               Notification preferences
             </button>
           </div>
+          {state.session?.platformAdmin && <button onClick={() => {setOpen(false);onPlatformAdmin();}}>Platform administration</button>}
           <button
             className="lc-signout"
             onClick={() => {
@@ -161,12 +164,14 @@ export function SettingsNav({
   admin,
   organization,
   platformAdmin,
+  onPlatformAdmin,
 }: {
   page: SettingPage;
   setPage: (p: SettingPage) => void;
   admin: boolean;
   organization?: string | undefined;
   platformAdmin: boolean;
+  onPlatformAdmin: () => void;
 }) {
   return (
     <aside className="lc-settings-nav" aria-label="Settings navigation">
@@ -243,13 +248,7 @@ export function SettingsNav({
       {platformAdmin && (
         <div className="lc-platform-nav">
           <span className="lc-caption lc-org-caption">Platform</span>
-          <a
-            href="https://logisticall-iam-staging.pages.dev/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Platform administration ↗
-          </a>
+          <button onClick={onPlatformAdmin}>Platform administration</button>
         </div>
       )}
     </aside>

@@ -1,3 +1,4 @@
+import { PlatformAdmin } from "./platform-admin.js";
 import { useUnreadMessages } from "./unread.js";
 import { preventPortalPinch } from "./portal-zoom.js";
 import type { Conversation } from "../../../packages/types/src/messaging.js";
@@ -14,6 +15,7 @@ import "./styles/sign-in.css";
 import "./styles/settings.css";
 import "./styles/messaging.css";
 import "./styles/workspace-layout.css";
+import "./styles/platform-admin.css";
 import {
   AccountMenu,
   SettingsNav,
@@ -36,6 +38,7 @@ import {
   NetworkGroups,
 } from "./groups-view.js";
 type Page =
+  | "Platform administration"
   | "Conversations"
   | "Calls"
   | "Contacts"
@@ -163,7 +166,7 @@ function App() {
             </>
           ) : (
             <>
-              <p role="status">{state.error ?? "Opening your workspace…"}</p>
+              <p role="status">{state.error ?? "Opening LogistiCall…"}</p>
               {state.phase === "error" && (
                 <button
                   className="button"
@@ -298,6 +301,7 @@ function App() {
             selector={selector("account-organization")}
             presence={presence}
             onSettings={openSettings}
+            onPlatformAdmin={() => setPage("Platform administration")}
             onLogout={() =>
               void controller.logout().then((complete) => {
                 if (complete)
@@ -309,17 +313,18 @@ function App() {
           />
         </div>
       </aside>
-      {(page === "Settings" || !state.context) && (
+      {(page === "Settings" || (!state.context && page !== "Platform administration")) && (
         <SettingsNav
           page={currentSetting}
           setPage={openSettings}
           admin={admin}
           platformAdmin={state.session?.platformAdmin === true}
+          onPlatformAdmin={() => setPage("Platform administration")}
           organization={state.context?.name}
         />
       )}
       <main className="workspace" id="main-content">
-        {page === "Settings" || !state.context ? (
+        {page === "Platform administration" ? (state.session?.platformAdmin ? <PlatformAdmin csrf={state.session.csrfToken} onBack={() => setPage("Conversations")} /> : <section className="admin"><h1>Access unavailable</h1><p>Platform administrator access is required.</p></section>) : page === "Settings" || !state.context ? (
           currentSetting === "Teams" && admin ? (
             <OrganizationGroups
               key={state.context!.organization_id}
