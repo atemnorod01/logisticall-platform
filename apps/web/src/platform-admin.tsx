@@ -6,23 +6,35 @@ import {
   type PlatformRow,
   type PlatformSection,
 } from "../../../packages/types/src/platform-admin.js";
+import { Icon } from "./ui.js";
 import { invitationLink } from "../../../packages/types/src/settings.js";
-const tabs: { id: PlatformSection; label: string }[] = [
-  { id: "organizations", label: "Organizations" },
-  { id: "directory", label: "Industry directory" },
-  { id: "users", label: "Users" },
-  { id: "audit", label: "Audit history" },
+export type PlatformAdminPage = PlatformSection | "phones" | "jambonz" | "devices";
+const tabs: { id: PlatformAdminPage; label: string; icon: string; group: string; description: string }[] = [
+  {id:"organizations",label:"Organizations",icon:"building",group:"Management",description:"Manage organizations on LogistiCall."},
+  {id:"users",label:"Users",icon:"users",group:"Management",description:"People and their organization memberships."},
+  {id:"directory",label:"Industry directory",icon:"inbox",group:"Management",description:"Companies across the freight industry."},
+  {id:"phones",label:"Phone numbers",icon:"phone",group:"Communications",description:"Vendor inventory and organization assignments."},
+  {id:"jambonz",label:"Jambonz",icon:"headphones",group:"Communications",description:"Calling infrastructure and account configuration."},
+  {id:"devices",label:"Devices & sessions",icon:"devices",group:"Security",description:"Devices and signed-in sessions across the platform."},
+  {id:"audit",label:"Audit history",icon:"history",group:"Security",description:"Administrative changes across LogistiCall."},
 ];
-export function PlatformAdmin({
-  csrf,
-  onBack,
-}: {
-  csrf: string;
-  onBack: () => void;
-}) {
+export function PlatformAdminNavigation({page,onPage}:{page:PlatformAdminPage;onPage:(page:PlatformAdminPage)=>void}) {
+ return <aside className="lc-settings-nav lc-platform-nav-panel" aria-label="Platform administration navigation">
+  <h2>Platform administration</h2>
+  {['Management','Communications','Security'].map(group=><div className="lc-platform-nav-group" key={group}>
+   <span className="lc-caption">{group}</span>
+   {tabs.filter(tab=>tab.group===group).map(tab=><button key={tab.id} className={page===tab.id?'selected':''} aria-current={page===tab.id?'page':undefined} onClick={()=>onPage(tab.id)}><Icon name={tab.icon}/>{tab.label}</button>)}
+  </div>)}
+ </aside>;
+}
+export function PlatformAdmin({csrf,page,onPage}:{csrf:string;page:PlatformAdminPage;onPage:(page:PlatformAdminPage)=>void}) {
+ const tab=tabs.find(t=>t.id===page)!;
+ if(page==='phones'||page==='jambonz'||page==='devices')return <section className="admin lc-platform-admin"><header className="lc-platform-heading"><div><h1>{tab.label}</h1><p>{tab.description}</p></div></header><div className="lc-platform-unavailable"><Icon name={tab.icon}/><h2>{page==='devices'?'Session inventory is not connected':page==='phones'?'Phone vendor is not connected':'Jambonz is not connected'}</h2><p>{page==='devices'?'Device and session management is not available yet.':'Administration controls will be available after the service integration is connected.'}</p></div></section>;
+ return <PlatformAdminData key={page} csrf={csrf} section={page} setSection={onPage}/>;
+}
+function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:PlatformSection;setSection:(page:PlatformSection)=>void}) {
   const panel = useRef<HTMLElement>(null);
-  const [section, setSection] = useState<PlatformSection>("organizations"),
-    [search, setSearch] = useState(""),
+  const [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
     [offset, setOffset] = useState(0),
     [rows, setRows] = useState<PlatformRow[]>([]),
@@ -170,38 +182,7 @@ export function PlatformAdmin({
       className="admin lc-platform-admin"
       aria-label="Platform administration"
     >
-      <header className="lc-platform-heading">
-        <div>
-          <h1>Platform administration</h1>
-          <span className="lc-platform-badge">Platform administrator</span>
-        </div>
-        <button className="button" onClick={onBack}>
-          ← Back to LogistiCall
-        </button>
-      </header>
-      <nav
-        className="lc-platform-tabs"
-        aria-label="Platform administration sections"
-      >
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={section === tab.id ? "selected" : ""}
-            aria-current={section === tab.id ? "page" : undefined}
-            onClick={() => {
-              setSection(tab.id);
-              setOffset(0);
-              setSearch("");
-              setQuery("");
-              setForm(null);
-              setSetup(null);
-              setNotice("");
-            }}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </nav>
+      <header className="lc-platform-heading"><div><h1>{tabs.find(t=>t.id===section)!.label}</h1><p>{tabs.find(t=>t.id===section)!.description}</p></div></header>
       {notice && <p role="status">{notice}</p>}
       {error && (
         <p role="alert">

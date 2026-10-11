@@ -6,6 +6,13 @@
   gap: 16px;
   overflow: auto;
 }
+#app.tenant-ui.conversation-workspace .lc-platform-admin > * {
+  width: 100%;
+  max-width: 960px;
+  margin-inline: auto;
+  box-sizing: border-box;
+  flex-shrink: 0;
+}
 body[data-tenant-theme="light"]
   #app.tenant-ui.conversation-workspace
   .lc-platform-admin {
@@ -31,27 +38,6 @@ body[data-tenant-theme="light"]
   padding: 4px 8px;
   border-radius: 6px;
   background: var(--platform-fill);
-}
-#app.tenant-ui.conversation-workspace .lc-platform-tabs {
-  display: flex;
-  flex-direction: row;
-  gap: 20px;
-  border-bottom: 1px solid var(--line);
-  overflow-x: auto;
-  flex-shrink: 0;
-}
-#app.tenant-ui.conversation-workspace .lc-platform-tabs button {
-  padding: 12px 0;
-  background: transparent;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  white-space: nowrap;
-  color: inherit;
-}
-#app.tenant-ui.conversation-workspace .lc-platform-tabs .selected {
-  border-bottom-color: var(--platform-accent);
-  color: var(--platform-accent);
 }
 #app.tenant-ui.conversation-workspace .lc-platform-admin .primary {
   background: var(--platform-accent);
@@ -182,4 +168,21 @@ body[data-tenant-theme="light"]
   #app.tenant-ui.conversation-workspace .lc-platform-fields {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+#app.tenant-ui.conversation-workspace .lc-platform-open {--platform-accent:light-dark(#6550af,#b6a6ff);--platform-fill:light-dark(#eee8ff,#353052);gap:8px;}
+#app.tenant-ui.conversation-workspace .lc-platform-open > .lc-platform-nav-panel {background:var(--panel);border:1px solid var(--line);border-radius:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-open > .workspace {border:1px solid var(--line);border-radius:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-nav-panel h2 {margin:0 0 30px;}
+#app.tenant-ui.conversation-workspace .lc-platform-nav-group {margin-bottom:26px;}
+#app.tenant-ui.conversation-workspace .lc-platform-nav-panel button.selected {background:var(--platform-fill);color:var(--platform-accent);}
+#app.tenant-ui.conversation-workspace .lc-platform-nav-panel .lc-caption {font-weight:400;font-size:calc(11px * var(--font-scale,1));letter-spacing:.5px;}
+#app.tenant-ui.conversation-workspace .lc-platform-heading p {color:var(--muted);margin:6px 0 8px;font-size:calc(13px * var(--font-scale,1));}
+#app.tenant-ui.conversation-workspace .lc-platform-unavailable {text-align:center;color:var(--muted);padding:60px 12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-unavailable h2 {color:var(--ink);font-size:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-nav-panel button {width:100%;display:flex;}
+@media(max-width:600px){
+  #app.tenant-ui.conversation-workspace .conversation-shell.layout.lc-platform-open {grid-template-rows:minmax(160px,35%) minmax(0,1fr);}
+  #app.tenant-ui.conversation-workspace .lc-platform-open > .lc-platform-nav-panel {max-height:none;overflow:auto;}
+  #app.tenant-ui.conversation-workspace .lc-platform-nav-panel > .lc-platform-nav-group {display:block;margin-bottom:18px;}
 }

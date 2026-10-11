@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 const paths: Record<string, ReactNode> = {
+  history: <><path d="M3 11a9 9 0 1 1 2.7 7M3 4v7h7M12 7v5l3 2"/></>,
+  devices: <><rect x="2" y="3" width="14" height="11" rx="2"/><path d="M5 18h8M9 14v4"/><rect x="17" y="9" width="5" height="12" rx="1"/></>,
   quote: <path d="M10 5H4v7h4c0 3-1 5-4 7m16-14h-6v7h4c0 3-1 5-4 7" />,
   search: (
     <>

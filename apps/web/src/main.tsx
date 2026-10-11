@@ -1,4 +1,4 @@
-import { PlatformAdmin } from "./platform-admin.js";
+import { PlatformAdmin, PlatformAdminNavigation, type PlatformAdminPage } from "./platform-admin.js";
 import { useUnreadMessages } from "./unread.js";
 import { preventPortalPinch } from "./portal-zoom.js";
 import type { Conversation } from "../../../packages/types/src/messaging.js";
@@ -87,6 +87,7 @@ function App() {
     try { localStorage.setItem("logisticall.workspace.fontSize", fontSize); } catch { /* Storage is optional. */ }
   }, [fontSize]);
   const [page, setPage] = useState<Page>("Conversations");
+  const [platformPage,setPlatformPage] = useState<PlatformAdminPage>("organizations");
   const [contactConversation,setContactConversation]=useState<Conversation | null>(null);
   const [messageTarget, setMessageTarget] = useState<{
     id: string;
@@ -232,7 +233,7 @@ function App() {
     );
   return (
     <div
-      className={`layout conversation-shell${calling.state.current?.acceptedAt ? " lc-call-docked" : ""}${page === "Settings" || !state.context ? " lc-settings-open" : ""}`}
+      className={`layout conversation-shell${calling.state.current?.acceptedAt ? " lc-call-docked" : ""}${page === "Settings" || page === "Platform administration" || !state.context ? " lc-settings-open" : ""}${page === "Platform administration" ? " lc-platform-open" : ""}`}
     >
       <aside className="sidebar">
         <div className="rail-brand logisticall-logo" aria-label="LogistiCall">
@@ -323,8 +324,9 @@ function App() {
           organization={state.context?.name}
         />
       )}
+      {page === "Platform administration" && state.session?.platformAdmin && <PlatformAdminNavigation page={platformPage} onPage={setPlatformPage}/>}
       <main className="workspace" id="main-content">
-        {page === "Platform administration" ? (state.session?.platformAdmin ? <PlatformAdmin csrf={state.session.csrfToken} onBack={() => setPage("Conversations")} /> : <section className="admin"><h1>Access unavailable</h1><p>Platform administrator access is required.</p></section>) : page === "Settings" || !state.context ? (
+        {page === "Platform administration" ? (state.session?.platformAdmin ? <PlatformAdmin csrf={state.session.csrfToken} page={platformPage} onPage={setPlatformPage} /> : <section className="admin"><h1>Access unavailable</h1><p>Platform administrator access is required.</p></section>) : page === "Settings" || !state.context ? (
           currentSetting === "Teams" && admin ? (
             <OrganizationGroups
               key={state.context!.organization_id}
