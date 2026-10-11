@@ -1,3 +1,4 @@
+import { gatherCallIce } from "./call-ice.js";
 import { voicemailController, type VoicemailState } from "./voicemail.js";
 import type {
   AudioCall,
@@ -193,27 +194,7 @@ export function callController(
         : await connection.createAnswer(),
     );
     // Bundle ICE candidates with SDP: signaling remains replica-safe through ordinary HTTPS.
-    if (connection.iceGatheringState !== "complete")
-      await new Promise<void>((resolve, reject) => {
-        const timer = setTimeout(() => {
-          cleanup();
-          reject(
-            Error("Could not prepare the audio connection. Please try again."),
-          );
-        }, 12000);
-        function cleanup() {
-          clearTimeout(timer);
-          connection.removeEventListener("icegatheringstatechange", changed);
-        }
-        function changed() {
-          if (connection.iceGatheringState === "complete") {
-            cleanup();
-            resolve();
-          }
-        }
-        connection.addEventListener("icegatheringstatechange", changed);
-        changed();
-      });
+    await gatherCallIce(connection);
     ensureLive(version);
     return connection.localDescription!.sdp;
   }
