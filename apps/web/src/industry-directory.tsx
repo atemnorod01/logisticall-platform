@@ -5,6 +5,7 @@ import type { Conversation } from '../../../packages/types/src/messaging.js';
 import type { messagingController } from './messaging.js';
 import { Avatar, Icon } from './ui.js';
 const labels = {all:'All businesses',carrier:'Carrier',forwarder:'Freight forwarder',broker:'Broker',shipper:'Shipper',factoring:'Factoring',other:'Other'};
+function businessLabel(company:IndustryOrganization){return company.fmcsa_entity_type.includes('CARRIER')&&company.fmcsa_entity_type.includes('BROKER')?'Carrier / Broker':labels[company.organization_type];}
 export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:ReturnType<typeof messagingController>;onOpen:(c:Conversation)=>void}) {
   const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[type,setType]=useState('all');
   const [rows,setRows]=useState<IndustryOrganization[]>([]),[selected,setSelected]=useState<IndustryOrganization>(),[next,setNext]=useState<number|null>(null),[offset,setOffset]=useState(0);
@@ -36,16 +37,21 @@ export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:R
       </form>
       <div className="lc-industry-filter-row"><select aria-label="Business type" value={type} onChange={e=>{setType(e.target.value);setOffset(0);setSelected(undefined);}}>{Object.entries(labels).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></div>
       <div className="lc-contact-list-heading"><h3>{search?'Search results':'Companies'}</h3><small>{rows.length}{next!==null?' +':''} {rows.length===1&&next===null?'company':'companies'}</small></div>
-      {rows.map(company=><div className={`lc-contact-row ${selected?.id===company.id?'selected':''}`} key={company.id}><button className="lc-contact-open" onClick={()=>choose(company)}><Avatar name={company.name}/><span><strong>{company.name}</strong><small>{labels[company.organization_type]}{company.city ? ` · ${company.city}, ${company.state}` : ""}</small><small>{[company.mc && `MC ${company.mc}`, company.dot && `DOT ${company.dot}`, company.ff && `FF ${company.ff}`].filter(Boolean).join(" · ")}</small><span className="lc-registry-badges">{company.on_platform && <span className="lc-network-badge">On LogistiCall</span>}{company.source==='synthetic' && <span className="tag">Sample</span>}{company.status==='inactive'&&<span className="tag">Inactive</span>}</span></span><span aria-hidden="true">›</span></button></div>)}
+      {rows.map(company=><div className={`lc-contact-row ${selected?.id===company.id?'selected':''}`} key={company.id}><button className="lc-contact-open" onClick={()=>choose(company)}><Avatar name={company.name}/><span><strong>{company.name}</strong><small>{businessLabel(company)}{company.city ? ` · ${company.city}, ${company.state}` : ""}</small><small>{[company.mc && `MC ${company.mc}`, company.dot && `DOT ${company.dot}`, company.ff && `FF ${company.ff}`].filter(Boolean).join(" · ")}</small><span className="lc-registry-badges">{company.on_platform && <span className="lc-network-badge">On LogistiCall</span>}{company.source==='synthetic' && <span className="tag">Sample</span>}{company.status==='inactive'&&<span className="tag">Inactive</span>}</span></span><span aria-hidden="true">›</span></button></div>)}
       {loading&&<p role="status">Loading companies…</p>}{error&&<p role="alert">{error}</p>}{!loading&&!error&&!rows.length&&<p className="quiet">No matching companies.</p>}{next!==null&&<button className="button" disabled={loading} onClick={()=>setOffset(next)}>Load more companies</button>}
     </section>
     <aside className="lc-contact-details" aria-label="Company details">
       {selected?<>
         <button className="button lc-contact-back" onClick={()=>setSelected(undefined)}>← Back to companies</button>
-        <div className="lc-contact-identity"><Avatar name={selected.name} large/><h2>{selected.name}</h2>{selected.dba&&<p>DBA {selected.dba}</p>}<div className="lc-registry-badges"><span className="tag">{labels[selected.organization_type]}</span>{selected.on_platform&&<span className="lc-network-badge">On LogistiCall</span>}{selected.source==='synthetic'&&<span className="tag">Sample company</span>}</div></div>
+        <div className="lc-contact-identity"><Avatar name={selected.name} large/><h2>{selected.name}</h2>{selected.dba&&<p>DBA {selected.dba}</p>}<div className="lc-registry-badges"><span className="tag">{businessLabel(selected)}</span>{selected.on_platform&&<span className="lc-network-badge">On LogistiCall</span>}{selected.source==='synthetic'&&<span className="tag">Sample company</span>}</div></div>
         <dl className="lc-registry-facts">
           <div><dt>Registration status</dt><dd>{selected.status==='unknown'?'Not verified':selected.status==='active'?'Active':'Inactive'}</dd></div>
           {selected.mc&&<div><dt>MC number</dt><dd>{selected.mc}</dd></div>}{selected.dot&&<div><dt>USDOT number</dt><dd>{selected.dot}</dd></div>}{selected.ff&&<div><dt>FF number</dt><dd>{selected.ff}</dd></div>}
+          {(selected.organization_type==='carrier'||selected.organization_type==='broker')&&<>
+            <div><dt>Power units</dt><dd>{selected.power_units===null?'Not reported':selected.power_units.toLocaleString()}</dd></div>
+            <div><dt>Drivers</dt><dd>{selected.drivers===null?'Not reported':selected.drivers.toLocaleString()}</dd></div>
+            {selected.fleet_as_of&&<div><dt>Fleet data as of</dt><dd>{selected.fleet_as_of}</dd></div>}
+          </>}
           <div><dt>Address</dt><dd>{selected.street?<>{selected.street}<br/>{[selected.city,selected.state,selected.postal_code].filter(Boolean).join(' ')}<br/>{selected.country}</>:'Not provided'}</dd></div>
           <div><dt>Phone</dt><dd>{selected.phones.length?selected.phones.map(phone=><a key={phone} href={`tel:${phone.replace(/[^+0-9]/g,'')}`}>{phone}</a>):'Not provided'}</dd></div>
           <div><dt>{selected.email_kind==='registration'?'Registration email':'Contact email'}</dt><dd>{selected.email?<a href={`mailto:${selected.email}`}>{selected.email}</a>:'Not provided'}</dd></div>
