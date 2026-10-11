@@ -86,6 +86,26 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
     }
   }
   return {
+    async unread(actor: CallActor) {
+      const db = await pool.connect();
+      try {
+        const result = await db.query<{ count: number }>(`select count(*)::int as count from platform.audio_calls
+          where data->'callee'->>'id'=$1 and data->'callee'->>'organizationId'=$2
+          and data->>'status'='ended' and data->>'acceptedAt' is null
+          and (data->>'createdAt')::bigint >= $3
+          and (data->>'endedAt')::bigint > coalesce((select reviewed_at from platform.call_reviews where user_id=$1::uuid and organization_id=$2::uuid),0)`, [actor.userId, actor.organizationId, Date.now() - 86400000]);
+        return result.rows[0]!.count;
+      } finally { db.release(); }
+    },
+    async review(actor: CallActor, before: number) {
+      const db = await pool.connect();
+      try {
+        await db.query(`insert into platform.call_reviews(organization_id,user_id,reviewed_at) values($1,$2,$3)
+          on conflict(organization_id,user_id) do update set reviewed_at=excluded.reviewed_at
+          where platform.call_reviews.reviewed_at < excluded.reviewed_at`,
+          [actor.organizationId,actor.userId,Math.min(before,Date.now())]);
+      } finally { db.release(); }
+    },
     async preferences(userId: string): Promise<VoicemailSettings> {
       const db = await pool.connect();
       try {

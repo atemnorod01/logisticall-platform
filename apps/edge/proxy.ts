@@ -62,7 +62,7 @@ export async function proxyRequest(
   const messaging = /^\/v1\/organizations\/[^/]+\/messaging(?:\/|$)/.test(incoming.pathname);
   const upload = method === "PUT" && /^\/v1\/organizations\/[^/]+\/messaging\/[^/]+\/attachments\/[^/]+$/.test(incoming.pathname);
   const calls = /^\/v1\/organizations\/[^/]+\/calls$/.test(incoming.pathname);
-  const streaming = method === "GET" && messaging && /\/(?:typing-events|identity-events)$/.test(incoming.pathname);
+  const streaming = method === "GET" && messaging && /\/(?:events|typing-events|identity-events)$/.test(incoming.pathname);
   const mediaDownload = method === "GET" && /^\/v1\/organizations\/[^/]+\/messaging\/[^/]+\/attachments\/[^/]+$/.test(incoming.pathname);
   const bodyLimit = upload ? 26214400 : calls ? 2900000 : messaging ? 500000 : 16384;
   if (request.body && !["GET", "HEAD"].includes(method)) {

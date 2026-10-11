@@ -1,3 +1,4 @@
+import { workspaceEvents, type WorkspaceChange } from "./realtime.js";
 import { randomUUID } from "node:crypto";
 import { personalContact, personalContactInput } from "../../../packages/types/src/personal-contacts.js";
 import { mediaSignature, validMediaSignature } from "./media-signature.js";
@@ -136,6 +137,40 @@ export function messagingRoutes(
     }
     return addresses;
   }
+  app.get(prefix + "/events", async (req, reply) => {
+    const initial = await auth(req);
+    const { userId } = z.object({ userId: z.uuid() }).strict().parse(req.query);
+    if (initial.actor.userId !== userId) throw new MessageFailure(403);
+    const target = `${initial.actor.organizationId}:${userId}`;
+    const memberTarget = `${target}:${initial.actor.membershipKey}`;
+    reply.hijack();
+    reply.raw.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
+    reply.raw.write('retry: 2000\n\nevent: change\ndata: {"kind":"resync"}\n\n');
+    const pending = new Map<string, { kind: WorkspaceChange['kind'] | 'resync'; conversationId?: string }>();
+    let timer: ReturnType<typeof setTimeout> | undefined, checking = false, closed = false;
+    const flush = async () => {
+      timer = undefined;
+      if (closed || checking || !pending.size) return;
+      checking = true;
+      const batch = [...pending.values()]; pending.clear();
+      try {
+        const current = await auth(req);
+        if (current.actor.userId !== userId || current.actor.membershipKey !== initial.actor.membershipKey) throw new MessageFailure(403);
+        if (!closed) for (const change of batch) reply.raw.write(`event: change\ndata: ${JSON.stringify(change)}\n\n`);
+      } catch { reply.raw.end(); }
+      finally { checking = false; if (!closed && pending.size && !timer) timer = setTimeout(() => void flush(), 100); }
+    };
+    const unsubscribe = workspaceEvents.subscribe(event => {
+      if (event && event.target !== target && event.target !== memberTarget) return;
+      const change = event ? { kind: event.kind, ...(event.conversationId ? { conversationId: event.conversationId } : {}) } : { kind: 'resync' as const };
+      pending.set(`${change.kind}:${'conversationId' in change ? change.conversationId ?? '' : ''}`, change);
+      if (!timer && !checking) timer = setTimeout(() => void flush(), 100);
+    });
+    const keepalive = setInterval(() => { if (!closed) reply.raw.write(': heartbeat\n\n'); }, 15000);
+    // Existing edge stream limit is 60 seconds; reconnect reauthorizes and catches up.
+    const expiry = setTimeout(() => reply.raw.end(), 55000);
+    reply.raw.on('close', () => { closed = true; unsubscribe(); clearTimeout(timer); clearTimeout(expiry); clearInterval(keepalive); pending.clear(); });
+  });
   app.get(prefix + "/preview", async (req) => {
     await auth(req);
     const { url } = z
@@ -449,6 +484,20 @@ export function messagingRoutes(
       return reply.send(bytes);
     },
   );
+  app.get(prefix + "/badges", async req => {
+    const a = await auth(req);
+    const ids = await mapInboxes(await accessibleInboxes(a), address => a.store.unreadMessages(a.actor, address));
+    return { messages: Math.min(100, new Set(ids.flat()).size) };
+  });
+  app.get(prefix + "/typing", async req => {
+    const a = await auth(req);
+    const { watch } = z.object({ watch: z.string().max(16000) }).strict().parse(req.query);
+    const items = z.array(z.object({ id: z.uuid(), groupId: z.uuid().optional() }).strict()).max(100).parse(JSON.parse(watch));
+    return { statuses: await mapInboxes(items, async item => {
+      try { return { id: item.id, people: await a.store.typingStatus(a.actor, await inbox(a,item.groupId),item.id) }; }
+      catch { return { id: item.id, people: [] }; }
+    }) };
+  });
   app.get(prefix + "/inboxes", async (req) => {
     const a = await auth(req),
       addresses = await accessibleInboxes(a);
@@ -628,7 +677,7 @@ export function messagingRoutes(
       finally {running=false;if(pending){pending=false;void update();}}
     };
     const unsubscribe=onGroupIdentityChanged(watch.map(v=>`typing:${v.id}`),()=>void update());
-    const fallback=setInterval(()=>void update(),2000);
+    const fallback=setInterval(()=>void update(),60000);
     const timeout=setTimeout(()=>reply.raw.end(),55000);
     reply.raw.on("close",()=>{unsubscribe();clearInterval(fallback);clearTimeout(timeout);});
     void update();

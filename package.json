@@ -17,6 +17,7 @@
     "dev:workspace": "tsx scripts/dev-workspace.ts"
   },
   "dependencies": {
+    "@supabase/realtime-js": "^2.117.3",
     "dompurify": "^3.4.16",
     "exceljs": "^4.4.0",
     "fastify": "^5.6.0",

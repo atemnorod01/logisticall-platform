@@ -503,6 +503,17 @@ export function postgresMessaging(
       }
       return file;
     },
+    unreadMessages(a: MessageActor, inbox: Address) {
+      return transaction(a, inbox, async c => {
+        const result = await c.query<{ id: string }>(`select m.id from platform.messages m
+          join platform.conversations c on c.id=m.conversation_id
+          where not c.departures ? $1 and m.actor_id<>$2 and m.deleted_at is null
+          and m.sequence>coalesce((select last_sequence from platform.conversation_reads r
+            where r.conversation_id=c.id and r.address_key=$1 and r.user_id=$2),0)
+          limit 100`, [addressKey(inbox), a.userId]);
+        return result.rows.map(r => r.id);
+      });
+    },
     unreadCount(a: MessageActor, inbox: Address) {
       return transaction(a, inbox, async (c) => {
         const result = await c.query(

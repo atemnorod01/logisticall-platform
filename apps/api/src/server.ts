@@ -1,3 +1,4 @@
+import { startSupabaseRealtime } from "./realtime.js";
 import { postgresCalls } from "./calls-store.js";
 import { supabaseMediaStorage } from "./media-storage.js";
 import { cloudflareTurn } from "./turn.js";
@@ -154,6 +155,10 @@ const app = buildApp(
       : {}),
   },
 );
+if (groupsPool && config.MEDIA_STORAGE_ORIGIN && config.MEDIA_STORAGE_SECRET) {
+  const stopRealtime = startSupabaseRealtime(config.MEDIA_STORAGE_ORIGIN, config.MEDIA_STORAGE_SECRET);
+  app.addHook("onClose", stopRealtime);
+}
 if (groupsPool) {
   const groups = groupsPool;
   app.addHook("onClose", async () => {

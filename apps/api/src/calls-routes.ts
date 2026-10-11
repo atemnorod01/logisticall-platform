@@ -58,6 +58,7 @@ export function callsRoutes(
       source,
     }),
     z.object({ action: z.literal("sync"), client: z.uuid() }),
+    z.object({ action: z.literal("review"), client: z.uuid(), before: z.number().int().min(0).max(Number.MAX_SAFE_INTEGER) }),
     z.object({
       action: z.literal("create"),
       client: z.uuid(),
@@ -130,9 +131,11 @@ export function callsRoutes(
             : await deps.directory.resolve(token, org, data.target);
         return { settings: await deps.store.preferences(callee.id) };
       }
+      if (data.action === "review") { await deps.store.review(actor, data.before); return { unread: await deps.store.unread(actor) }; }
       if (data.action === "sync")
         return {
           calls: await deps.store.sync(actor, data.client),
+          unread: await deps.store.unread(actor),
           iceServers: deps.iceServersFor ? await deps.iceServersFor(actor.userId) : deps.iceServers ?? [],
         };
       if (data.action === "create") {
