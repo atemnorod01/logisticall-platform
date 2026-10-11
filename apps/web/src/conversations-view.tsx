@@ -562,7 +562,7 @@ export function Conversations({
     void load();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void load();
-    }, 2000);
+    }, 10000);
     return () => {
       live = false;
       clearInterval(timer);
@@ -570,7 +570,7 @@ export function Conversations({
   }, [controller]);
   useEffect(() => {
     const timer = setInterval(() => {
-      if (document.visibilityState === "visible") void controller.refresh();
+      if (document.visibilityState === "visible") void controller.refresh({ background: true });
     }, 2000);
     const visible = () => {
       if (document.visibilityState === "visible") void controller.refresh();

@@ -48,7 +48,8 @@ export function messagingController(
     selection = 0,
     disposed = false,
     polling = false,
-    identityVersion = "";
+    identityVersion = "",
+    lastListRefresh = 0;
   const abort = new AbortController();
   const cache = new Map<string, { messages: Message[]; hasMore: boolean }>();
   let prefetched: {
@@ -156,8 +157,10 @@ export function messagingController(
         const p = conversationPage.parse(
           await request(listQuery({ filter, search })),
         );
-        if (ticket === epoch)
+        if (ticket === epoch) {
+          lastListRefresh = Date.now();
           emit({ rows: p.conversations, nextOffset: p.nextOffset });
+        }
       } catch (e) {
         if (ticket === epoch) fail(e);
       } finally {
@@ -224,37 +227,35 @@ export function messagingController(
         }
       }
     },
-    async refresh() {
+    async refresh(options: { background?: boolean } = {}) {
       if (polling || disposed || state.loading || state.busy) return;
       polling = true;
       const current = epoch,
         ticket = selection,
         id = state.selected?.id;
       try {
-        const wanted = Math.max(30, state.rows.length),
-          filter = state.filter,
-          search = state.search;
-        const rows: Conversation[] = [];
-        let offset: number | null = 0;
-        while (offset !== null && rows.length < wanted) {
-          const p = conversationPage.parse(
-            await request(
-              listQuery({ filter, search, offset: String(offset) }),
-            ),
-          );
-          if (current !== epoch) return;
-          rows.push(...p.conversations);
-          offset = p.nextOffset;
-        }
-        emit({ rows, nextOffset: offset, error: "" });
-        if (id) {
-          const detail = conversationSchema.parse(
-            ((await request(`/${id}${query()}`)) as { conversation: unknown })
-              .conversation,
-          );
-          const messages = messagePage.parse(
-            await request(`/${id}/messages${query()}`),
-          );
+        const selectedQuery = query();
+        const refreshList = async () => {
+          if (options.background && Date.now() - lastListRefresh < 10000) return;
+          const wanted = Math.max(30, state.rows.length), filter = state.filter, search = state.search;
+          const rows: Conversation[] = [];
+          let offset: number | null = 0;
+          while (offset !== null && rows.length < wanted) {
+            const p = conversationPage.parse(await request(listQuery({ filter, search, offset: String(offset) })));
+            if (current !== epoch) return;
+            rows.push(...p.conversations);
+            offset = p.nextOffset;
+          }
+          lastListRefresh = Date.now();
+          emit({ rows, nextOffset: offset, error: "" });
+        };
+        const [, snapshot] = await Promise.all([
+          refreshList(),
+          id ? request(`/${id}/snapshot${selectedQuery}`) : Promise.resolve(null),
+        ]);
+        if (id && snapshot) {
+          const detail = conversationSchema.parse((snapshot as { conversation: unknown }).conversation);
+          const messages = messagePage.parse(snapshot);
           if (current !== epoch || ticket !== selection) return;
           const changedIdentity = identityVersion !== messages.identityVersion;
           const refreshed = [...messages.messages];
