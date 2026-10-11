@@ -1,5 +1,5 @@
 #app.tenant-ui .lc-voicemail-settings {
-  max-width: 640px;
+  max-width: var(--settings-content-width, 800px);
   display: grid;
   gap: 16px;
 }

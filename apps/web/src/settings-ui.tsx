@@ -223,7 +223,6 @@ export function SettingsNav({
         <>
           <span className="lc-caption lc-org-caption">Organization</span>
           <strong className="lc-org-name">{organization}</strong>
-          <span className="lc-org-role">Organization admin</span>
           {(["Overview", "Members", "Teams"] as SettingPage[]).map((p) => (
             <button
               key={p}
@@ -353,7 +352,7 @@ export function PersonalSettings({
   return (
     <section className="lc-settings-page">
       <SettingsHeader
-        section="Personal settings"
+
         title={page}
         description={
           {
@@ -558,7 +557,7 @@ export function OrganizationOverview({
       aria-busy={loading || busy}
     >
       <SettingsHeader
-        section="Organization settings"
+
         title="Organization overview"
         description="Your organization’s identity in LogistiCall."
       />
@@ -718,7 +717,7 @@ export function OrganizationMembers({
   return (
     <section className="lc-settings-page lc-members-page" aria-busy={busy}>
       <SettingsHeader
-        section="Organization settings"
+
         title="Members"
         description="People in your organization."
         actions={

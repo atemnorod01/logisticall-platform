@@ -932,7 +932,7 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 20px;
-  min-height: 82px;
+  min-height: 0;
   margin: 0 0 32px;
   font-family: inherit;
 }

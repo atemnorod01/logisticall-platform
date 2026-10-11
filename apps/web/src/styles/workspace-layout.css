@@ -72,3 +72,16 @@
 @media (max-width: 600px) {
   #app.tenant-ui.conversation-workspace .lc-settings-open > .lc-settings-nav > h2 { display: block; margin-bottom: 16px; }
 }
+
+/* Voicemail is the common settings content reference. Keep the surrounding
+   frame full-size and anchor every section to the same navigation-side edge. */
+#app.tenant-ui.conversation-workspace .lc-settings-open {
+  --settings-content-width: 800px;
+  gap: 0;
+}
+#app.tenant-ui.conversation-workspace .lc-settings-open .lc-settings-page > :not(dialog),
+#app.tenant-ui.conversation-workspace .lc-settings-open .admin > :not(dialog) {
+  max-width: var(--settings-content-width);
+  margin-inline: 0;
+  box-sizing: border-box;
+}

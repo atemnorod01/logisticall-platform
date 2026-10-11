@@ -1,40 +1,356 @@
-import { useEffect, useState } from 'react';
-import { platformRecord, platformEdit, type PlatformRow } from '../../../packages/types/src/platform-admin.js';
-import { Avatar } from './ui.js';
+import { useEffect, useState, type ReactNode } from "react";
+import {
+  platformRecord,
+  platformEdit,
+  type PlatformRow,
+} from "../../../packages/types/src/platform-admin.js";
+import { Avatar } from "./ui.js";
 
-export function PlatformEditor({kind,id,csrf,onCreateOrganization,onClose,onSaved}:{kind:'organizations'|'directory'|'users';id:string;csrf:string;onCreateOrganization?:(()=>void)|undefined;onClose:()=>void;onSaved:()=>void}) {
- const [record,setRecord]=useState<(PlatformRow & {revision:string})|null>(null),[error,setError]=useState(''),[busy,setBusy]=useState(false);
- useEffect(()=>{const abort=new AbortController();fetch(`/v1/platform/records/${kind}/${encodeURIComponent(id)}`,{signal:abort.signal}).then(async r=>{if(!r.ok)throw Error('Could not load this record. Close the editor and try again.');return platformRecord.parse(await r.json());}).then(setRecord).catch(e=>{if(!abort.signal.aborted)setError(e.message)});return()=>abort.abort();},[kind,id]);
- async function save(event:React.FormEvent<HTMLFormElement>){
-  event.preventDefault();if(!record)return;
-  const data=Object.fromEntries(new FormData(event.currentTarget));
-  const input=platformEdit.safeParse(kind==='users'?{kind:'user',revision:record.revision,name:data.name,status:data.status??record.status}:{kind:'company',revision:record.revision,company:data});
-  if(!input.success){setError('Check the highlighted fields and enter valid company details.');return;}
-  setBusy(true);setError('');
-  try{const r=await fetch(`/v1/platform/records/${kind}/${encodeURIComponent(id)}`,{method:'PATCH',headers:{'content-type':'application/json','x-csrf-token':csrf},body:JSON.stringify(input.data)});
-   if(!r.ok)throw Error(r.status===409?'This record changed or its company identifiers are already in use. Close and reopen the editor before saving.':r.status===403?'You cannot make this change with your current access.':'Could not save changes. Please try again.');
-   platformRecord.parse(await r.json());onSaved();
-  }catch(e){setError((e as Error).message);}finally{setBusy(false);}
- }
- return <form className="lc-platform-form lc-platform-editor" onSubmit={e=>void save(e)}>
-  <header className="lc-platform-editor-top"><h2>{kind==='users'?'Edit user':'Edit company'}</h2><button className="button" type="button" aria-label="Close editor" onClick={onClose} disabled={busy}>×</button></header>
-  <div className="lc-platform-editor-body">
-  <div className="lc-platform-edit-heading">{record&&<Avatar name={record.name}/>}<strong>{record?.name}</strong></div>
-  {record&&kind==='directory'&&<div className="lc-platform-company-access">{record.organization_id?<span className="lc-platform-badge">On LogistiCall</span>:<button className="button" type="button" onClick={onCreateOrganization}>Create organization</button>}</div>}
-  {error&&<p role="alert">{error}</p>}
-  {!record&&!error&&<p>Loading details…</p>}
-  {record&&<div className="lc-platform-fields">
-   {kind==='users'?<>
-    <label>Display name<input name="name" defaultValue={record.name} maxLength={100} required/></label>
-    <label>Sign-in email<input value={record.email??''} readOnly/><small>Managed through the account’s verified email flow.</small></label>
-    <label>Account status<select name="status" defaultValue={record.status??'active'} disabled={record.platform_admin}><option value="active">Active</option><option value="suspended">Suspended</option></select><small>{record.platform_admin?'Platform administrator accounts cannot be suspended here.':'Suspension blocks access across all organizations.'}</small></label>
-   </>:<>
-    {[
-     ['name','Company name',120],['dba','DBA',160],['mc','MC number',12],['dot','USDOT number',12],['phone','Public phone',40],['email','Company email',254],['street','Street address',200],['city','City',100],['state','State / province',100],['postal_code','Postal code',20],['country','Country',60],
-    ].map(([key,label,max])=><label key={key}>{label}<input name={String(key)} defaultValue={key==='phone'?(record.phones?.[0]??''):String(record[key as keyof PlatformRow]??'')} type={key==='email'?'email':'text'} maxLength={Number(max)} required={key==='name'} pattern={key==='mc'||key==='dot'?'[0-9]*':undefined}/></label>)}
-    <label>Business type<select name="organization_type" defaultValue={record.organization_type??'other'}>{[['carrier','Carrier'],['broker','Broker'],['forwarder','Freight forwarder'],['shipper','Shipper'],['factoring','Factoring'],['other','Other']].map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
-   </>}
-  </div>}
-  </div><footer><button className="button" type="button" onClick={onClose} disabled={busy}>Cancel</button><button className="button primary" disabled={busy||!record}>{busy?'Saving…':'Save changes'}</button></footer>
- </form>;
+type Field = { key: string; label: string; max?: number; options?: string[][] };
+const businessTypes = [
+  ["carrier", "Carrier"],
+  ["broker", "Broker"],
+  ["forwarder", "Freight forwarder"],
+  ["shipper", "Shipper"],
+  ["factoring", "Factoring"],
+  ["other", "Other"],
+];
+const companySections: { title: string; fields: Field[] }[] = [
+  {
+    title: "Company",
+    fields: [
+      { key: "name", label: "Company name", max: 120 },
+      { key: "dba", label: "DBA", max: 160 },
+      {
+        key: "organization_type",
+        label: "Business type",
+        options: businessTypes,
+      },
+      { key: "mc", label: "MC number", max: 12 },
+      { key: "dot", label: "USDOT number", max: 12 },
+    ],
+  },
+  {
+    title: "Contact",
+    fields: [
+      { key: "phone", label: "Public phone", max: 40 },
+      { key: "email", label: "Company email", max: 254 },
+    ],
+  },
+  {
+    title: "Address",
+    fields: [
+      { key: "street", label: "Street address", max: 200 },
+      { key: "city", label: "City", max: 100 },
+      { key: "state", label: "State / province", max: 100 },
+      { key: "postal_code", label: "Postal code", max: 20 },
+      { key: "country", label: "Country", max: 60 },
+    ],
+  },
+];
+const userSections: { title: string; fields: Field[] }[] = [
+  {
+    title: "Profile",
+    fields: [{ key: "name", label: "Display name", max: 100 }],
+  },
+  {
+    title: "Account",
+    fields: [
+      { key: "email", label: "Sign-in email" },
+      {
+        key: "status",
+        label: "Account status",
+        options: [
+          ["active", "Active"],
+          ["suspended", "Suspended"],
+        ],
+      },
+    ],
+  },
+];
+export function PlatformEditor({
+  kind,
+  id,
+  csrf,
+  onCreateOrganization,
+  organizationAccess,
+  onClose,
+  onSaved,
+}: {
+  kind: "organizations" | "directory" | "users";
+  id: string;
+  csrf: string;
+  onCreateOrganization?: (() => void) | undefined;
+  organizationAccess?: ReactNode;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [record, setRecord] = useState<
+    (PlatformRow & { revision: string }) | null
+  >(null);
+  const [draft, setDraft] = useState<Record<string, string>>({}),
+    [initial, setInitial] = useState<Record<string, string>>({});
+  const [editing, setEditing] = useState<string | null>(null),
+    [error, setError] = useState(""),
+    [busy, setBusy] = useState(false);
+  const readOnly = kind === "directory",
+    sections = kind === "users" ? userSections : companySections;
+  const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  useEffect(() => {
+    const abort = new AbortController();
+    fetch(`/v1/platform/records/${kind}/${encodeURIComponent(id)}`, {
+      signal: abort.signal,
+    })
+      .then(async (r) => {
+        if (!r.ok)
+          throw Error("Could not load this record. Close and try again.");
+        return platformRecord.parse(await r.json());
+      })
+      .then((r) => {
+        const values: Record<string, string> = {};
+        for (const field of sections.flatMap((s) => s.fields))
+          values[field.key] =
+            field.key === "phone"
+              ? (r.phones?.[0] ?? "")
+              : String(
+                  r[field.key as keyof PlatformRow] ??
+                    (field.key === "status"
+                      ? "active"
+                      : field.key === "organization_type"
+                        ? "other"
+                        : ""),
+                );
+        setRecord(r);
+        setDraft(values);
+        setInitial(values);
+      })
+      .catch((e) => {
+        if (!abort.signal.aborted) setError(e.message);
+      });
+    return () => abort.abort();
+  }, [kind, id]);
+  async function save(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!record || readOnly || !dirty) return;
+    const input = platformEdit.safeParse(
+      kind === "users"
+        ? {
+            kind: "user",
+            revision: record.revision,
+            name: draft.name,
+            status: draft.status,
+          }
+        : { kind: "company", revision: record.revision, company: draft },
+    );
+    if (!input.success) {
+      setError("Check the details and enter valid values before saving.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      const r = await fetch(
+        `/v1/platform/records/${kind}/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json", "x-csrf-token": csrf },
+          body: JSON.stringify(input.data),
+        },
+      );
+      if (!r.ok)
+        throw Error(
+          r.status === 409
+            ? "This record changed or its company identifiers are already in use. Close and reopen before saving."
+            : r.status === 403
+              ? "You cannot make this change with your current access."
+              : "Could not save changes. Please try again.",
+        );
+      platformRecord.parse(await r.json());
+      onSaved();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <form
+      className={`lc-platform-form lc-platform-editor${readOnly ? " lc-platform-readonly" : ""}`}
+      onSubmit={(e) => void save(e)}
+    >
+      <header className="lc-platform-editor-top">
+        <button
+          className="button"
+          type="button"
+          aria-label="Close details"
+          onClick={onClose}
+          disabled={busy}
+        >
+          ×
+        </button>
+      </header>
+      <div className="lc-platform-editor-body">
+        {record && (
+          <div className="lc-platform-profile-heading">
+            <Avatar name={draft.name || record.name} />
+            <div>
+              <strong>{draft.name || record.name}</strong>
+              {kind !== "users" && (
+                <small>
+                  {
+                    businessTypes.find(
+                      (t) => t[0] === draft.organization_type,
+                    )?.[1]
+                  }
+                </small>
+              )}
+            </div>
+          </div>
+        )}
+        {record && readOnly && (
+          <div className="lc-platform-company-access">
+            {record.organization_id ? (
+              <span className="lc-platform-badge">On LogistiCall</span>
+            ) : (
+              <button
+                className="button"
+                type="button"
+                onClick={onCreateOrganization}
+              >
+                Create organization
+              </button>
+            )}
+          </div>
+        )}
+        {record && organizationAccess}
+        {error && <p role="alert">{error}</p>}
+        {!record && !error && <p>Loading details…</p>}
+        {record &&
+          sections.map((section) => (
+            <section
+              className="lc-platform-profile-section"
+              key={section.title}
+            >
+              <header>
+                <h3>{section.title}</h3>
+                {!readOnly && (
+                  <button
+                    type="button"
+                    className="lc-platform-section-edit"
+                    disabled={busy}
+                    onClick={() =>
+                      setEditing(
+                        editing === section.title ? null : section.title,
+                      )
+                    }
+                  >
+                    {editing === section.title ? "Done" : "Edit"}
+                  </button>
+                )}
+              </header>
+              {editing === section.title ? (
+                <div className="lc-platform-fields">
+                  {section.fields.map((field) => (
+                    <label key={field.key}>
+                      {field.label}
+                      {field.options ? (
+                        <select
+                          value={draft[field.key] ?? ""}
+                          disabled={
+                            busy ||
+                            (field.key === "status" && record.platform_admin)
+                          }
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              [field.key]: e.target.value,
+                            }))
+                          }
+                        >
+                          {field.options.map(([value, label]) => (
+                            <option key={value} value={value}>
+                              {label}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          value={draft[field.key] ?? ""}
+                          readOnly={kind === "users" && field.key === "email"}
+                          disabled={busy}
+                          maxLength={field.max}
+                          type={field.key === "email" ? "email" : "text"}
+                          required={field.key === "name"}
+                          pattern={
+                            field.key === "mc" || field.key === "dot"
+                              ? "[0-9]*"
+                              : undefined
+                          }
+                          onChange={(e) =>
+                            setDraft((d) => ({
+                              ...d,
+                              [field.key]: e.target.value,
+                            }))
+                          }
+                        />
+                      )}
+                      {kind === "users" && field.key === "email" && (
+                        <small>
+                          Managed through the account’s verified email flow.
+                        </small>
+                      )}
+                      {field.key === "status" && (
+                        <small>
+                          {record.platform_admin
+                            ? "Platform administrator accounts cannot be suspended here."
+                            : "Suspension blocks access across all organizations."}
+                        </small>
+                      )}
+                    </label>
+                  ))}
+                </div>
+              ) : (
+                <dl>
+                  {section.fields.map((field) => (
+                    <div key={field.key}>
+                      <dt>{field.label}</dt>
+                      <dd>
+                        {field.options?.find(
+                          (o) => o[0] === draft[field.key],
+                        )?.[1] ||
+                          draft[field.key] ||
+                          "Not provided"}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+            </section>
+          ))}
+        {readOnly && record && (
+          <p className="lc-platform-source-note">
+            Directory information is managed through imports.
+          </p>
+        )}
+      </div>
+      {!readOnly && (
+        <footer>
+          <button
+            className="button"
+            type="button"
+            onClick={onClose}
+            disabled={busy}
+          >
+            Cancel
+          </button>
+          <button
+            className="button primary"
+            disabled={busy || !record || !dirty}
+          >
+            {busy ? "Saving…" : "Save changes"}
+          </button>
+        </footer>
+      )}
+    </form>
+  );
 }

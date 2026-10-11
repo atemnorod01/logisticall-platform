@@ -454,7 +454,7 @@ export function OrganizationGroups({
       )}
       {!detail ? (
         <SettingsHeader
-          section="Organization settings"
+
           title="Teams"
           description="Public and private teams managed by your organization."
           actions={

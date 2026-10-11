@@ -3,13 +3,13 @@
   --platform-fill: #353052;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 0;
   overflow: auto;
 }
 #app.tenant-ui.conversation-workspace .lc-platform-admin > * {
   width: 100%;
-  max-width: 720px;
-  margin-inline: auto;
+  max-width: var(--settings-content-width, 800px);
+  margin-inline: 0;
   box-sizing: border-box;
   flex-shrink: 0;
 }
@@ -170,9 +170,7 @@ body[data-tenant-theme="light"]
   }
 }
 
-#app.tenant-ui.conversation-workspace .lc-platform-open {--platform-accent:light-dark(#6550af,#b6a6ff);--platform-fill:light-dark(#eee8ff,#353052);gap:8px;}
-#app.tenant-ui.conversation-workspace .lc-platform-open > .lc-platform-nav-panel {background:var(--panel);border:1px solid var(--line);border-radius:12px;}
-#app.tenant-ui.conversation-workspace .lc-platform-open > .workspace {border:1px solid var(--line);border-radius:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-open {--platform-accent:light-dark(#6550af,#b6a6ff);--platform-fill:light-dark(#eee8ff,#353052);}
 #app.tenant-ui.conversation-workspace .lc-platform-nav-panel h2 {margin:0 0 30px;}
 #app.tenant-ui.conversation-workspace .lc-platform-nav-group {margin-bottom:26px;}
 #app.tenant-ui.conversation-workspace .lc-platform-nav-panel button.selected {background:var(--platform-fill);color:var(--platform-accent);}
@@ -200,7 +198,7 @@ body[data-tenant-theme="light"]
   box-sizing: border-box;
   background: var(--panel);
   overflow: auto;
-  scrollbar-gutter: stable both-edges;
+  scrollbar-gutter: auto;
 }
 #app.tenant-ui.conversation-workspace .lc-platform-row {align-items:center;gap:12px;padding:14px 0;}
 #app.tenant-ui.conversation-workspace .lc-platform-row > .avatar {width:36px;height:36px;flex:0 0 36px;font-size:12px;}
@@ -258,7 +256,7 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .lc-platform-row-name {display:block;max-width:100%;width:100%;padding:0;background:transparent;border:0;color:var(--ink);font:inherit;font-weight:650;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:20px;}
 #app.tenant-ui.conversation-workspace .lc-platform-row-name:hover {text-decoration:underline;}
 #app.tenant-ui.conversation-workspace .lc-platform-row-actions,
-#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions {display:flex;flex-wrap:nowrap;margin:0;gap:8px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions {display:flex;flex-wrap:nowrap;margin:0;}
 #app.tenant-ui.conversation-workspace .lc-platform-row-actions .lc-platform-status {order:-1;}
 #app.tenant-ui.conversation-workspace .lc-platform-edit {padding:7px;border:0;background:transparent;min-width:30px;min-height:30px;}
 #app.tenant-ui.conversation-workspace .lc-platform-edit:hover {background:var(--platform-fill);}
@@ -266,7 +264,7 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions .lc-platform-badge {display:none;}
 #app.tenant-ui.conversation-workspace .lc-platform-content.is-editing > .lc-platform-list-view {flex-basis:46%;padding-right:16px;}
 #app.tenant-ui.conversation-workspace .lc-platform-toolbar,
-#app.tenant-ui.conversation-workspace .is-editing .lc-platform-toolbar {flex-direction:row;align-items:center;gap:8px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-toolbar {flex-direction:row;align-items:center;}
 #app.tenant-ui.conversation-workspace .lc-platform-toolbar form {gap:0;position:relative;}
 #app.tenant-ui.conversation-workspace .lc-platform-toolbar input {padding-right:34px;}
 #app.tenant-ui.conversation-workspace .lc-platform-search-submit {position:absolute;right:2px;padding:7px;border:0;background:transparent;}
@@ -280,3 +278,52 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .is-editing .lc-platform-pagination .button {padding:6px;}
 #app.tenant-ui.conversation-workspace .lc-platform-row.lc-platform-audit-row {grid-template-columns:minmax(0,1fr) auto;}
 #app.tenant-ui.conversation-workspace .lc-platform-audit-row .lc-platform-row-copy > small {white-space:normal;}
+
+/* Profile sections share one draft; only the chosen section exposes inputs. */
+#app.tenant-ui.conversation-workspace .lc-platform-profile-heading {display:flex;align-items:center;gap:12px;padding:22px 0 18px;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-heading > div {min-width:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-heading strong {display:block;overflow-wrap:anywhere;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-heading small {display:block;margin-top:4px;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section {border-top:1px solid var(--line);padding:16px 0;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section > header {display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section h3 {font-size:14px;margin:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-section-edit {background:transparent;border:0;color:var(--platform-accent);font:inherit;font-size:12px;padding:4px;cursor:pointer;}
+#app.tenant-ui.conversation-workspace .lc-platform-section-edit:hover {text-decoration:underline;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section dl {display:grid;gap:12px;margin:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section dt {font-size:12px;color:var(--muted);margin-bottom:3px;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section dd {margin:0;font-size:13px;overflow-wrap:anywhere;}
+#app.tenant-ui.conversation-workspace .lc-platform-source-note {font-size:12px;color:var(--muted);}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section dl > div {display:grid;grid-template-columns:minmax(90px, .8fr) minmax(0,1.2fr);gap:12px;align-items:baseline;}
+#app.tenant-ui.conversation-workspace .lc-platform-profile-section dt {margin:0;}
+
+/* Directory search and company identity start directly below the page heading. */
+#app.tenant-ui.conversation-workspace .lc-platform-directory > .lc-settings-header {min-height:0;margin-bottom:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor {position:relative;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor .lc-platform-editor-top {position:absolute;top:0;right:0;z-index:1;border:0;padding:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor .lc-platform-profile-heading {padding-top:4px;padding-right:48px;min-height:40px;}
+
+#app.tenant-ui.conversation-workspace .lc-platform-owner-invitation {display:flex;flex-direction:column;align-items:flex-start;gap:8px;}
+#app.tenant-ui.conversation-workspace .lc-platform-owner-invitation p {margin:0;overflow-wrap:anywhere;}
+#app.tenant-ui.conversation-workspace .lc-platform-owner-invitation + .lc-platform-owner-invitation {margin-top:16px;}
+
+/* Both panes reserve the same footer height and control baseline. */
+#app.tenant-ui.conversation-workspace .lc-platform-pagination,
+#app.tenant-ui.conversation-workspace .lc-platform-editor footer {
+  box-sizing: border-box;
+  flex: 0 0 56px;
+  height: 56px;
+  margin: 0;
+  padding: 12px 0 0;
+  align-items: center;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-pagination .button,
+#app.tenant-ui.conversation-workspace .lc-platform-pagination select,
+#app.tenant-ui.conversation-workspace .lc-platform-editor footer .button {
+  box-sizing: border-box;
+  height: 36px;
+  margin-block: 0;
+}
+
+#app.tenant-ui.conversation-workspace .lc-platform-row-identity {display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-identity .lc-platform-row-name {width:auto;min-width:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-identity .lc-platform-badge {flex-shrink:0;white-space:nowrap;}
