@@ -213,7 +213,28 @@ export function messagingRoutes(
     return a.store.depart(a.actor,await inbox(a,q.groupId),params(req).conversationId!,body.targetId,body.nextOwnerId);
   });
   app.get(prefix + "/company-groups", async req=>{
-    const a=await auth(req);return {groups:await a.store.companyGroups(a.actor,await inbox(a))};
+    const a = await auth(req);
+    const groups = await a.store.companyGroups(a.actor, await inbox(a));
+    // Group membership stores a historical label; IAM owns current profile names.
+    const names = new Map([[a.actor.userId, a.actor.name]]);
+    const remaining = new Set(groups.flatMap(g => g.members.map(m => m.id)));
+    remaining.delete(a.actor.userId);
+    let offset: number | null = 0;
+    while (remaining.size && offset !== null) {
+      const page = await options.directory.search(a.token, a.actor.organizationId, "", offset);
+      for (const person of page.people) {
+        if (person.kind === "user" && person.organizationId === a.actor.organizationId) {
+          names.set(person.id, person.name);
+          remaining.delete(person.id);
+        }
+      }
+      if (page.nextOffset !== null && (page.nextOffset <= offset || page.nextOffset > 100000))
+        throw new MessageFailure(503);
+      offset = page.nextOffset;
+    }
+    return { groups: groups.map(g => ({ ...g, members: g.members.map(m => ({
+      ...m, name: names.get(m.id) ?? "Unavailable member",
+    })) })) };
   });
   app.post(prefix + "/team/from-group", async req=>{
     const a=await auth(req),body=z.object({groupId:z.uuid()}).strict().parse(req.body),sender=await inbox(a);
