@@ -25,7 +25,7 @@ export function browserSessions(options: {
   if (origin.protocol !== 'https:' || origin.href !== origin.origin + '/') throw Error('HTTPS application origin required');
   const now = options.now ?? Date.now;
   const vault = tokenVault(options.key);
-  async function session(request: FastifyRequest) {
+  async function resolveSession(request: FastifyRequest) {
     const sid = readCookie(request.headers.cookie, SID);
     if (!sid) throw new SessionError();
     const id = digest(sid);
@@ -46,6 +46,15 @@ export function browserSessions(options: {
       throw new SessionError();
     }
     return { id, ...value };
+  }
+  // Share CSRF and route authentication only within the same mutation request.
+  // GET event streams must revalidate on each update, including after revocation.
+  const mutations = new WeakMap<FastifyRequest, ReturnType<typeof resolveSession>>();
+  function session(request: FastifyRequest) {
+    if (['GET', 'HEAD', 'OPTIONS'].includes(request.method)) return resolveSession(request);
+    let value = mutations.get(request);
+    if (!value) { value = resolveSession(request); mutations.set(request, value); }
+    return value;
   }
   async function csrf(request: FastifyRequest) {
     if (request.headers.origin !== origin.origin) throw new SessionError(403);

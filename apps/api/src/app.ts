@@ -423,10 +423,11 @@ export function buildApp(
       };
     },
   });
+  const messagingEligibility = deps.groupEligibility ?? iamGroupEligibility(config.iamApi);
   messagingRoutes(app, {
     store: deps.messaging,
     groups: deps.groups,
-    eligibility: deps.groupEligibility ?? iamGroupEligibility(config.iamApi),
+    eligibility: messagingEligibility,
     directory: deps.messagingDirectory ?? iamMessaging(config.iamApi),
     async authorize(req, organizationId) {
       if (req.headers["x-iam-impersonation"] !== undefined)
@@ -441,8 +442,13 @@ export function buildApp(
       } catch {
         throw new IamFailure(401);
       }
-      const c = await context(token, organizationId);
+      const [c, member] = await Promise.all([
+        context(token, organizationId),
+        messagingEligibility.member(token, organizationId, actor.userId),
+      ]);
       if (
+        member.user_id !== actor.userId ||
+        member.organization_id !== organizationId ||
         c.user_id !== actor.userId ||
         c.organization_id !== organizationId ||
         c.membership_status !== "active" ||
@@ -456,6 +462,7 @@ export function buildApp(
           organizationName: c.name,
         },
         token,
+        member,
       };
     },
   });

@@ -20,15 +20,21 @@ export type CallActor = { userId: string; organizationId: string };
 export const partyMatches = (p: CallParty, a: CallActor) =>
   p.id === a.userId && p.organizationId === a.organizationId;
 export function postgresCalls(pool: Pick<Pool, "connect">) {
-  async function transaction<T>(run: (rows: AudioCall[]) => T): Promise<T> {
+  const mineWhere = `(data->'caller'->>'id'=$1 and data->'caller'->>'organizationId'=$2
+    or data->'callee'->>'id'=$1 and data->'callee'->>'organizationId'=$2)`;
+  async function transaction<T>(run: (rows: AudioCall[]) => T, actor?: CallActor): Promise<T> {
     const db = await pool.connect();
     try {
       await db.query("begin");
-      // Serialize admission and transitions across API replicas, including crossed calls.
-      await db.query("lock table platform.audio_calls in exclusive mode");
+      // Only admission needs serialization across participants (including crossed
+      // calls). Polls and actions lock the actor's rows, never the whole table.
+      if (!actor) await db.query("lock table platform.audio_calls in exclusive mode");
       const rows = (
         await db.query<{ data: AudioCall }>(
-          "select data from platform.audio_calls",
+          actor ? `select data from platform.audio_calls where ${mineWhere}
+            and (data->>'status'<>'ended' or (data->>'createdAt')::bigint >= $3)
+            order by id for update` : "select data from platform.audio_calls order by id",
+          actor ? [actor.userId, actor.organizationId, Date.now() - 86400000] : [],
         )
       ).rows.map((r) => r.data);
       const original = new Map(rows.map((c) => [c.id, JSON.stringify(c)]));
@@ -66,7 +72,7 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
           )
             await db.query("select platform.publish_call_message($1)", [c.id]);
         }
-      await db.query(
+      if (!actor) await db.query(
         "delete from platform.audio_calls where (data->>'createdAt')::bigint < $1 and data->>'status'='ended'",
         [Date.now() - 86400000],
       );
@@ -104,33 +110,33 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
         db.release();
       }
     },
-    sync(actor: CallActor, client: string) {
-      return transaction((rows) => {
-        const mine = rows.filter(
-          (c) => partyMatches(c.caller, actor) || partyMatches(c.callee, actor),
-        );
-        for (const c of mine) {
-          if (partyMatches(c.caller, actor) && c.callerClient === client)
-            c.callerSeen = Date.now();
-          if (partyMatches(c.callee, actor) && c.calleeClient === client)
-            c.calleeSeen = Date.now();
+    async sync(actor: CallActor, client: string) {
+      const project = (rows: AudioCall[]) => rows
+        .sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)
+        .map(c => ({ ...c,
+          offer: partyMatches(c.callee, actor) && (!c.calleeClient || c.calleeClient === client) ? c.offer : "",
+          answer: partyMatches(c.caller, actor) && c.callerClient === client ? c.answer : null,
+        }));
+      const db = await pool.connect();
+      let rows: AudioCall[];
+      try {
+        rows = (await db.query<{ data: AudioCall }>(
+          `select data from platform.audio_calls where ${mineWhere}
+           and (data->>'status'<>'ended' or (data->>'createdAt')::bigint >= $3)`,
+          [actor.userId, actor.organizationId, Date.now() - 86400000],
+        )).rows.map(r => r.data);
+      } finally { db.release(); }
+      // An idle poll is a single read. A call admitted just after this snapshot
+      // is delivered by the next poll, just like one created after a commit.
+      if (rows.every(c => c.status === "ended")) return project(rows);
+      return transaction(rows => {
+        for (const c of rows) {
+          if (c.status === "ended") continue;
+          if (partyMatches(c.caller, actor) && c.callerClient === client) c.callerSeen = Date.now();
+          if (partyMatches(c.callee, actor) && c.calleeClient === client) c.calleeSeen = Date.now();
         }
-        return mine
-          .sort((a, b) => b.createdAt - a.createdAt)
-          .slice(0, 30)
-          .map((c) => ({
-            ...c,
-            offer:
-              partyMatches(c.callee, actor) &&
-              (!c.calleeClient || c.calleeClient === client)
-                ? c.offer
-                : "",
-            answer:
-              partyMatches(c.caller, actor) && c.callerClient === client
-                ? c.answer
-                : null,
-          }));
-      });
+        return project(rows);
+      }, actor);
     },
     create(call: AudioCall) {
       return transaction((rows) => {
@@ -209,7 +215,7 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
           c.answer = null;
         }
         return c;
-      });
+      }, actor);
     },
   };
 }

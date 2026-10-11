@@ -36,7 +36,7 @@ export function messagingRoutes(
     authorize: (
       req: FastifyRequest,
       org: string,
-    ) => Promise<{ actor: GroupActor; token: string }>;
+    ) => Promise<{ actor: GroupActor; token: string; member?: Awaited<ReturnType<ReturnType<typeof iamGroupEligibility>["member"]>> }>;
   },
 ) {
   const prefix = "/v1/organizations/:organizationId/messaging";
@@ -53,7 +53,7 @@ export function messagingRoutes(
     const p = params(req);
     const v = await options.authorize(req, p.organizationId);
     if (!options.store || !options.groups) throw new MessageFailure(503);
-    const m = await options.eligibility.member(
+    const m = v.member ?? await options.eligibility.member(
       v.token,
       p.organizationId,
       v.actor.userId,
@@ -107,6 +107,14 @@ export function messagingRoutes(
       if (id) groupIdentityChanged(id);
     }
   });
+  async function mapInboxes<T, R>(items: T[], work: (item: T) => Promise<R>): Promise<R[]> {
+    const results: R[] = new Array(items.length);
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(3, items.length) }, async () => {
+      while (next < items.length) { const i = next++; results[i] = await work(items[i]!); }
+    }));
+    return results;
+  }
   async function accessibleInboxes(a: Auth) {
     const addresses: Address[] = [await inbox(a)];
     for (let offset = 0; ; offset += 50) {
@@ -444,13 +452,11 @@ export function messagingRoutes(
   app.get(prefix + "/inboxes", async (req) => {
     const a = await auth(req),
       addresses = await accessibleInboxes(a);
-    const inboxes = [];
-    for (const address of addresses)
-      inboxes.push({
-        id: address.kind === "group" ? address.id : "",
-        name: address.kind === "group" ? address.name : "My chats",
-        unread: await a.store.unreadCount(a.actor, address),
-      });
+    const inboxes = await mapInboxes(addresses, async address => ({
+      id: address.kind === "group" ? address.id : "",
+      name: address.kind === "group" ? address.name : "My chats",
+      unread: await a.store.unreadCount(a.actor, address),
+    }));
     return { inboxes };
   });
   app.get(prefix + "/feed", async (req) => {
@@ -464,11 +470,11 @@ export function messagingRoutes(
       .strict()
       .parse(req.query);
     const addresses = await accessibleInboxes(a);
-    const rows = [];
+    const rows: Awaited<ReturnType<MessagingStore["list"]>>["conversations"] = [];
     let more = false;
     // Merge independently authorized inbox pages. Notes remain scoped to each
     // inbox transaction; never widen RLS to build a combined feed.
-    for (const address of addresses) {
+    await mapInboxes(addresses, async address => {
       let offset: number | null = 0;
       while (offset !== null && offset <= q.offset + 30) {
         const page = await a.store.list(
@@ -482,7 +488,7 @@ export function messagingRoutes(
         offset = page.nextOffset;
       }
       more ||= offset !== null;
-    }
+    });
     rows.sort(
       (a, b) =>
         b.updatedAt.localeCompare(a.updatedAt) || b.id.localeCompare(a.id),
@@ -613,10 +619,10 @@ export function messagingRoutes(
       running=true;
       try {
         const a=await auth(req);
-        const statuses=await Promise.all(watch.map(async item=>{
+        const statuses=await mapInboxes(watch,async item=>{
           try {return {id:item.id,people:await a.store.typingStatus(a.actor,await inbox(a,item.groupId),item.id)};}
           catch {return {id:item.id,people:[]};}
-        }));
+        });
         if(!reply.raw.destroyed)reply.raw.write(`event: typing\ndata: ${JSON.stringify(statuses)}\n\n`);
       } catch {reply.raw.end();}
       finally {running=false;if(pending){pending=false;void update();}}
@@ -671,6 +677,17 @@ export function messagingRoutes(
       clearTimeout(timer);
       unsubscribe();
     });
+  });
+  // One fresh authorization for the selected conversation refresh. Each store
+  // operation still uses its own inbox-scoped RLS transaction.
+  app.get(prefix + "/:conversationId/snapshot", async req => {
+    const a = await auth(req), q = query.strict().parse(req.query);
+    const address = await inbox(a, q.groupId), id = params(req).conversationId!;
+    const [conversation, messages] = await Promise.all([
+      a.store.detail(a.actor, address, id),
+      a.store.messages(a.actor, address, id, Number.MAX_SAFE_INTEGER),
+    ]);
+    return { conversation, ...messages };
   });
   app.get(prefix + "/:conversationId/messages", async (req) => {
     const a = await auth(req),
