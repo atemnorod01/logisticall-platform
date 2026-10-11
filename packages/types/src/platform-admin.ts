@@ -16,3 +16,14 @@ export const platformRow=z.object({id:z.string(),name:z.string(),status:z.string
 export const platformPage=z.object({rows:z.array(platformRow).max(50),nextOffset:z.number().nullable()});
 export type PlatformRow=z.infer<typeof platformRow>;
 export type PlatformSection=z.infer<typeof platformSection>;
+
+export const platformRecordKind=z.enum(['organizations','directory','users']);
+export const companyEdit=companyInput.extend({
+ phone:z.string().trim().max(40),email:z.union([z.email().max(254),z.literal('')]),
+ street:z.string().trim().max(200),city:z.string().trim().max(100),state:z.string().trim().max(100),country:z.string().trim().max(60),
+});
+export const platformEdit=z.discriminatedUnion('kind',[
+ z.object({kind:z.literal('company'),revision:z.string().min(1).max(100),company:companyEdit}).strict(),
+ z.object({kind:z.literal('user'),revision:z.string().min(1).max(100),name:z.string().trim().min(1).max(100),status:z.enum(['active','suspended'])}).strict(),
+]);
+export const platformRecord=platformRow.extend({revision:z.string().min(1)});
