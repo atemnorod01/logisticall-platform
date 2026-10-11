@@ -14,10 +14,11 @@ export interface PresenceStore {
     users: string[],
   ): Promise<Record<string, PresenceStatus>>;
 }
-export function postgresPresence(pool: Pick<Pool, "query">): PresenceStore {
+export function postgresPresence(pool: Pick<Pool, "query">, groupsPool?: Pick<Pool, "query"> | undefined): PresenceStore {
   const store: PresenceStore = {
     async publicTeams(ids) {
-      const result = await pool.query<{organization_id:string;user_id:string}>("select * from platform.public_team_presence_members($1::uuid[])",[ids]);
+      if (!groupsPool) return Object.fromEntries(ids.map(id => [id, "unknown" as const]));
+      const result = await groupsPool.query<{organization_id:string;user_id:string}>("select * from platform.public_team_presence_members($1::uuid[])",[ids]);
       return publicTeamPresence(ids,result.rows,store.read);
     },
     async beat(session, user, organization, status) {

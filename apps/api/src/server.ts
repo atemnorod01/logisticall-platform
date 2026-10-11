@@ -145,7 +145,7 @@ const app = buildApp(
   {
     iceServers: config.CALL_ICE_SERVERS.map(s => ({urls:s.urls,...(s.username ? {username:s.username} : {}),...(s.credential ? {credential:s.credential} : {})})),
     ...(turn ? {iceServersFor: turn} : {}),
-    ...(browser ? { browser, presence: postgresPresence(pool!) } : {}),
+    ...(browser ? { browser, presence: postgresPresence(pool!, groupsPool) } : {}),
     ...(groupsPool
       ? {
           calls: postgresCalls(groupsPool),
