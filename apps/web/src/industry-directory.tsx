@@ -7,19 +7,19 @@ import { Avatar, Icon } from './ui.js';
 const labels = {all:'All businesses',carrier:'Carrier',forwarder:'Freight forwarder',broker:'Broker',shipper:'Shipper',factoring:'Factoring',other:'Other'};
 function businessLabel(company:IndustryOrganization){return company.fmcsa_entity_type.includes('CARRIER')&&company.fmcsa_entity_type.includes('BROKER')?'Carrier / Broker':labels[company.organization_type];}
 export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:ReturnType<typeof messagingController>;onOpen:(c:Conversation)=>void}) {
-  const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[type,setType]=useState('all');
+  const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[type,setType]=useState('all'),[onPlatformOnly,setOnPlatformOnly]=useState(false);
   const [rows,setRows]=useState<IndustryOrganization[]>([]),[selected,setSelected]=useState<IndustryOrganization>(),[next,setNext]=useState<number|null>(null),[offset,setOffset]=useState(0);
   const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
   const [groups,setGroups]=useState<ReturnType<typeof networkGroupList.parse>['groups']>([]),[networkLoading,setNetworkLoading]=useState(false),[networkError,setNetworkError]=useState(''),[networkNext,setNetworkNext]=useState<number|null>(null),[networkOffset,setNetworkOffset]=useState(0);
   useEffect(()=>{
     const abort=new AbortController();setLoading(true);setError('');
     if(!offset){setRows([]);setNext(null);}
-    void fetch(`/v1/organizations/${org}/industry-directory?${new URLSearchParams({search,type,offset:String(offset)})}`,{credentials:'same-origin',cache:'no-store',signal:abort.signal})
+    void fetch(`/v1/organizations/${org}/industry-directory?${new URLSearchParams({search,type,offset:String(offset),onPlatformOnly:String(onPlatformOnly)})}`,{credentials:'same-origin',cache:'no-store',signal:abort.signal})
       .then(async r=>{if(!r.ok)throw Error();const p=industryPage.parse(await r.json());p.organizations=p.organizations.filter(company=>company.id!==org);if(abort.signal.aborted)return;setRows(old=>offset?[...new Map([...old,...p.organizations].map(c=>[c.id,c])).values()]:p.organizations);setNext(p.nextOffset);})
       .catch(()=>{if(!abort.signal.aborted)setError('Companies could not be loaded. Please try again.');})
       .finally(()=>{if(!abort.signal.aborted)setLoading(false);});
     return()=>abort.abort();
-  },[org,search,type,offset]);
+  },[org,search,type,offset,onPlatformOnly]);
   useEffect(()=>{
     if(!selected?.on_platform||!selected.organization_id||selected.organization_id===org)return;
     const abort=new AbortController();setNetworkLoading(true);setNetworkError('');
@@ -35,7 +35,7 @@ export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:R
       <form className="lc-contact-tools" onSubmit={e=>{e.preventDefault();setSearch(query.trim());setOffset(0);setSelected(undefined);}}>
         <label className="lc-contact-search"><Icon name="search"/><input aria-label="Search industry directory" placeholder="Company name, DBA, MC or DOT number" maxLength={120} value={query} onChange={e=>{setQuery(e.target.value);if(!e.target.value){setSearch('');setOffset(0);}}}/></label><button className="button primary">Search</button>
       </form>
-      <div className="lc-industry-filter-row"><select aria-label="Business type" value={type} onChange={e=>{setType(e.target.value);setOffset(0);setSelected(undefined);}}>{Object.entries(labels).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select></div>
+      <div className="lc-industry-filter-row"><select aria-label="Business type" value={type} onChange={e=>{setType(e.target.value);setOffset(0);setSelected(undefined);}}>{Object.entries(labels).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select><label className="lc-industry-network-filter"><input type="checkbox" checked={onPlatformOnly} onChange={e=>{setOnPlatformOnly(e.target.checked);setOffset(0);setSelected(undefined);}}/>On LogistiCall only</label></div>
       <div className="lc-contact-list-heading"><h3>{search?'Search results':'Companies'}</h3><small>{rows.length}{next!==null?' +':''} {rows.length===1&&next===null?'company':'companies'}</small></div>
       {rows.map(company=><div className={`lc-contact-row ${selected?.id===company.id?'selected':''}`} key={company.id}><button className="lc-contact-open" onClick={()=>choose(company)}><Avatar name={company.name}/><span><strong>{company.name}</strong><small>{businessLabel(company)}{company.city ? ` · ${company.city}, ${company.state}` : ""}</small><small>{[company.mc && `MC ${company.mc}`, company.dot && `DOT ${company.dot}`, company.ff && `FF ${company.ff}`].filter(Boolean).join(" · ")}</small><span className="lc-registry-badges">{company.on_platform && <span className="lc-network-badge">On LogistiCall</span>}{company.source==='synthetic' && <span className="tag">Sample</span>}{company.status==='inactive'&&<span className="tag">Inactive</span>}</span></span><span aria-hidden="true">›</span></button></div>)}
       {loading&&<p role="status">Loading companies…</p>}{error&&<p role="alert">{error}</p>}{!loading&&!error&&!rows.length&&<p className="quiet">No matching companies.</p>}{next!==null&&<button className="button" disabled={loading} onClick={()=>setOffset(next)}>Load more companies</button>}

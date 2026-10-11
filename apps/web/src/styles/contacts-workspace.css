@@ -105,3 +105,7 @@
 #app.tenant-ui .lc-registry-teams{border-top:1px solid var(--line);padding-top:18px;}
 #app.tenant-ui .lc-registry-sources{font-size:12px;color:var(--muted);margin-top:24px;overflow-wrap:anywhere;}
 #app.tenant-ui .lc-registry-sources a{display:block;margin-top:8px;}
+
+#app.tenant-ui .lc-industry-filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:12px;}
+#app.tenant-ui .lc-industry-network-filter{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);font-size:13px;}
+#app.tenant-ui .lc-industry-network-filter input{width:16px;height:16px;min-width:16px;margin:0;accent-color:var(--accent);}
