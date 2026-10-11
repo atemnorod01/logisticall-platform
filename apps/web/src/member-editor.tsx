@@ -1,3 +1,4 @@
+import { RemoveMembership } from './remove-membership.js';
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
@@ -312,6 +313,7 @@ export function MemberEditor({
               <p>Your role cannot change this member’s access.</p>
             )}
             </div>
+            <RemoveMembership organizationId={organizationId} userId={userId} name={member.name} csrf={csrf} disabled={busy} onRemoved={()=>{onSaved();onBack();}}/>
           </form>
         )}
         {member && tab === "security" && (
