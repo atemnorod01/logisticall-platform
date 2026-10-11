@@ -1167,7 +1167,7 @@ export function Conversations({
         >
           {state.groupId && (
             <div className="lc-send-identity">
-              <span>Replying as {group?.name ?? "Shared inbox"}</span>
+              <span>Replying as {group?.name ?? "Team"}</span>
             </div>
           )}
           {forwarded && (
@@ -1495,18 +1495,18 @@ function NewConversation({
                   ? "People"
                   : t === "team"
                     ? "Team group chat"
-                    : "Shared inboxes"}
+                    : "Teams"}
               </button>
             ))}
         </div>
         <input
           type="search"
           autoFocus
-          aria-label="Find people or shared inboxes"
+          aria-label="Find people or teams"
           placeholder={
             tab === "people"
               ? "Name or exact email in another organization"
-              : tab === "team" ? "Search coworkers" : "Search shared inboxes"
+              : tab === "team" ? "Search coworkers" : "Search teams"
           }
           value={search}
           onChange={(e) => {

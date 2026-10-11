@@ -95,3 +95,13 @@
  #app.tenant-ui .lc-industry-selected .lc-contacts-list{display:none;}
  #app.tenant-ui .lc-industry-selected .lc-contact-details{display:block;}
 }
+
+#app.tenant-ui .lc-registry-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:5px;align-items:center;}
+#app.tenant-ui .lc-network-badge{display:inline-flex;font-size:11px;font-weight:600;line-height:18px;padding:2px 8px;border:1px solid var(--line);border-radius:5px;background:var(--surface);color:var(--accent);white-space:nowrap;}
+#app.tenant-ui .lc-registry-facts{display:grid;grid-template-columns:1fr;gap:18px;margin:24px 0;}
+#app.tenant-ui .lc-registry-facts dt{font-size:12px;color:var(--muted);margin:0 0 4px;}
+#app.tenant-ui .lc-registry-facts dd{margin:0;line-height:1.5;overflow-wrap:anywhere;}
+#app.tenant-ui .lc-registry-facts dd a{display:block;}
+#app.tenant-ui .lc-registry-teams{border-top:1px solid var(--line);padding-top:18px;}
+#app.tenant-ui .lc-registry-sources{font-size:12px;color:var(--muted);margin-top:24px;overflow-wrap:anywhere;}
+#app.tenant-ui .lc-registry-sources a{display:block;margin-top:8px;}

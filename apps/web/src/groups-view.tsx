@@ -67,7 +67,7 @@ function useGroupRequests(organizationId: string, csrf: string) {
             ? "The group changed or that name is already in use. Refresh and try again."
             : status === 401 || status === 403
               ? "Your access has changed. Choose your organization again."
-              : "Groups are temporarily unavailable. Refresh to try again.",
+              : "Teams are temporarily unavailable. Refresh to try again.",
         );
       }
     } finally {
@@ -88,7 +88,7 @@ function GroupEditor({
   children: React.ReactNode;
 }) {
   return creating ? (
-    <Modal title="New group" onClose={close}>
+    <Modal title="New team" onClose={close}>
       {children}
     </Modal>
   ) : (
@@ -455,15 +455,15 @@ export function OrganizationGroups({
       {!detail ? (
         <SettingsHeader
           section="Organization settings"
-          title="Groups"
-          description="Shared inboxes managed by your organization."
+          title="Teams"
+          description="Public and private teams managed by your organization."
           actions={
             <button
               className="button primary"
               disabled={api.busy}
               onClick={fresh}
             >
-              <Icon name="plus" /> New group
+              <Icon name="plus" /> New team
             </button>
           }
         />
@@ -476,11 +476,11 @@ export function OrganizationGroups({
               </span>
             )}
             <div>
-              <h1>{detail ? detail.group.name : "Groups"}</h1>
+              <h1>{detail ? detail.group.name : "Teams"}</h1>
               <p>
                 {detail
-                  ? `${detail.members.length} ${detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Visible in the network" : "Private group"}`
-                  : "Shared inboxes managed by your organization."}
+                  ? `${detail.members.length} ${detail.members.length === 1 ? "member" : "members"} · ${detail.group.archived ? "Archived" : detail.group.visibility === "network" ? "Public" : "Private team"}`
+                  : "Public and private teams managed by your organization."}
               </p>
             </div>
           </div>
@@ -491,7 +491,7 @@ export function OrganizationGroups({
                 disabled={api.busy}
                 onClick={fresh}
               >
-                <Icon name="plus" /> New group
+                <Icon name="plus" /> New team
               </button>
             )}
           </div>
@@ -515,7 +515,7 @@ export function OrganizationGroups({
           <div className="lc-group-toolbar">
             <input
               type="search"
-              aria-label="Search groups"
+              aria-label="Search teams"
               placeholder="Search loaded groups"
               value={groupSearch}
               onChange={(e) => setGroupSearch(e.target.value)}
@@ -559,7 +559,7 @@ export function OrganizationGroups({
                   </small>
                 </span>
                 <em>
-                  {g.visibility === "network" ? "Network visible" : "Private"}
+                  {g.visibility === "network" ? "Public" : "Private"}
                 </em>
                 <span className="lc-group-chevron">
                   <Icon name="chevron" />
@@ -574,7 +574,7 @@ export function OrganizationGroups({
                 g.name.toLowerCase().includes(groupSearch.toLowerCase()),
             ) && (
               <p className="lc-feedback">
-                No groups to show. Create a group or include archived groups.
+                No teams to show. Create a group or include archived groups.
               </p>
             )}
           {next !== null && (
@@ -583,7 +583,7 @@ export function OrganizationGroups({
               disabled={api.busy}
               onClick={() => void api.run(() => list(next), clear)}
             >
-              Load more groups
+              Load more teams
             </button>
           )}
         </>
@@ -647,7 +647,7 @@ export function OrganizationGroups({
               }, clear);
             }}
           >
-            <label htmlFor="group-name">Group name</label>
+            <label htmlFor="group-name">Team name</label>
             <input
               id="group-name"
               required
@@ -664,7 +664,7 @@ export function OrganizationGroups({
               disabled={api.busy}
               onChange={(e) => setDescription(e.target.value)}
             />
-            <label htmlFor="group-visibility">Discoverability</label>
+            <label htmlFor="group-visibility">Visibility</label>
             <select
               id="group-visibility"
               value={visibility}
@@ -673,25 +673,25 @@ export function OrganizationGroups({
                 setVisibility(e.target.value as "private" | "network")
               }
             >
-              <option value="private">Private — assigned members only</option>
+              <option value="private">Private — internal team only</option>
               <option value="network">
-                Discoverable in the LogistiCall network
+                Public — visible in the industry directory
               </option>
             </select>
             <p className="note">
-              Network participants can find the group. Members and inbox
+              Other companies can find public teams. Members and message
               contents stay private.
             </p>
             <p className="note">
               Messages always show the name of the team member who sent them.
-              Internal comments remain visible only to members of this inbox.
+              Internal comments remain visible only to members of this team.
             </p>
             <div className="lc-group-form-actions">
               <button
                 className="button primary"
                 disabled={api.busy || !name.trim()}
               >
-                {detail ? "Save changes" : "Create group"}
+                {detail ? "Save changes" : "Create team"}
               </button>
             </div>
           </form>
@@ -699,12 +699,12 @@ export function OrganizationGroups({
             <div className="lc-setting-row lc-group-archive">
               <div>
                 <h3>
-                  {detail.group.archived ? "Restore group" : "Archive group"}
+                  {detail.group.archived ? "Restore team" : "Archive team"}
                 </h3>
                 <p>
                   {detail.group.archived
-                    ? "Make this group active again."
-                    : "Remove it from active groups and network discovery."}
+                    ? "Make this team active again."
+                    : "Remove it from active teams and the industry directory."}
                 </p>
               </div>
               <button
@@ -734,7 +734,7 @@ export function OrganizationGroups({
         <section className="panel padded lc-group-members">
           <div className="lc-page-heading">
             <div>
-              <h2>Group members</h2>
+              <h2>Team members</h2>
               <p>Only organization admins can change membership.</p>
             </div>
             {!detail.group.archived && (
@@ -857,9 +857,9 @@ export function GroupInboxes({
       <div className="page-heading">
         <div>
           <div className="eyebrow">{organizationName}</div>
-          <h1>Group inboxes</h1>
+          <h1>Teams</h1>
           <p>
-            Shared inboxes assigned to you by your organization administrator.
+            Teams assigned to you by your organization administrator.
           </p>
         </div>
         <button
@@ -894,7 +894,7 @@ export function GroupInboxes({
         ))}
         {!groups.length && !api.busy && !api.error && (
           <p>
-            No group inboxes assigned. Ask your organization administrator to
+            No teams assigned. Ask your organization administrator to
             add you.
           </p>
         )}
@@ -904,7 +904,7 @@ export function GroupInboxes({
             disabled={api.busy}
             onClick={() => void api.run(() => list(next), clear)}
           >
-            Load more inboxes
+            Load more teams
           </button>
         )}
       </section>
@@ -913,7 +913,7 @@ export function GroupInboxes({
           <h2>{selected.name}</h2>
           <p>{selected.description}</p>
           <p>
-            You are assigned to this shared inbox. In-network messages and calls
+            You are assigned to this team. In-network messages and calls
             are not connected yet.
           </p>
           <button className="button" disabled>
@@ -963,7 +963,7 @@ export function NetworkGroups({
           <div className="eyebrow">{organizationName}</div>
           <h1>Network directory</h1>
           <p>
-            Discover groups published by organizations in the LogistiCall
+            Discover teams published by organizations in the LogistiCall
             network.
           </p>
         </div>
@@ -976,7 +976,7 @@ export function NetworkGroups({
         }}
       >
         <label htmlFor="network-group-search">
-          Search organization or group
+          Search organization or team
         </label>
         <input
           id="network-group-search"
@@ -992,7 +992,7 @@ export function NetworkGroups({
       {api.error && <p role="alert">{api.error}</p>}
       {api.busy && (
         <p className="sr-only" role="status">
-          Loading network groups…
+          Loading public teams…
         </p>
       )}
       {rows.map((g) => (
@@ -1000,14 +1000,14 @@ export function NetworkGroups({
           <div className="eyebrow">{g.organization_name}</div>
           <h2>{g.name}</h2>
           <p>{g.description}</p>
-          <p>Published group · Member details are private.</p>
+          <p>Public team · Member details are private.</p>
           <button
             className="button"
             disabled
             title="In-network messaging is not connected yet"
           >
             <Icon name="message" />
-            Message group
+            Message team
           </button>{" "}
           <button
             className="button"
@@ -1015,12 +1015,12 @@ export function NetworkGroups({
             title="In-network calling is not connected yet"
           >
             <Icon name="phone" />
-            Call group
+            Call team
           </button>
         </section>
       ))}
       {!rows.length && !api.busy && !api.error && (
-        <p>No published groups found.</p>
+        <p>No public teams found.</p>
       )}
       {next !== null && (
         <button
@@ -1028,11 +1028,11 @@ export function NetworkGroups({
           disabled={api.busy}
           onClick={() => void api.run(() => load(next, applied), clear)}
         >
-          Load more groups
+          Load more teams
         </button>
       )}
       <p className="note">
-        Availability will not restrict contacting a group. Messaging and calling
+        Availability will not restrict contacting a team. Messaging and calling
         are not connected yet.
       </p>
     </section>

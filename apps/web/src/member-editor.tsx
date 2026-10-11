@@ -106,7 +106,7 @@ export function MemberEditor({
     loadGroups().catch(() => {
       if (!abort.current?.signal.aborted)
         setError(
-          "Groups could not be loaded. Return to Details and try again.",
+          "Teams could not be loaded. Return to Details and try again.",
         );
     });
   }, [tab]);
@@ -239,7 +239,7 @@ export function MemberEditor({
               setError("");
             }}
           >
-            {t === "details" ? "General information" : t === "groups" ? "Group membership" : "Security"}
+            {t === "details" ? "General information" : t === "groups" ? "Team membership" : "Security"}
           </button>
         ))}
       </div>
@@ -341,16 +341,16 @@ export function MemberEditor({
             <p>Group assignments apply only to this organization.</p>
             {member.status !== "active" && (
               <p>
-                Restore organization access before adding this member to groups.
+                Restore organization access before adding this member to teams.
               </p>
             )}
             <input
-              aria-label="Search groups"
-              placeholder="Search groups"
+              aria-label="Search teams"
+              placeholder="Search teams"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            {!groupsReady && !error && <p role="status">Loading groups…</p>}
+            {!groupsReady && !error && <p role="status">Loading teams…</p>}
             {groups
               .filter((g) =>
                 g.name.toLowerCase().includes(search.toLowerCase()),
@@ -375,7 +375,7 @@ export function MemberEditor({
                 </label>
               ))}
             {groupsReady && !groups.length && (
-              <p>No active groups in this organization.</p>
+              <p>No active teams in this organization.</p>
             )}
           </div>
         )}

@@ -320,7 +320,7 @@ function App() {
       )}
       <main className="workspace" id="main-content">
         {page === "Settings" || !state.context ? (
-          currentSetting === "Groups" && admin ? (
+          currentSetting === "Teams" && admin ? (
             <OrganizationGroups
               key={state.context!.organization_id}
               organizationId={state.context!.organization_id}

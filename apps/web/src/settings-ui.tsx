@@ -28,9 +28,9 @@ export type SettingPage =
   | "Appearance"
   | "Overview"
   | "Members"
-  | "Groups";
+  | "Teams";
 export const organizationSetting = (page: SettingPage) =>
-  ["Overview", "Members", "Groups"].includes(page);
+  ["Overview", "Members", "Teams"].includes(page);
 export function AccountMenu({
   state,
   selector,
@@ -178,7 +178,7 @@ export function SettingsNav({
             {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>
           {admin && <optgroup label={organization || "Organization"}>
-            {(["Overview", "Members", "Groups"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+            {(["Overview", "Members", "Teams"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>}
         </select>
       </label>
@@ -219,7 +219,7 @@ export function SettingsNav({
           <span className="lc-caption lc-org-caption">Organization</span>
           <strong className="lc-org-name">{organization}</strong>
           <span className="lc-org-role">Organization admin</span>
-          {(["Overview", "Members", "Groups"] as SettingPage[]).map((p) => (
+          {(["Overview", "Members", "Teams"] as SettingPage[]).map((p) => (
             <button
               key={p}
               className={page === p ? "selected" : ""}
@@ -228,7 +228,7 @@ export function SettingsNav({
             >
               <Icon
                 name={
-                  p === "Groups"
+                  p === "Teams"
                     ? "inbox"
                     : p === "Members"
                       ? "users"
@@ -366,7 +366,7 @@ export function PersonalSettings({
             Appearance: "Choose the appearance for this browser.",
             Overview: "Manage your organization.",
             Members: "People in your organization.",
-            Groups: "Shared inboxes managed by your organization.",
+            Teams: "Public and private teams managed by your organization.",
           }[page]
         }
       />
