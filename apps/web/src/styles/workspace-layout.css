@@ -1,0 +1,74 @@
+/* Shared shell geometry. Responsive rules may change panel contents, but must
+   not change the frame inset or the primary heading's position. */
+#app.tenant-ui.conversation-workspace {
+  --workspace-inset: 8px;
+  --workspace-pad-x: 12px;
+  --workspace-pad-y: 16px;
+  --workspace-heading-height: calc(29px * var(--font-scale, 1));
+  --inbox-width: clamp(300px, 31vw, 400px);
+  transition: none;
+}
+#app.tenant-ui.conversation-workspace .chat-layout,
+#app.tenant-ui.conversation-workspace .split {
+  padding: var(--workspace-inset) var(--workspace-inset) var(--workspace-inset) 0;
+  gap: 6px;
+}
+#app.tenant-ui.conversation-workspace .lc-contacts-workspace,
+#app.tenant-ui.conversation-workspace .workspace > .admin {
+  margin: var(--workspace-inset) var(--workspace-inset) var(--workspace-inset) 0;
+  height: calc(100% - 2 * var(--workspace-inset));
+  min-height: 0;
+}
+#app.tenant-ui.conversation-workspace .inbox-head,
+#app.tenant-ui.conversation-workspace .lc-contacts-workspace > header {
+  padding: var(--workspace-pad-y) var(--workspace-pad-x) 12px;
+}
+#app.tenant-ui.conversation-workspace .lc-contacts-workspace > header { padding-bottom: 0; }
+#app.tenant-ui.conversation-workspace .split > .center,
+#app.tenant-ui.conversation-workspace .split > .details,
+#app.tenant-ui.conversation-workspace .workspace > .admin,
+#app.tenant-ui.conversation-workspace .lc-contacts-list,
+#app.tenant-ui.conversation-workspace .lc-contact-details {
+  padding: var(--workspace-pad-y) var(--workspace-pad-x);
+}
+#app.tenant-ui.conversation-workspace .inbox-title h1,
+#app.tenant-ui.conversation-workspace .lc-contacts-workspace h1,
+#app.tenant-ui.conversation-workspace .center > h1,
+#app.tenant-ui.conversation-workspace .admin > h1,
+#app.tenant-ui.conversation-workspace .lc-settings-nav > h2,
+#app.tenant-ui.conversation-workspace .lc-settings-header h1 {
+  font-size: calc(20px * var(--font-scale, 1));
+  line-height: var(--workspace-heading-height);
+  letter-spacing: -.5px;
+  margin-top: 0;
+}
+#app.tenant-ui.conversation-workspace .inbox-title { min-height: var(--workspace-heading-height); }
+#app.tenant-ui.conversation-workspace .lc-contacts-workspace h1 { margin-bottom: 16px; }
+#app.tenant-ui.conversation-workspace .lc-contacts-workspace nav {
+  flex-wrap: nowrap;
+  gap: 24px;
+  scrollbar-width: none;
+}
+#app.tenant-ui.conversation-workspace .lc-contacts-workspace nav button { flex-shrink: 0; }
+
+/* Settings retains its own section navigation within the same outer frame. */
+#app.tenant-ui.conversation-workspace .conversation-shell.layout.lc-settings-open {
+  padding: var(--workspace-inset) var(--workspace-inset) var(--workspace-inset) 0;
+}
+#app.tenant-ui.conversation-workspace .lc-settings-open > .lc-settings-nav {
+  padding: var(--workspace-pad-y) var(--workspace-pad-x);
+}
+#app.tenant-ui.conversation-workspace .lc-settings-nav > h2 { margin: 0 0 24px; }
+#app.tenant-ui.conversation-workspace .lc-settings-open .lc-settings-page,
+#app.tenant-ui.conversation-workspace .lc-settings-open .admin {
+  padding: var(--workspace-pad-y) var(--workspace-pad-x);
+  margin: 0;
+  max-width: none;
+  height: auto;
+  min-height: 100%;
+}
+#app.tenant-ui.conversation-workspace .lc-settings-header-copy { display: flex; flex-direction: column; }
+#app.tenant-ui.conversation-workspace .lc-settings-header-copy > h1 { order: -1; }
+@media (max-width: 600px) {
+  #app.tenant-ui.conversation-workspace .lc-settings-open > .lc-settings-nav > h2 { display: block; margin-bottom: 16px; }
+}

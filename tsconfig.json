@@ -23,6 +23,7 @@
     "packages",
     "tests",
     "vitest.config.ts",
-    "functions"
+    "functions",
+    "scripts"
   ]
 }

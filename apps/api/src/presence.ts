@@ -43,3 +43,10 @@ export function postgresPresence(pool: Pick<Pool, "query">): PresenceStore {
     },
   };
 }
+
+// Available wins. Unknown is never presented as a confirmed offline team.
+export function aggregatePresence(statuses: PresenceStatus[]): PresenceStatus {
+  for (const state of ["available", "away", "busy", "unknown"] as const)
+    if (statuses.includes(state)) return state;
+  return "offline";
+}

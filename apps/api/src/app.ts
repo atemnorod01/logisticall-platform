@@ -1,3 +1,8 @@
+import { callsRoutes } from "./calls-routes.js";
+import type { CallsStore } from "./calls-store.js";
+import { messagingRoutes } from "./messaging-routes.js";
+import { iamMessaging } from "./iam.js";
+import type { MessagingStore } from "./messaging-store.js";
 import { settingsRoutes } from "./settings-routes.js";
 import { iamSettings } from "./iam.js";
 import Fastify from "fastify";
@@ -20,6 +25,9 @@ import {
 export function buildApp(
   config: { issuer: string; clientId: string; iamApi: string },
   deps: {
+    calls?: CallsStore;
+    iceServers?: RTCIceServer[];
+    iceServersFor?: (userId: string) => Promise<RTCIceServer[]>;
     settings?: ReturnType<typeof iamSettings>;
     verify?: ReturnType<typeof tokenVerifier>;
     context?: ReturnType<typeof iamGateway>;
@@ -27,6 +35,8 @@ export function buildApp(
     directory?: ReturnType<typeof iamDirectory>;
     presence?: PresenceStore;
     groups?: GroupStore;
+    messaging?: MessagingStore;
+    messagingDirectory?: ReturnType<typeof iamMessaging>;
     groupEligibility?: ReturnType<typeof iamGroupEligibility>;
     browser?: ReturnType<typeof browserSessions>;
   } = {},
@@ -322,6 +332,7 @@ export function buildApp(
   });
   groupRoutes(app, {
     store: deps.groups,
+    messaging: Boolean(deps.messaging),
     eligibility: deps.groupEligibility ?? iamGroupEligibility(config.iamApi),
     async authorize(req, organizationId) {
       if (req.headers["x-iam-impersonation"] !== undefined)
@@ -357,6 +368,94 @@ export function buildApp(
         },
         token,
         manage: permissionsFor(membership).includes("groups.manage"),
+      };
+    },
+  });
+  callsRoutes(app, {
+    async prepareConversation(token, actor, caller, callee) {
+      if (!deps.messaging) throw new IamFailure(503);
+      const member = await (deps.groupEligibility ?? iamGroupEligibility(config.iamApi)).member(token,actor.organizationId,actor.userId);
+      const sender = {...caller,membershipKey:member.membership_key};
+      const conversation = await deps.messaging.create({...actor,name:member.name,membershipKey:member.membership_key},sender,callee);
+      return conversation.id;
+    },
+    async resolveTarget(token, actor, target, source) {
+      if (!deps.messaging || !deps.groups) throw new IamFailure(503);
+      const member = await (deps.groupEligibility ?? iamGroupEligibility(config.iamApi)).member(token, actor.organizationId, actor.userId);
+      const messageActor = {...actor, name:member.name, membershipKey:member.membership_key};
+      const group = source.groupId ? await deps.groups.inbox({...actor,organizationName:""},source.groupId,member.membership_key) : null;
+      const inbox = group ? {kind:"group" as const,id:group.id,organizationId:group.organization_id,name:group.name,organizationName:""} : {kind:"user" as const,id:actor.userId,organizationId:actor.organizationId,name:member.name,organizationName:"",membershipKey:member.membership_key};
+      return deps.messaging.directTarget(messageActor,inbox,source.conversationId,target.organizationId,target.id);
+    },
+    store: deps.calls,
+    presence: deps.presence,
+    iceServers: deps.iceServers,
+    ...(deps.iceServersFor ? {iceServersFor: deps.iceServersFor} : {}),
+    directory: deps.messagingDirectory ?? iamMessaging(config.iamApi),
+    async authorize(req, organizationId) {
+      if (req.headers["x-iam-impersonation"] !== undefined)
+        throw new IamFailure(403);
+      const token = deps.browser
+        ? await deps.browser.accessToken(req)
+        : /^Bearer ([^\s]+)$/i.exec(req.headers.authorization ?? "")?.[1];
+      if (!token) throw new IamFailure(401);
+      let actor;
+      try {
+        actor = await verify(token);
+      } catch {
+        throw new IamFailure(401);
+      }
+      const c = await context(token, organizationId);
+      if (
+        c.user_id !== actor.userId ||
+        c.organization_id !== organizationId ||
+        c.membership_status !== "active" ||
+        c.organization_status !== "active"
+      )
+        throw new IamFailure(403);
+      return {
+        actor: {
+          userId: actor.userId,
+          organizationId,
+          organizationName: c.name,
+        },
+        token,
+      };
+    },
+  });
+  messagingRoutes(app, {
+    store: deps.messaging,
+    groups: deps.groups,
+    eligibility: deps.groupEligibility ?? iamGroupEligibility(config.iamApi),
+    directory: deps.messagingDirectory ?? iamMessaging(config.iamApi),
+    async authorize(req, organizationId) {
+      if (req.headers["x-iam-impersonation"] !== undefined)
+        throw new IamFailure(403);
+      const token = deps.browser
+        ? await deps.browser.accessToken(req)
+        : /^Bearer ([^\s]+)$/i.exec(req.headers.authorization ?? "")?.[1];
+      if (!token) throw new IamFailure(401);
+      let actor;
+      try {
+        actor = await verify(token);
+      } catch {
+        throw new IamFailure(401);
+      }
+      const c = await context(token, organizationId);
+      if (
+        c.user_id !== actor.userId ||
+        c.organization_id !== organizationId ||
+        c.membership_status !== "active" ||
+        c.organization_status !== "active"
+      )
+        throw new IamFailure(403);
+      return {
+        actor: {
+          userId: actor.userId,
+          organizationId,
+          organizationName: c.name,
+        },
+        token,
       };
     },
   });

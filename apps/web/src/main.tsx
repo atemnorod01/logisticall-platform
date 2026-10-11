@@ -1,3 +1,6 @@
+import { preventPortalPinch } from "./portal-zoom.js";
+import type { Conversation } from "../../../packages/types/src/messaging.js";
+import { Conversations } from "./conversations-view.js";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { createRoot } from "react-dom/client";
 import { workspaceController } from "./workspace.js";
@@ -8,6 +11,8 @@ import "./styles/conversation-workspace.css";
 import "./styles/user-directory.css";
 import "./styles/sign-in.css";
 import "./styles/settings.css";
+import "./styles/messaging.css";
+import "./styles/workspace-layout.css";
 import {
   AccountMenu,
   SettingsNav,
@@ -22,8 +27,8 @@ import dark from "./branding/logisticall_wordmark_dark.svg";
 import brand from "./branding/logisticall_icon_centered.svg";
 import { Icon } from "./ui.js";
 import { usePresence, type PresenceMode } from "./presence.js";
-import { Contacts } from "./contacts-view.js";
-import { Calls, Conversations } from "./communication-views.js";
+import { Contacts } from "./contacts-workspace.js";
+import { Calls, CallPanel, useCalls } from "./calls-ui.js";
 import {
   OrganizationGroups,
   GroupInboxes,
@@ -48,7 +53,9 @@ function Wordmark() {
   );
 }
 function App() {
+  useEffect(() => preventPortalPinch(), []);
   const state = useSyncExternalStore(controller.subscribe, controller.snapshot);
+  const calling = useCalls(state.context?.organization_id, state.session?.userId, state.session?.csrfToken);
   const presence = usePresence(
     state.context?.organization_id,
     state.session?.csrfToken,
@@ -64,7 +71,22 @@ function App() {
       return "dark";
     }
   });
-  const [page, setPage] = useState<Page>("Settings");
+  const [fontSize, setFontSize] = useState<"small" | "medium" | "large">(() => {
+    try {
+      const saved = localStorage.getItem("logisticall.workspace.fontSize");
+      return saved === "small" || saved === "large" ? saved : "medium";
+    } catch { return "medium"; }
+  });
+  useEffect(() => {
+    document.getElementById("app")!.style.setProperty("--font-scale", String({ small: 0.875, medium: 1, large: 1.125 }[fontSize]));
+    try { localStorage.setItem("logisticall.workspace.fontSize", fontSize); } catch { /* Storage is optional. */ }
+  }, [fontSize]);
+  const [page, setPage] = useState<Page>("Conversations");
+  const [contactConversation,setContactConversation]=useState<Conversation | null>(null);
+  const [messageTarget, setMessageTarget] = useState<{
+    id: string;
+    organizationId: string;
+  } | null>(null);
   const [setting, setSetting] = useState<SettingPage>("Profile");
   const admin = Boolean(
     state.context && state.permissions.includes("groups.manage"),
@@ -107,7 +129,14 @@ function App() {
       /* Preference storage is optional. */
     }
   }, [state.phase, theme, page]);
-  if (state.phase === "loading") return <main className="workspace-signin" aria-busy="true" aria-label="Loading" />;
+  if (state.phase === "loading")
+    return (
+      <main
+        className="workspace-signin"
+        aria-busy="true"
+        aria-label="Loading"
+      />
+    );
   if (state.phase !== "ready")
     return (
       <main className="workspace-signin">
@@ -145,6 +174,7 @@ function App() {
           )}
         </section>
       </main>
+
     );
   const selector = (id: string) =>
     state.organizations.length === 1 && state.nextOffset === null ? (
@@ -197,7 +227,7 @@ function App() {
     );
   return (
     <div
-      className={`layout conversation-shell${page === "Settings" || !state.context ? " lc-settings-open" : ""}`}
+      className={`layout conversation-shell${calling.state.current?.acceptedAt ? " lc-call-docked" : ""}${page === "Settings" || !state.context ? " lc-settings-open" : ""}`}
     >
       <aside className="sidebar">
         <div className="rail-brand logisticall-logo" aria-label="LogistiCall">
@@ -211,7 +241,7 @@ function App() {
         </div>
         <nav aria-label="Main navigation">
           {[
-            ["Conversations", "message"],
+            ["Conversations", "conversations"],
             ["Calls", "phone"],
             ["Contacts", "users"],
           ].map(([label, icon]) => (
@@ -223,9 +253,10 @@ function App() {
                 aria-current={page === label ? "page" : undefined}
                 disabled={!state.context}
                 title={label}
-                onClick={() =>
-                  setPage(label as "Conversations" | "Calls" | "Contacts")
-                }
+                onClick={() => {
+                  setMessageTarget(null);
+                  setPage(label as "Conversations" | "Calls" | "Contacts");
+                }}
               >
                 <Icon name={icon!} />
               </button>
@@ -312,6 +343,8 @@ function App() {
               selector={selector("profile-organization")}
               theme={theme}
               setTheme={setTheme}
+              fontSize={fontSize}
+              setFontSize={setFontSize}
             />
           )
         ) : page === "Organization administration" ? (
@@ -347,14 +380,33 @@ function App() {
             key={`${state.session!.userId}:${state.context.organization_id}`}
             userId={state.session!.userId}
             organization={state.context}
-            onCalls={() => setPage("Calls")}
+            csrf={state.session!.csrfToken}
+            onCall={target=>void calling.controller.start(target)}
+            callDisabled={!calling.state.ready || !!calling.state.current || !!calling.state.voicemail || calling.state.preparing}
+            onOpen={conversation=>{setContactConversation(conversation);setMessageTarget(null);setPage("Conversations");}}
           />
         ) : page === "Calls" ? (
-          <Calls />
+          <Calls calling={calling} />
         ) : (
-          <Conversations />
+          <Conversations
+            onCall={target=>void calling.controller.start(target)}
+            callDisabled={!calling.state.ready || !!calling.state.current || !!calling.state.voicemail || calling.state.preparing}
+            key={`${state.session!.userId}:${state.context.organization_id}`}
+            organizationId={state.context.organization_id}
+            organizationName={state.context.name}
+            userId={state.session!.userId}
+            userName={state.session!.displayName ?? "You"}
+            initialConversation={contactConversation?.inbox.organizationId===state.context.organization_id?contactConversation:undefined}
+            initialTarget={
+              messageTarget?.organizationId === state.context.organization_id
+                ? messageTarget.id
+                : undefined
+            }
+            csrf={state.session!.csrfToken}
+          />
         )}
       </main>
+      <CallPanel calling={calling} />
     </div>
   );
 }

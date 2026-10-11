@@ -53,11 +53,18 @@ export async function proxyRequest(
     "Cookie",
     "Origin",
     "X-CSRF-Token",
+    "Range",
   ]) {
     const value = request.headers.get(name);
     if (value !== null) headers.set(name, value);
   }
   let body: Uint8Array<ArrayBuffer> | undefined;
+  const messaging = /^\/v1\/organizations\/[^/]+\/messaging(?:\/|$)/.test(incoming.pathname);
+  const upload = method === "PUT" && /^\/v1\/organizations\/[^/]+\/messaging\/[^/]+\/attachments\/[^/]+$/.test(incoming.pathname);
+  const calls = /^\/v1\/organizations\/[^/]+\/calls$/.test(incoming.pathname);
+  const streaming = method === "GET" && messaging && /\/(?:typing-events|identity-events)$/.test(incoming.pathname);
+  const mediaDownload = method === "GET" && /^\/v1\/organizations\/[^/]+\/messaging\/[^/]+\/attachments\/[^/]+$/.test(incoming.pathname);
+  const bodyLimit = upload ? 26214400 : calls ? 2900000 : messaging ? 500000 : 16384;
   if (request.body && !["GET", "HEAD"].includes(method)) {
     const reader = request.body.getReader(),
       chunks: Uint8Array[] = [];
@@ -67,7 +74,7 @@ export async function proxyRequest(
         const part = await reader.read();
         if (part.done) break;
         size += part.value.length;
-        if (size > 16384) {
+        if (size > bodyLimit) {
           await reader.cancel();
           return failure(413);
         }
@@ -92,10 +99,10 @@ export async function proxyRequest(
       headers,
       ...(body ? { body } : {}),
       redirect: "manual",
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(upload || streaming || mediaDownload ? 60000 : 12000),
     });
     const outgoing = new Headers();
-    for (const name of ["Content-Type", "Location", "Retry-After"]) {
+    for (const name of ["Content-Type", "Location", "Retry-After", "Content-Disposition", "Content-Range", "Accept-Ranges", "Content-Length"]) {
       const value = response.headers.get(name);
       if (value !== null) outgoing.set(name, value);
     }

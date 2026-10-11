@@ -1,5 +1,18 @@
 import type { ReactNode } from "react";
 const paths: Record<string, ReactNode> = {
+  quote: <path d="M10 5H4v7h4c0 3-1 5-4 7m16-14h-6v7h4c0 3-1 5-4 7" />,
+  search: (
+    <>
+      <circle cx="10.5" cy="10.5" r="6.5" />
+      <path d="m16 16 5 5" />
+    </>
+  ),
+  refresh: (
+    <>
+      <path d="M20 7v5h-5M4 17v-5h5" />
+      <path d="M6 7a7 7 0 0 1 12-1l2 6M4 12l2 6a7 7 0 0 0 12-1" />
+    </>
+  ),
   "arrow-left": <path d="M19 12H5m7-7-7 7 7 7" />,
   "user-plus": (
     <>
@@ -68,11 +81,35 @@ const paths: Record<string, ReactNode> = {
     </>
   ),
 
+  conversations: (
+    <>
+      <path d="M14 14H8l-5 3V5a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2Z" />
+      <path d="M8 18v1a2 2 0 0 0 2 2h6l5 2V11a2 2 0 0 0-2-2" transform="translate(0 -2)" />
+    </>
+  ),
   message: (
     <path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
   ),
   phone: (
     <path d="M5 3h4l2 5-3 2a15 15 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z" />
+  ),
+  phoneOutgoing: (
+    <>
+      <path d="M5 3h4l2 5-3 2a15 15 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z" />
+      <path d="M15 3h6v6m-6 0 6-6" />
+    </>
+  ),
+  phoneIncoming: (
+    <>
+      <path d="M5 3h4l2 5-3 2a15 15 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z" />
+      <path d="M21 3l-6 6m0-6v6h6" />
+    </>
+  ),
+  phoneMissed: (
+    <>
+      <path d="M5 3h4l2 5-3 2a15 15 0 0 0 6 6l2-3 5 2v4a2 2 0 0 1-2 2C10 21 3 14 3 5a2 2 0 0 1 2-2Z" />
+      <path d="m16 3 5 5m0-5-5 5" />
+    </>
   ),
   users: (
     <>

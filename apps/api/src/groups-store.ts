@@ -20,6 +20,11 @@ export class GroupFailure extends Error {
 }
 export type GroupMember = z.infer<typeof groupMemberSchema>;
 export interface GroupStore {
+  published(
+    actor: GroupActor,
+    organizationId: string,
+    id: string,
+  ): Promise<z.infer<typeof networkGroupSchema>>;
   list(
     actor: GroupActor,
     offset: number,
@@ -116,6 +121,17 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
       );
   }
   return {
+    published(a, organizationId, id) {
+      return transaction(a, async (c) => {
+        if (organizationId === a.organizationId) throw new GroupFailure(404);
+        const r = await c.query(
+          "select * from platform.group_directory where organization_id=$1 and id=$2",
+          [organizationId, id],
+        );
+        if (!r.rows[0]) throw new GroupFailure(404);
+        return networkGroupSchema.parse(r.rows[0]);
+      });
+    },
     list(a, offset, key) {
       return transaction(a, async (c) => {
         const result =
@@ -157,13 +173,14 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
     create(a, input) {
       return transaction(a, async (c) => {
         const r = await c.query(
-          "insert into platform.groups(organization_id,id,name,description,visibility) values($1,$2,$3,$4,$5) on conflict(organization_id,id) do nothing returning *",
+          "insert into platform.groups(organization_id,id,name,description,visibility,show_individual_participants) values($1,$2,$3,$4,$5,$6) on conflict(organization_id,id) do nothing returning *",
           [
             a.organizationId,
             input.id,
             input.name,
             input.description,
             input.visibility,
+            input.show_individual_participants ?? false,
           ],
         );
         if (!r.rows[0]) {
@@ -172,6 +189,8 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
             current.name !== input.name ||
             current.description !== input.description ||
             current.visibility !== input.visibility ||
+            current.show_individual_participants !==
+              (input.show_individual_participants ?? false) ||
             current.archived
           )
             throw new GroupFailure(409);
@@ -190,7 +209,7 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
       return transaction(a, async (c) => {
         const old = await locked(c, a, id, input.version);
         const r = await c.query(
-          "update platform.groups set name=$3,description=$4,visibility=$5,archived=$6,version=version+1 where organization_id=$1 and id=$2 returning *",
+          "update platform.groups set name=$3,description=$4,visibility=$5,archived=$6,show_individual_participants=coalesce($7,show_individual_participants),version=version+1 where organization_id=$1 and id=$2 returning *",
           [
             a.organizationId,
             id,
@@ -198,6 +217,7 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
             input.description,
             input.visibility,
             input.archived,
+            input.show_individual_participants ?? null,
           ],
         );
         const group = groupSchema.parse(r.rows[0]);
@@ -207,11 +227,13 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
             name: old.name,
             visibility: old.visibility,
             archived: old.archived,
+            show_individual_participants: old.show_individual_participants,
           },
           after: {
             name: group.name,
             visibility: group.visibility,
             archived: group.archived,
+            show_individual_participants: group.show_individual_participants,
           },
         });
         return group;
@@ -263,8 +285,8 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
     network(a, offset, search) {
       return transaction(a, async (c) => {
         const r = await c.query(
-          "select * from platform.group_directory where ($1='' or strpos(lower(name||' '||organization_name),lower($1))>0) order by organization_name,name,id offset $2 limit 50",
-          [search, offset],
+          "select * from platform.group_directory where organization_id<>$3 and ($1='' or strpos(lower(name||' '||organization_name),lower($1))>0) order by organization_name,name,id offset $2 limit 50",
+          [search, offset, a.organizationId],
         );
         return r.rows.map((r) => networkGroupSchema.parse(r));
       });

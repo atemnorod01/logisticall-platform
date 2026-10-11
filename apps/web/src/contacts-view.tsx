@@ -6,10 +6,12 @@ export function Contacts({
   userId,
   organization,
   onCalls,
+  onMessage,
 }: {
   userId: string;
   organization: OrganizationContext;
   onCalls: () => void;
+  onMessage: (id: string) => void;
 }) {
   const controller = useMemo(
     () => contactsController(organization.organization_id),
@@ -60,7 +62,10 @@ export function Contacts({
     try {
       const store = storage();
       if (!store) throw Error();
-      store.setItem(`logisticall.contact.${kind}.${scope}`, JSON.stringify(ids));
+      store.setItem(
+        `logisticall.contact.${kind}.${scope}`,
+        JSON.stringify(ids),
+      );
     } catch {
       setPreferenceError(
         "Preferences are available for this visit only. Browser storage is unavailable.",
@@ -208,9 +213,9 @@ export function Contacts({
                 </button>
                 <button
                   className="icon"
-                  disabled
+                  disabled={c.id === userId}
                   aria-label={`Message ${c.name}`}
-                  title="Messaging is not connected"
+                  onClick={() => onMessage(c.id)}
                 >
                   <Icon name="message" />
                 </button>
@@ -284,8 +289,8 @@ export function Contacts({
               </button>
               <button
                 className="button"
-                disabled
-                title="Messaging is not connected"
+                disabled={current.id === userId}
+                onClick={() => onMessage(current.id)}
               >
                 <Icon name="message" />
                 Message
@@ -320,7 +325,8 @@ export function Contacts({
                 </button>
               </div>
               <p className="quiet">
-                Calling and messaging are not connected yet.
+                Call history is not connected yet. Use Message to open a
+                conversation.
               </p>
             </div>
             <input

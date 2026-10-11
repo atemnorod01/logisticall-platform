@@ -629,10 +629,17 @@ export function OrganizationGroups({
                           name,
                           description,
                           visibility,
+                          show_individual_participants: true,
                           archived,
                           version: detail.group.version,
                         }
-                      : { id: createId, name, description, visibility },
+                      : {
+                          id: createId,
+                          name,
+                          description,
+                          visibility,
+                          show_individual_participants: true,
+                        },
                   ),
                 );
                 await list();
@@ -674,6 +681,10 @@ export function OrganizationGroups({
             <p className="note">
               Network participants can find the group. Members and inbox
               contents stay private.
+            </p>
+            <p className="note">
+              Messages always show the name of the team member who sent them.
+              Internal comments remain visible only to members of this inbox.
             </p>
             <div className="lc-group-form-actions">
               <button
@@ -821,7 +832,7 @@ export function GroupInboxes({
       .object({
         group: groupSchema,
         channels: z.object({
-          messaging: z.literal(false),
+          messaging: z.boolean(),
           calling: z.literal(false),
         }),
       })

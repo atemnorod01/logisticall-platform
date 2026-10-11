@@ -12,3 +12,9 @@ coverage/
 
 # Local Cloudflare tooling output
 .wrangler/
+
+# Persistent synthetic local workspace database
+.local/
+
+# Generated PDF.js decoding resources (prepared before dev/build).
+apps/web/public/pdfjs/

@@ -1,3 +1,4 @@
+import { VoicemailSettingsEditor } from "./voicemail-settings.js";
 import { MemberEditor } from "./member-editor.js";
 import {
   managedMemberPage,
@@ -20,6 +21,7 @@ import {
 import type { WorkspaceState } from "./workspace.js";
 import type { PresenceMode } from "./presence.js";
 export type SettingPage =
+  | "Voicemail"
   | "Profile"
   | "Notifications"
   | "Audio & video"
@@ -173,7 +175,7 @@ export function SettingsNav({
         Settings
         <select aria-label="Settings page" value={page} onChange={(e) => setPage(e.target.value as SettingPage)}>
           <optgroup label="Personal">
-            {(["Profile", "Notifications", "Audio & video", "Appearance"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+            {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>
           {admin && <optgroup label={organization || "Organization"}>
             {(["Overview", "Members", "Groups"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
@@ -186,6 +188,7 @@ export function SettingsNav({
           "Profile",
           "Notifications",
           "Audio & video",
+          "Voicemail",
           "Appearance",
         ] as SettingPage[]
       ).map((p) => (
@@ -199,6 +202,8 @@ export function SettingsNav({
             name={
               p === "Profile"
                 ? "user"
+                : p === "Voicemail"
+                  ? "phone"
                 : p === "Appearance"
                   ? "appearance"
                   : p === "Audio & video"
@@ -254,8 +259,10 @@ export function Modal({
   title,
   onClose,
   children,
+  className = "",
 }: {
-  title: string;
+  title: ReactNode;
+  className?: string;
   onClose: () => void;
   children: ReactNode;
 }) {
@@ -267,7 +274,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className="lc-modal"
+      className={`lc-modal ${className}`}
       aria-labelledby="lc-modal-title"
       onCancel={(e) => {
         e.preventDefault();
@@ -302,6 +309,8 @@ export function PersonalSettings({
   selector,
   theme,
   setTheme,
+  fontSize,
+  setFontSize,
   onSaveName,
 }: {
   page: SettingPage;
@@ -309,6 +318,8 @@ export function PersonalSettings({
   selector: ReactNode;
   theme: string;
   setTheme: (t: string) => void;
+  fontSize: "small" | "medium" | "large";
+  setFontSize: (size: "small" | "medium" | "large") => void;
   onSaveName: (name: string) => Promise<void>;
 }) {
   const [notice, setNotice] = useState("");
@@ -348,6 +359,7 @@ export function PersonalSettings({
         description={
           {
             Profile: "Manage your name and workspace.",
+            Voicemail: "Choose what callers hear when you’re unavailable.",
             Notifications:
               "Choose your notification preferences for this browser.",
             "Audio & video": "Review your microphone, speaker and camera.",
@@ -359,7 +371,9 @@ export function PersonalSettings({
         }
       />
       {state.error && <p role="alert">{state.error}</p>}
-      {page === "Profile" ? (
+      {page === "Voicemail" ? (
+        state.context && state.session && <VoicemailSettingsEditor key={`${state.session.userId}:${state.context.organization_id}`} org={state.context.organization_id} csrf={state.session.csrfToken}/>
+      ) : page === "Profile" ? (
         <>
           <div className="lc-profile-identity">
             <Avatar name={state.session?.displayName || ""} large />
@@ -403,6 +417,11 @@ export function PersonalSettings({
                 {t === "light" ? "Light" : "Dark"}
               </button>
             ))}
+          </div>
+          <h3 className="lc-font-size-heading">Font size</h3>
+          <p className="sub">Applies throughout the workspace. Medium is the original size.</p>
+          <div className="lc-font-size-options" role="group" aria-label="Font size">
+            {(["small", "medium", "large"] as const).map(size => <button key={size} className={`button ${fontSize === size ? "primary" : ""}`} aria-pressed={fontSize === size} onClick={() => setFontSize(size)}>{size[0]!.toUpperCase() + size.slice(1)}</button>)}
           </div>
         </div>
       ) : page === "Notifications" ? (

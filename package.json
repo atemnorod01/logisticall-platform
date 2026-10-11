@@ -12,14 +12,22 @@
     "build": "node scripts/build-api.mjs",
     "check": "pnpm typecheck && pnpm test && pnpm build && pnpm build:web && pnpm build:edge",
     "dev:api": "tsx watch apps/api/src/server.ts",
-    "build:web": "vite build apps/web",
-    "build:edge": "WRANGLER_LOG_PATH=.wrangler/logs/build.log WRANGLER_SEND_METRICS=false wrangler pages functions build functions --outdir dist/edge --compatibility-date 2026-10-09"
+    "build:web": "node scripts/prepare-pdf-assets.mjs && vite build apps/web",
+    "build:edge": "WRANGLER_LOG_PATH=.wrangler/logs/build.log WRANGLER_SEND_METRICS=false wrangler pages functions build functions --outdir dist/edge --compatibility-date 2026-10-09",
+    "dev:workspace": "tsx scripts/dev-workspace.ts"
   },
   "dependencies": {
+    "dompurify": "^3.4.16",
+    "exceljs": "^4.4.0",
     "fastify": "^5.6.0",
+    "fflate": "^0.8.3",
+    "highlight.js": "^11.12.0",
     "jose": "^6.1.0",
+    "mammoth": "^1.13.0",
     "openid-client": "^6.8.8",
+    "pdfjs-dist": "^6.4.299",
     "pg": "^8.23.1",
+    "sanitize-html": "^2.18.0",
     "zod": "^4.1.0"
   },
   "devDependencies": {
@@ -28,6 +36,7 @@
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
+    "@types/sanitize-html": "^2.16.2",
     "esbuild": "^0.28.0",
     "prettier": "^3.9.9",
     "tsx": "^4.20.0",

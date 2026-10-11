@@ -1,0 +1,106 @@
+#app .lc-call-message-row {
+  display: flex;
+  margin: 0;
+}
+#app .lc-call-message-outgoing { justify-content: flex-end; }
+#app .lc-call-message {
+  --call-fill: var(--chat-incoming, var(--surface));
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  width: 310px;
+  max-width: 85%;
+  margin: 4px 0;
+  padding: 12px;
+  border: 0;
+  border-radius: 15px 15px 15px 5px;
+  background: var(--call-fill);
+  color: var(--ink);
+  box-sizing: border-box;
+}
+#app .lc-call-message-outgoing .lc-call-message {
+  --call-fill: var(--chat-outgoing, var(--soft));
+  border-radius: 15px 15px 5px 15px;
+}
+#app .lc-call-message:has(.lc-call-message-recording) { width: 420px; }
+#app .lc-call-message-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  color: light-dark(#267553, #96d6bf);
+  background: color-mix(in srgb, currentColor 12%, transparent);
+}
+#app .lc-call-message-icon > svg { width: 21px; height: 21px; }
+#app.tenant-ui .lc-call-message h3 {
+  margin: 0 0 3px;
+  font-size: calc(14px * var(--font-scale, 1));
+  font-weight: 600;
+}
+#app .lc-call-message p {
+  margin: 0;
+  font-size: calc(12px * var(--font-scale, 1));
+  overflow-wrap: anywhere;
+}
+#app .lc-call-message-copy {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  row-gap: 3px;
+}
+#app.tenant-ui .lc-call-message-copy h3 { margin: 0; }
+#app .lc-call-message-copy p { grid-column: 1 / -1; }
+#app .lc-call-message-result {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--ink) 7%, transparent);
+  color: var(--muted);
+  font-size: calc(11px * var(--font-scale, 1));
+  font-variant-numeric: tabular-nums;
+  max-width: 105px;
+  text-align: center;
+}
+#app .lc-call-message-missed .lc-call-message-icon {
+  color: light-dark(#b23943, #f28f9a);
+}
+#app .lc-call-message-recording {
+  grid-column: 1 / -1;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--panel) 40%, var(--call-fill));
+  display: grid;
+  gap: 4px;
+}
+#app .lc-call-message-recording > span {
+  font-size: calc(11px * var(--font-scale, 1));
+  font-weight: 500;
+}
+#app.tenant-ui .lc-call-message-recording .lc-audio-player {
+  grid-template-columns: 32px minmax(0, 1fr) 26px;
+  column-gap: 8px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+#app.tenant-ui .lc-call-message-recording .lc-audio-player .lc-audio-play {
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  color: var(--ink);
+}
+#app.tenant-ui .lc-call-message-recording .lc-audio-name { display: none; }
+#app.tenant-ui .lc-call-message-recording .lc-audio-footer {
+  grid-column: 3;
+  grid-row: 1;
+  justify-content: flex-end;
+}
+#app.tenant-ui .lc-call-message-recording .lc-waveform { height: 30px; }
+#app.tenant-ui .lc-call-message-recording .lc-audio-meta { white-space: nowrap; }

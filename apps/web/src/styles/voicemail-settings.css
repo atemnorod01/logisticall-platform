@@ -1,0 +1,107 @@
+#app.tenant-ui .lc-voicemail-settings {
+  max-width: 640px;
+  display: grid;
+  gap: 16px;
+}
+#app.tenant-ui .lc-voicemail-card {
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+}
+#app.tenant-ui .lc-voicemail-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+#app.tenant-ui .lc-voicemail-card h3,
+#app.tenant-ui .lc-voicemail-ring label {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+#app.tenant-ui .lc-voicemail-card p {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+#app.tenant-ui .lc-voicemail-symbol {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--accent);
+}
+#app.tenant-ui .lc-voicemail-symbol svg {
+  width: 20px;
+  height: 20px;
+}
+#app.tenant-ui .lc-voicemail-limit {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+#app.tenant-ui .lc-voicemail-card audio {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin-bottom: 16px;
+}
+#app.tenant-ui .lc-voicemail-buttons {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#app.tenant-ui .lc-voicemail-settings .button {
+  width: auto;
+  min-height: 36px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+}
+#app.tenant-ui .lc-voicemail-buttons .lc-voicemail-reset {
+  background: transparent;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-voicemail-ring {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+#app.tenant-ui .lc-voicemail-ring select {
+  width: 140px;
+  flex-shrink: 0;
+  padding: 9px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+#app.tenant-ui .lc-voicemail-save {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 16px;
+}
+#app.tenant-ui .lc-voicemail-save > span {
+  font-size: 12px;
+  color: var(--muted);
+}
+@media (max-width: 600px) {
+  #app.tenant-ui .lc-voicemail-card {
+    padding: 16px;
+  }
+  #app.tenant-ui .lc-voicemail-ring {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  #app.tenant-ui .lc-voicemail-ring select {
+    width: 100%;
+  }
+}

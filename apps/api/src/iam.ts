@@ -1,3 +1,4 @@
+import { addressSchema } from "../../../packages/types/src/messaging.js";
 import { z } from "zod";
 import {
   directoryResult,
@@ -253,5 +254,63 @@ export function iamSettings(baseUrl: string, fetcher: typeof fetch = fetch) {
     } catch (error) {
       throw error instanceof IamFailure ? error : new IamFailure(503);
     }
+  };
+}
+
+export function iamMessaging(baseUrl: string, fetcher: typeof fetch = fetch) {
+  const base = new URL(baseUrl);
+  if (base.protocol !== "https:") throw Error("HTTPS IAM API required");
+  async function request(
+    token: string,
+    org: string,
+    query: Record<string, string>,
+  ) {
+    const url = new URL(
+      `/v1/integration/organizations/${org}/messaging-people`,
+      base,
+    );
+    url.search = new URLSearchParams(query).toString();
+    const response = await fetcher(url, {
+      headers: { Authorization: `Bearer ${token}` },
+      redirect: "error",
+      signal: AbortSignal.timeout(5000),
+    });
+    if (!response.ok)
+      throw new IamFailure(
+        [400, 401, 403, 404].includes(response.status) ? response.status : 503,
+      );
+    return z
+      .object({
+        people: z.array(addressSchema).max(50),
+        nextOffset: z.number().nullable(),
+      })
+      .parse(await response.json());
+  }
+  return {
+    search: (token: string, org: string, search: string, offset: number) =>
+      request(token, org, { search, offset: String(offset) }),
+    async resolve(
+      token: string,
+      org: string,
+      target: {
+        id: string;
+        organizationId: string;
+        email?: string | undefined;
+      },
+    ) {
+      const result = await request(token, org, {
+        target_user: target.id,
+        target_organization: target.organizationId,
+        ...(target.email ? { search: target.email } : {}),
+      });
+      const row = result.people.find(
+        (p) =>
+          p.id === target.id &&
+          p.organizationId === target.organizationId &&
+          p.kind === "user",
+      );
+      if (!row) throw new IamFailure(403);
+      return row;
+    },
   };
 }

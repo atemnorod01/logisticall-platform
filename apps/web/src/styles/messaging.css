@@ -1,0 +1,2407 @@
+/* Messaging extends the approved conversation shell; the original panel, row,
+   avatar and bubble tokens remain authoritative. */
+#app.tenant-ui .lc-messaging .inbox {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+#app.tenant-ui .lc-messaging .inbox-head {
+  flex-shrink: 0;
+}
+#app.tenant-ui .lc-messaging .inbox-summary select {
+  max-width: 70%;
+  min-width: 0;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: var(--surface);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-messaging .inbox-summary > span {
+  white-space: nowrap;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-message-search {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 12px;
+  padding: 6px 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+#app.tenant-ui .lc-message-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  padding: 4px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-conversation-list {
+  overflow: auto;
+  min-height: 0;
+  padding: 2px 0;
+}
+#app.tenant-ui .lc-conversation-toolbar {
+  min-height: 53px;
+  flex-shrink: 0;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--muted);
+}
+#app.tenant-ui .lc-conversation-toolbar > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#app.tenant-ui .lc-conversation-toolbar select,
+#app.tenant-ui .lc-send-identity select {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: var(--surface);
+  max-width: 140px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-draft-label {
+  color: light-dark(#1764c0, #70b7ff);
+}
+#app.tenant-ui .lc-message-item {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  flex-shrink: 0;
+}
+#app.tenant-ui .lc-message-item.lc-message-own {
+  align-items: flex-end;
+}
+#app.tenant-ui .lc-message-item .timeline-day {
+  align-self: center;
+}
+#app.tenant-ui .lc-message-item .bubble {
+  max-width: 85%;
+  margin: 4px 0;
+  min-width: 90px;
+}
+#app.tenant-ui .lc-message-body {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-message-item .sender-name {
+  display: block;
+  color: var(--muted);
+  margin-bottom: 5px;
+  font-size: calc(11px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-message-item .lc-internal-note {
+  background: color-mix(in srgb, var(--surface) 85%, var(--accent) 15%);
+  border: 1px solid var(--line);
+}
+#app.tenant-ui .lc-messaging .composer-textbox {
+  flex: 1;
+  min-width: 0;
+}
+#app.tenant-ui .lc-messaging .composer textarea {
+  box-sizing: border-box;
+  display: block;
+  width: 100%;
+  background: transparent;
+  color: var(--ink);
+  border: 0;
+  resize: none;
+  height: 40px;
+  min-height: 40px;
+  line-height: calc(20px * var(--font-scale, 1));
+  padding: 10px 12px;
+}
+#app.tenant-ui .lc-send-identity {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+  min-height: 38px;
+  font-size: calc(11px * var(--font-scale, 1));
+  color: var(--muted);
+}
+#app.tenant-ui .lc-messaging-status {
+  height: 38px;
+  overflow: auto;
+  padding: 7px 2px 2px;
+  font-size: calc(12px * var(--font-scale, 1));
+  color: var(--muted);
+}
+#app.tenant-ui .lc-new-message-slot {
+  height: 34px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
+}
+#app.tenant-ui .lc-new-message-slot .button {
+  padding: 3px 12px;
+}
+#app.tenant-ui .lc-messaging .lc-inbox-back {
+  display: none;
+}
+#app.tenant-ui .lc-older {
+  align-self: center;
+}
+#app.tenant-ui .lc-new-chat {
+  padding: 20px;
+  display: grid;
+  gap: 15px;
+}
+#app.tenant-ui .lc-new-chat input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+#app.tenant-ui .lc-new-chat-results {
+  min-height: 240px;
+  max-height: 350px;
+  overflow: auto;
+  padding: 3px;
+}
+#app.tenant-ui .lc-new-chat-person {display:flex;width:100%;align-items:center;gap:10px;text-align:left;padding:10px;border:1px solid transparent;border-bottom-color:var(--line);border-radius:7px;background:transparent;color:var(--ink);}
+#app.tenant-ui .lc-new-chat-person:hover {background:var(--hover);}
+#app.tenant-ui .lc-new-chat-person[aria-checked=true] {border-color:var(--accent);background:var(--hover);}
+#app.tenant-ui .lc-new-chat-person > .avatar {width:32px;height:32px;min-width:32px;flex:0 0 32px;font-size:calc(11px * var(--font-scale, 1));}
+#app.tenant-ui .lc-new-chat-person-name {flex:1;min-width:0;}
+#app.tenant-ui .lc-new-chat-person-name strong {display:block;font-size:calc(13px * var(--font-scale, 1));overflow-wrap:anywhere;}
+#app.tenant-ui .lc-new-chat-person-name small {display:block;font-size:calc(12px * var(--font-scale, 1));color:var(--muted);margin-top:2px;}
+#app.tenant-ui .lc-new-chat-check {display:grid;place-items:center;flex:0 0 16px;width:16px;height:16px;border:1px solid var(--muted);border-radius:3px;font-size:calc(12px * var(--font-scale, 1));}
+#app.tenant-ui [aria-checked=true] > .lc-new-chat-check {background:var(--accent);border-color:var(--accent);color:var(--accentink);}
+#app.tenant-ui .lc-new-chat-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+#app.tenant-ui .lc-messaging .chat-detail {
+  padding: 20px;
+  overflow: auto;
+}
+#app.tenant-ui .lc-messaging .chat-detail > .avatar {
+  margin: 20px 0;
+}
+@media (max-width: 850px) {
+  #app.tenant-ui .lc-messaging .lc-inbox-back {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  #app.tenant-ui .lc-messaging > .inbox {
+    display: flex;
+  }
+  #app.tenant-ui .lc-messaging.narrow-thread > .inbox {
+    display: none;
+  }
+  #app.tenant-ui .lc-messaging .lc-conversation-toolbar {
+    flex-wrap: wrap;
+    min-height: 82px;
+  }
+  #app.tenant-ui .lc-messaging .lc-send-identity {
+    min-height: 60px;
+    flex-wrap: wrap;
+  }
+  #app.tenant-ui .lc-messaging .thread-head .person {
+    min-width: 0;
+  }
+  #app.tenant-ui .lc-messaging .thread-head h2 {
+    overflow-wrap: anywhere;
+  }
+}
+/* Keep the conversation header, identity strip, and feedback geometry stable. */
+#app.tenant-ui .lc-messaging .thread-head {
+  height: 80px;
+  min-height: 80px;
+  flex-shrink: 0;
+}
+#app.tenant-ui .lc-messaging .thread-head .person {
+  min-width: 0;
+  flex: 1;
+}
+#app.tenant-ui .lc-messaging .thread-head .person > div {
+  min-width: 0;
+}
+#app.tenant-ui .lc-messaging .thread-head h2,
+#app.tenant-ui .lc-messaging .thread-head small {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#app.tenant-ui .lc-messaging .lc-send-identity > span {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#app.tenant-ui.conversation-workspace
+  .lc-messaging
+  .lc-message-item
+  .bubble.lc-internal-note {
+  background: color-mix(in srgb, var(--surface) 84%, var(--accent) 16%);
+  border: 1px solid var(--line);
+}
+
+#app.tenant-ui input.lc-participant-switch {
+  appearance: none;
+  flex: 0 0 42px;
+  width: 42px;
+  height: 24px;
+  min-height: 24px;
+  padding: 2px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  cursor: pointer;
+}
+#app.tenant-ui input.lc-participant-switch::before {
+  content: "";
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 120ms ease;
+}
+#app.tenant-ui input.lc-participant-switch:checked {
+  background: var(--accent);
+}
+#app.tenant-ui input.lc-participant-switch:checked::before {
+  transform: translateX(18px);
+  background: var(--accentink);
+}
+#app.tenant-ui .lc-messaging .sender-name {
+  display: block;
+  min-height: 18px;
+}
+
+/* Attribution may change live; it must not resize message bubbles. */
+#app.tenant-ui .lc-message-item .sender-name {
+  width: 0;
+  min-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#app.tenant-ui .lc-group-identity-example {
+  height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Feedback occupies space only while there is something to show. */
+#app.tenant-ui .lc-messaging .composer .lc-messaging-status {
+  height: 24px;
+  padding: 3px 2px 1px;
+}
+/* Place the input at the bottom edge; feedback stays above, never below it. */
+#app.tenant-ui.conversation-workspace .lc-messaging .thread .composer {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+#app.tenant-ui .lc-messaging .composer .lc-messaging-status {
+  order: -1;
+}
+
+/* Short histories sit above the composer and move with the panel's bottom. */
+#app.tenant-ui .lc-messaging .messages > .lc-message-item:first-child {
+  margin-top: auto;
+}
+#app.tenant-ui.conversation-workspace .lc-messaging .thread-head h2 {
+  padding-bottom: 0;
+  margin: 0;
+}
+#app.tenant-ui.conversation-workspace .lc-messaging .thread-head small {
+  margin-top: 3px;
+}
+#app.tenant-ui .lc-messaging .lc-inbox-tabs {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  height: 42px;
+}
+#app.tenant-ui .lc-messaging .lc-inbox-tab {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex: 0 0 auto;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--surface);
+  white-space: nowrap;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-messaging .lc-inbox-tab[aria-pressed="true"] {
+  background: var(--hover);
+  border-color: var(--accent);
+}
+#app.tenant-ui .lc-messaging .lc-inbox-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  flex: 0 0 24px;
+  box-sizing: border-box;
+  height: 18px;
+  padding: 0 3px;
+  border-radius: 10px;
+  background: var(--accent);
+  color: var(--accentink);
+  font-size: calc(10px * var(--font-scale, 1));
+  font-variant-numeric: tabular-nums;
+}
+#app.tenant-ui .lc-messaging .lc-shared-tabs {
+  display: flex;
+  gap: 5px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
+  padding: 3px 6px;
+  scroll-padding-inline: 6px;
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 6px,
+    black calc(100% - 6px),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    black 6px,
+    black calc(100% - 6px),
+    transparent
+  );
+}
+#app.tenant-ui .lc-messaging .lc-shared-tabs::-webkit-scrollbar {
+  display: none;
+}
+#app.tenant-ui .lc-messaging .lc-inbox-scroll {
+  flex: 0 0 18px;
+  min-width: 18px;
+  max-width: 18px;
+  width: 18px;
+  padding: 4px 0;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-messaging .lc-inbox-label {
+  display: inline-block;
+  flex-shrink: 0;
+  margin-top: 0;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font-size: calc(10px * var(--font-scale, 1));
+  color: var(--muted);
+}
+
+#app.tenant-ui .lc-conversation-context {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 22px;
+}
+#app.tenant-ui .lc-conversation-context > small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The pinned filter keeps identical geometry at every responsive breakpoint. */
+#app.tenant-ui .lc-messaging .lc-inbox-tabs > .lc-inbox-tab {
+  box-sizing: border-box;
+  flex: 0 0 94px;
+  width: 94px;
+  min-width: 94px;
+  max-width: 94px;
+  height: 34px;
+  min-height: 34px;
+  max-height: 34px;
+  justify-content: center;
+  font-size: calc(12px * var(--font-scale, 1));
+  line-height: calc(18px * var(--font-scale, 1));
+}
+
+#app.tenant-ui .lc-messaging .lc-inbox-tabs > .lc-inbox-tab {
+  padding: 5px 6px;
+  gap: 4px;
+}
+#app.tenant-ui .lc-messaging .lc-inbox-tabs > .lc-inbox-tab .lc-inbox-count {
+  width: 18px;
+  flex-basis: 18px;
+  padding: 0 1px;
+  font-size: calc(9px * var(--font-scale, 1));
+}
+
+/* Company identity and inbox availability have separate visual meanings. */
+#app.tenant-ui .lc-network-avatar > .avatar {
+  outline: 2px solid #39b879;
+  outline-offset: 2px;
+}
+#app.tenant-ui .lc-messaging .presence-dot[data-presence="unknown"] {
+  background: var(--panel);
+  box-shadow: inset 0 0 0 1px var(--muted);
+}
+#app.tenant-ui.conversation-workspace .lc-messaging .thread-head {
+  height: 100px;
+  min-height: 100px;
+}
+#app.tenant-ui .lc-messaging .lc-company-identifiers {
+  font-variant-numeric: tabular-nums;
+}
+/* Chat capabilities use the existing workspace palette and fixed status slot. */
+#app.tenant-ui .lc-messaging .messages > div:first-child:not(.empty) {
+  margin-top: auto;
+}
+#app.tenant-ui .lc-messaging .lc-rich-editor {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+#app.tenant-ui .lc-rich-input {
+  min-height: 52px;
+  max-height: min(180px, 25dvh);
+  overflow: auto;
+  padding: 14px 38px 14px 12px;
+  outline: none;
+  font-size: calc(15px * var(--font-scale, 1));
+  line-height: calc(22px * var(--font-scale, 1));
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-rich-input:empty:before {
+  content: attr(data-placeholder);
+  color: var(--muted);
+  pointer-events: none;
+}
+#app.tenant-ui .lc-rich-editor:focus-within {
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+#app.tenant-ui .lc-rich-editor.drag-over {
+  outline: 2px dashed var(--accent);
+  outline-offset: -3px;
+}
+#app.tenant-ui .lc-format-toggle {
+  position: absolute;
+  right: 6px;
+  bottom: 9px;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  text-decoration: underline;
+}
+#app.tenant-ui .lc-rich-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 5px 8px;
+  order: -1;
+  border-bottom: 1px solid var(--line);
+}
+#app.tenant-ui .lc-rich-toolbar button {
+  padding: 4px 7px;
+  border: 0;
+  background: transparent;
+  border-radius: 4px;
+  min-width: 28px;
+  color: var(--ink);
+}
+#app.tenant-ui .lc-rich-toolbar button:hover {
+  background: var(--hover);
+}
+#app.tenant-ui .lc-messaging .lc-attach {
+  flex: 0 0 28px;
+  border: 0;
+  background: transparent;
+  font-size: calc(24px * var(--font-scale, 1));
+  color: var(--muted);
+}
+#app.tenant-ui .lc-messaging .composer-entry {
+  align-items: center;
+  gap: 9px;
+}
+#app.tenant-ui .lc-messaging .composer-entry > .primary {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  flex: 0 0 36px;
+  border-radius: 50%;
+  padding: 8px;
+  margin-bottom: 0;
+}
+#app.tenant-ui .lc-message-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 85%;
+  margin: 0;
+  color: var(--muted);
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-message-heading .sender-name {
+  width: auto;
+  min-width: 0;
+  flex: 1;
+  margin: 0;
+  font-weight: 600;
+  font-size: inherit;
+}
+#app.tenant-ui .lc-message-heading time {
+  flex: none;
+  white-space: nowrap;
+}
+#app.tenant-ui .lc-message-continuation {
+  /* Reduce the timeline's 14px gap to 4px within a sender/time group. */
+  margin-top: -10px;
+}
+#app.tenant-ui.conversation-workspace .lc-message-item.lc-message-continuation > .bubble { margin-top:0; }
+#app.tenant-ui.conversation-workspace .lc-message-item.lc-message-continues-next > .bubble { margin-bottom:0; }
+#app.tenant-ui.conversation-workspace .lc-message-own.lc-message-continuation > .bubble { border-top-right-radius:0; }
+#app.tenant-ui.conversation-workspace .lc-message-own.lc-message-continues-next > .bubble { border-bottom-right-radius:0; }
+#app.tenant-ui.conversation-workspace .lc-message-item:not(.lc-message-own).lc-message-continuation > .bubble { border-top-left-radius:0; }
+#app.tenant-ui.conversation-workspace .lc-message-item:not(.lc-message-own).lc-message-continues-next > .bubble { border-bottom-left-radius:0; }
+#app.tenant-ui .lc-messaging .bubble {
+  position: relative;
+  overflow: visible;
+  min-width: 130px;
+}
+#app.tenant-ui .lc-message-actions {
+  position: absolute;
+  right: 8px;
+  top: -23px;
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  box-shadow:
+    0 3px 12px #0003,
+    0 1px 3px #0002;
+  opacity: 0;
+  transition: opacity 160ms ease-in-out;
+  pointer-events: none;
+  z-index: 5;
+}
+#app.tenant-ui .bubble:hover .lc-message-actions,
+#app.tenant-ui .bubble:focus-within .lc-message-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+#app.tenant-ui .bubble:not(.out) .lc-message-actions {
+  width: max-content;
+  max-width: none;
+}
+#app.tenant-ui .bubble.lc-menu-align-left .lc-message-actions {
+  left: 8px;
+  right: auto;
+}
+#app.tenant-ui .lc-message-actions button,
+#app.tenant-ui .message-more summary {
+  border: 0;
+  background: transparent;
+  padding: 5px 7px;
+  border-radius: 5px;
+  color: var(--ink);
+  cursor: pointer;
+}
+#app.tenant-ui .message-more summary {
+  list-style: none;
+}
+#app.tenant-ui .message-more > div {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  min-width: 130px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 5px;
+  box-shadow: 0 8px 18px #0003;
+}
+#app.tenant-ui .message-more > div button {
+  display: block;
+  text-align: left;
+  width: 100%;
+}
+#app.tenant-ui .bubble.lc-menu-align-left .message-more > div {
+  left: 0;
+  right: auto;
+}
+#app.tenant-ui .lc-message-actions button:hover {
+  background: var(--hover);
+}
+#app.tenant-ui .lc-reactions {
+  display: flex;
+  gap: 8px;
+  margin-top: 0;
+}
+#app.tenant-ui .lc-reactions button {
+  border: 0;
+  border-radius: 5px;
+  padding: 1px 5px;
+  background: transparent;
+  font-size: calc(14px * var(--font-scale, 1));
+  color: var(--ink);
+}
+#app.tenant-ui .lc-reactions button[aria-pressed="true"] {
+  color: var(--ink);
+}
+#app.tenant-ui .lc-messaging .message-status {
+  display: flex;
+  justify-content: flex-end;
+  gap: 6px;
+}
+#app.tenant-ui .lc-messaging .message-status:empty {
+  display: none;
+}
+#app.tenant-ui .lc-receipt {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 0 3px;
+}
+#app.tenant-ui .lc-receipt.read {
+  color: light-dark(#087f79, #55cfc6);
+}
+#app.tenant-ui .lc-receipt svg {
+  display: block;
+  width: 24px;
+  height: 18px;
+}
+#app.tenant-ui .lc-receipt-popover {
+  position: absolute;
+  right: 0;
+  bottom: 25px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px;
+  z-index: 8;
+  font-size: calc(12px * var(--font-scale, 1));
+  min-width: 200px;
+}
+#app.tenant-ui .lc-composer-reference,
+#app.tenant-ui .lc-upload-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 7px 10px;
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+  border-radius: 5px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-composer-reference button,
+#app.tenant-ui .lc-upload-list button {
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+}
+#app.tenant-ui .lc-upload-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  max-height: 100px;
+  overflow: auto;
+}
+#app.tenant-ui .lc-quoted-message {
+  margin: 0 0 8px;
+  padding: 5px 9px;
+  border-left: 3px solid var(--accent);
+  background: #0001;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-forwarded,
+#app.tenant-ui .lc-tombstone {
+  font-style: italic;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-delete-pending {
+  min-height: 35px;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+#app.tenant-ui .lc-delete-pending button {
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  text-decoration: underline;
+}
+#app.tenant-ui .lc-edit-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 6px;
+}
+#app.tenant-ui .lc-edit-actions small {
+  margin-right: auto;
+}
+#app.tenant-ui .lc-edit-actions button {
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  border-radius: 5px;
+  padding: 4px 8px;
+}
+#app.tenant-ui .lc-inline-edit {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+#app.tenant-ui .lc-rich-body p {
+  margin: 0 0 5px;
+}
+#app.tenant-ui .lc-rich-body a {
+  color: inherit;
+  text-decoration: underline;
+}
+#app.tenant-ui .lc-rich-body blockquote {
+  border-left: 3px solid var(--muted);
+  margin: 6px 0;
+  padding-left: 10px;
+}
+#app.tenant-ui .lc-message-media {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 420px;
+}
+#app.tenant-ui .lc-image-button {
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: transparent;
+}
+#app.tenant-ui .lc-image-button img {
+  display: block;
+  max-width: min(300px, 100%);
+  max-height: 290px;
+  object-fit: contain;
+}
+#app.tenant-ui .lc-media-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  margin: 10px 0;
+  flex-wrap: wrap;
+}
+#app.tenant-ui .lc-image-viewer,
+#app.tenant-ui .lc-pdf-viewer {
+  max-height: 60dvh;
+  overflow: auto;
+}
+#app.tenant-ui .code-card {
+  margin: 8px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  max-width: 100%;
+  overflow: hidden;
+  white-space: normal;
+}
+#app.tenant-ui .code-card header {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+  padding: 5px;
+  background: var(--surface);
+  font-size: calc(11px * var(--font-scale, 1));
+}
+#app.tenant-ui .code-card header button,
+#app.tenant-ui .code-card header select {
+  padding: 3px 6px;
+  font-size: calc(11px * var(--font-scale, 1));
+  min-width: 0;
+}
+#app.tenant-ui .code-card .code-body {
+  display: flex;
+  position: relative;
+}
+#app.tenant-ui .code-lines {
+  padding: 8px;
+  color: var(--muted);
+  font: calc(12px * var(--font-scale, 1))/20px monospace;
+  overflow: hidden;
+  max-height: 260px;
+}
+#app.tenant-ui .code-viewport {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  overflow: auto;
+}
+#app.tenant-ui .code-highlight {
+  padding: 8px;
+  margin: 0;
+  font: calc(12px * var(--font-scale, 1))/20px monospace;
+  white-space: pre;
+  max-height: 260px;
+  overflow: auto;
+}
+#app.tenant-ui .code-input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 8px;
+  margin: 0;
+  background: transparent;
+  color: transparent;
+  caret-color: var(--ink);
+  font: calc(12px * var(--font-scale, 1))/20px monospace;
+  border: 0;
+  resize: none;
+  white-space: pre;
+}
+#app.tenant-ui .code-detected {
+  margin-right: auto;
+}
+#app.tenant-ui .hljs-string {
+  color: #47ab84;
+}
+#app.tenant-ui .hljs-keyword {
+  color: #bd79b8;
+}
+#app.tenant-ui .hljs-number {
+  color: #db9658;
+}
+@media (max-width: 850px) {
+  #app.tenant-ui .lc-inline-edit {
+    min-width: 0;
+  }
+
+  #app.tenant-ui .lc-message-media {
+    max-width: 100%;
+  }
+}
+#app.tenant-ui .lc-messaging .timeline-day {
+  width: fit-content;
+  margin: 0 auto 12px;
+  min-width: 60px;
+  padding: 3px 12px;
+}
+#app.tenant-ui .lc-link-preview {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  margin-top: 7px;
+  min-height: 42px;
+  max-width: 400px;
+  font-size: calc(12px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-link-preview small {
+  display: block;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-link-preview button {
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: calc(11px * var(--font-scale, 1));
+  padding: 2px;
+}
+#app.tenant-ui .lc-messaging .composer .code-card textarea.code-input {
+  height: 100%;
+  min-height: 100%;
+  max-height: none;
+  line-height: calc(20px * var(--font-scale, 1));
+  padding: 8px;
+  color: transparent;
+  background: transparent;
+}
+#app.tenant-ui .lc-rich-input ul,
+#app.tenant-ui .lc-rich-input ol {
+  padding-left: 24px;
+}
+#app.tenant-ui .lc-rich-input p,
+#app.tenant-ui .lc-rich-input div {
+  margin: 0;
+}
+#app.tenant-ui .lc-pdf-thumbnails {
+  display: flex;
+  gap: 7px;
+  overflow: auto;
+  max-height: 140px;
+  padding: 8px 0;
+}
+#app.tenant-ui .lc-pdf-thumbnails button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+}
+#app.tenant-ui .lc-pdf-thumbnails button[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+#app.tenant-ui .lc-group-avatars {display:inline-grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;width:34px;height:34px;flex:none;border-radius:50%;overflow:hidden;gap:1px;background:var(--panel);vertical-align:middle;}
+#app.tenant-ui .lc-group-segment {min-width:0;min-height:0;overflow:hidden;display:grid;}
+#app.tenant-ui.conversation-workspace .lc-messaging .conversation-avatar .lc-group-avatars .lc-group-segment > .avatar {position:static;width:100%;height:100%;min-width:0;border:0;border-radius:0;font-size:calc(8px * var(--font-scale, 1));line-height:1;display:grid;place-items:center;}
+#app.tenant-ui .lc-group-segments-2 .lc-group-segment {grid-row:1 / 3;}
+#app.tenant-ui .lc-group-segments-3 .lc-group-segment:first-child {grid-row:1 / 3;}
+#app.tenant-ui .lc-group-segments-1 .lc-group-segment {grid-area:1 / 1 / 3 / 3;}
+#app.tenant-ui.conversation-workspace .inbox .lc-group-avatars {width:32px;height:32px;}
+#app.tenant-ui .lc-company-title-row .lc-rename-group {flex:none;width:24px;height:24px;min-width:24px;padding:4px;border:0;color:var(--muted);}
+
+/* Message content follows the reference's natural image framing. */
+#app.tenant-ui .lc-message-text-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 10px;
+}
+#app.tenant-ui .lc-message-text-line > .lc-message-body {
+  min-width: 0;
+  max-width: 100%;
+}
+#app.tenant-ui .lc-incoming-edited {
+  color: var(--muted);
+  font-size: calc(11px * var(--font-scale, 1));
+  white-space: nowrap;
+}
+#app.tenant-ui .lc-message-media:empty,
+#app.tenant-ui
+  .lc-message-text-line:has(.lc-message-body:empty):not(
+    :has(.lc-incoming-edited)
+  ) {
+  display: none;
+}
+#app.tenant-ui .lc-message-item .bubble:has(.lc-image-cell) {
+  min-width: 0;
+  width: fit-content;
+}
+#app.tenant-ui .lc-image-button {
+  position: relative;
+  display: block;
+  max-width: 100%;
+  border-radius: 12px;
+}
+#app.tenant-ui .lc-image-button img {
+  width: auto;
+  height: auto;
+  max-width: min(300px, 100%);
+  max-height: 360px;
+}
+#app.tenant-ui .lc-image-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: 320px;
+  max-width: 100%;
+  gap: 8px;
+}
+#app.tenant-ui .lc-image-grid .lc-image-button {
+  width: 100%;
+  aspect-ratio: 1;
+}
+#app.tenant-ui .lc-image-grid img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#app.tenant-ui .lc-image-grid .lc-file-cell {
+  grid-column: 1 / -1;
+}
+#app.tenant-ui .lc-image-overflow {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #000a;
+  color: #fff;
+  font-size: calc(30px * var(--font-scale, 1));
+  font-weight: 600;
+}
+
+#app.tenant-ui .lc-fullscreen-media {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 16px 24px 24px;
+  border: 0;
+  border-radius: 0;
+  background: #0b1119;
+  color: #edf2f7;
+  overflow: hidden;
+}
+#app.tenant-ui .lc-fullscreen-media[open] {
+  display: flex;
+  flex-direction: column;
+}
+#app.tenant-ui .lc-fullscreen-media::backdrop {
+  background: #0b1119;
+}
+#app.tenant-ui .lc-fullscreen-media > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+#app.tenant-ui .lc-fullscreen-media > header span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app.tenant-ui .lc-fullscreen-media > header button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: calc(28px * var(--font-scale, 1));
+  padding: 4px 12px;
+}
+#app.tenant-ui .lc-fullscreen-media .lc-image-viewer {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  max-height: none;
+  display: flex;
+  overflow: auto;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+}
+#app.tenant-ui .lc-fullscreen-media .lc-image-viewer img {
+  flex: none;
+  display: block;
+  margin: auto;
+  object-fit: contain;
+}
+#app.tenant-ui .lc-message-media:not(.lc-image-grid) .lc-image-cell {
+  width: fit-content;
+  max-width: 100%;
+  line-height: 0;
+}
+#app.tenant-ui .lc-message-item .bubble:has(.lc-image-cell) {
+  padding: 8px;
+  border-radius: 14px;
+}
+#app.tenant-ui
+  .bubble:has(.lc-image-cell)
+  .lc-message-media
+  + .lc-message-text-line:has(.lc-message-body:not(:empty)) {
+  margin-top: 10px;
+  padding: 0 3px;
+}
+#app.tenant-ui .bubble:has(.lc-image-cell) .lc-image-button {
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+#app.tenant-ui .lc-message-media:not(.lc-image-grid) .lc-image-button img {
+  max-width: min(320px, 100%);
+  max-height: 360px;
+  object-fit: contain;
+}
+@media (prefers-reduced-motion: reduce) {
+  #app.tenant-ui .lc-message-actions {
+    transition: none;
+  }
+}
+
+#app.tenant-ui .lc-upload-list {
+  flex-wrap: nowrap;
+  gap: 12px;
+  max-height: none;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow-x: auto;
+}
+#app.tenant-ui .lc-upload-list > .lc-draft-attachment {
+  position: relative;
+  flex: 0 0 120px;
+  width: 120px;
+  height: 100px;
+  padding: 0;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface);
+}
+#app.tenant-ui .lc-draft-attachment > img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: inherit;
+}
+#app.tenant-ui .lc-upload-list .lc-draft-attachment > button {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 23px;
+  height: 23px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 1px 4px #0003;
+  font-size: calc(20px * var(--font-scale, 1));
+  line-height: 1;
+}
+#app.tenant-ui .lc-draft-file {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding: 10px;
+  overflow: hidden;
+}
+#app.tenant-ui .lc-draft-file > span:first-child {
+  font-size: calc(26px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-draft-file > span:last-child {
+  width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app.tenant-ui .lc-draft-upload-status {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 4px 6px;
+  background: #101923dd;
+  color: #fff;
+  font-size: calc(11px * var(--font-scale, 1));
+  border-radius: 0 0 10px 10px;
+}
+
+#app.tenant-ui .lc-gallery {
+  position: fixed;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  width: 100vw;
+  height: 100dvh;
+  max-width: none;
+  max-height: none;
+  border: 0;
+  border-radius: 0;
+  overflow: hidden;
+  color: #fff;
+  background: #303030dd;
+}
+#app.tenant-ui .lc-gallery[open] {
+  display: flex;
+  flex-direction: column;
+}
+#app.tenant-ui .lc-gallery::backdrop {
+  background: #0005;
+}
+#app.tenant-ui .lc-gallery-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  min-height: 56px;
+  background: #262626;
+  z-index: 2;
+}
+#app.tenant-ui .lc-gallery button,
+#app.tenant-ui .lc-gallery a {
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-decoration: none;
+}
+#app.tenant-ui .lc-gallery-header > button {
+  font-size: calc(25px * var(--font-scale, 1));
+  padding: 4px 8px;
+}
+#app.tenant-ui .lc-gallery-caption {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  text-align: left;
+}
+#app.tenant-ui .lc-gallery-caption strong {
+  display: block;
+  font-size: calc(14px * var(--font-scale, 1));
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app.tenant-ui .lc-gallery-caption small {
+  display: block;
+  color: #ccc;
+  font-size: calc(12px * var(--font-scale, 1));
+  text-align: left;
+}
+#app.tenant-ui .lc-gallery-caption small button {
+  color: #aaa9ff;
+  padding: 0 4px;
+  font-size: inherit;
+}
+#app.tenant-ui .lc-gallery-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#app.tenant-ui .lc-gallery-tools button,
+#app.tenant-ui .lc-gallery-tools a {
+  padding: 6px 10px;
+  font-size: calc(20px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-gallery-tools button:nth-child(2) {
+  font-size: calc(12px * var(--font-scale, 1));
+  min-width: 52px;
+}
+#app.tenant-ui .lc-gallery-tools a {
+  border-left: 1px solid #555;
+}
+#app.tenant-ui .lc-gallery-stage {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+#app.tenant-ui .lc-gallery-stage:active {
+  cursor: grabbing;
+}
+#app.tenant-ui .lc-gallery-stage > img {
+  flex: none;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  pointer-events: none;
+}
+#app.tenant-ui .lc-gallery-prev,
+#app.tenant-ui .lc-gallery-next {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  font-size: calc(44px * var(--font-scale, 1));
+  padding: 8px 20px;
+}
+#app.tenant-ui .lc-gallery-prev {
+  left: 0;
+}
+#app.tenant-ui .lc-gallery-next {
+  right: 0;
+}
+#app.tenant-ui .lc-gallery-strip {
+  display: flex;
+  gap: 10px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  z-index: 2;
+}
+#app.tenant-ui .lc-gallery-strip button {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 5px;
+  overflow: hidden;
+}
+#app.tenant-ui .lc-gallery-strip button[aria-current="true"] {
+  border-color: #9dc8ff;
+}
+#app.tenant-ui .lc-gallery-strip img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+@media (max-width: 579px) {
+  #app.tenant-ui .lc-gallery-header {
+    gap: 4px;
+    padding: 6px;
+  }
+  #app.tenant-ui .lc-gallery-tools {
+    gap: 0;
+  }
+  #app.tenant-ui .lc-gallery-tools button,
+  #app.tenant-ui .lc-gallery-tools a {
+    padding: 6px;
+  }
+  #app.tenant-ui .lc-gallery-caption small {
+    font-size: calc(10px * var(--font-scale, 1));
+  }
+}
+
+#app.tenant-ui .lc-link-preview {
+  position: relative;
+  padding: 0;
+  width: 460px;
+  max-width: 100%;
+  border: 0;
+  background: light-dark(#e3e8ed, #23272c);
+  border-radius: 6px;
+  overflow: hidden;
+  text-align: left;
+}
+#app.tenant-ui .lc-link-card {
+  display: flex;
+  min-height: 94px;
+  color: var(--ink);
+  text-decoration: none;
+}
+#app.tenant-ui .lc-link-card > img {
+  width: 120px;
+  height: 94px;
+  max-width: 30%;
+  flex-shrink: 0;
+  object-fit: cover;
+}
+#app.tenant-ui .lc-link-copy {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 30px 10px 12px;
+}
+#app.tenant-ui .lc-link-copy > strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: calc(13px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-link-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: calc(12px * var(--font-scale, 1));
+  line-height: 1.35;
+}
+#app.tenant-ui .lc-link-copy small {
+  margin-top: auto;
+  font-size: calc(11px * var(--font-scale, 1));
+  text-align: left;
+}
+#app.tenant-ui .lc-link-preview .lc-link-dismiss {
+  position: absolute;
+  top: 5px;
+  right: 6px;
+  width: 23px;
+  height: 23px;
+  font-size: calc(20px * var(--font-scale, 1));
+  line-height: 1;
+}
+
+#app.tenant-ui .lc-message-link-title {
+  display: block;
+  width: 460px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: light-dark(#4d48b5, #aaa9ff);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  font-size: calc(13px * var(--font-scale, 1));
+  line-height: 1.5;
+}
+#app.tenant-ui .lc-message-text-line:empty {
+  display: none;
+}
+
+#app.tenant-ui
+  .lc-message-item
+  .bubble:has(.lc-file-cell, .lc-link-preview):not(:has(.lc-image-cell)) {
+  padding: 8px;
+}
+
+/* Shared attachment thumbnails and full-screen document/media previews. */
+#app.tenant-ui .lc-file-card {
+  width: 180px;
+  height: 150px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+}
+#app.tenant-ui .lc-file-thumbnail {
+  display: block;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 60px;
+  overflow: hidden;
+  background: #f4f6fa;
+  color: #243442;
+  text-align: left;
+}
+#app.tenant-ui .lc-file-thumbnail > canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+#app.tenant-ui .lc-file-thumbnail > video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#app.tenant-ui .lc-file-thumb-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+#app.tenant-ui .lc-mini-document {
+  display: block;
+  width: 600px;
+  padding: 30px;
+  transform: scale(0.28);
+  transform-origin: top left;
+  font:
+    calc(16px * var(--font-scale, 1))/1.4 Arial,
+    sans-serif;
+  background: white;
+  color: #222;
+}
+#app.tenant-ui .lc-mini-document img {
+  max-width: 100%;
+}
+#app.tenant-ui .lc-mini-document a {
+  pointer-events: none;
+}
+#app.tenant-ui .lc-mini-sheet table {
+  border-collapse: collapse;
+  font:
+    calc(8px * var(--font-scale, 1)) Arial,
+    sans-serif;
+  width: 100%;
+}
+#app.tenant-ui .lc-mini-sheet td {
+  border: 1px solid #ccd6df;
+  padding: 5px;
+  max-width: 45px;
+  overflow: hidden;
+}
+#app.tenant-ui .lc-mini-text {
+  display: block;
+  padding: 10px;
+  font: calc(8px * var(--font-scale, 1))/1.4 monospace;
+  white-space: pre-wrap;
+}
+#app.tenant-ui .lc-file-type-label {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  background: #b53435;
+  color: white;
+  border-radius: 4px;
+  padding: 2px 5px;
+  font: bold calc(9px * var(--font-scale, 1))/14px sans-serif;
+}
+#app.tenant-ui .lc-file-type-docx .lc-file-type-label {
+  background: #225db2;
+}
+#app.tenant-ui .lc-file-type-xlsx .lc-file-type-label,
+#app.tenant-ui .lc-file-type-csv .lc-file-type-label {
+  background: #207549;
+}
+#app.tenant-ui .lc-file-type-video .lc-file-type-label,
+#app.tenant-ui .lc-file-type-audio .lc-file-type-label {
+  background: #6948a0;
+}
+#app.tenant-ui .lc-file-thumb-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #172633ec;
+  color: white;
+  padding: 6px 8px;
+  font-size: calc(11px * var(--font-scale, 1));
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#app.tenant-ui .lc-file-play,
+#app.tenant-ui .lc-file-audio-icon,
+#app.tenant-ui .lc-file-thumb-fallback {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  font-size: calc(36px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-file-play {
+  color: white;
+  text-shadow: 0 1px 6px #000;
+}
+#app.tenant-ui .lc-document-gallery {
+  display: flex;
+  flex-direction: column;
+}
+#app.tenant-ui .lc-document-stage {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px;
+}
+#app.tenant-ui .lc-document-content {
+  width: max-content;
+  max-width: none;
+  margin: 0 auto;
+}
+#app.tenant-ui .lc-document-page {
+  box-sizing: border-box;
+  width: 760px;
+  min-height: 900px;
+  padding: 60px;
+  background: white;
+  color: #222;
+  box-shadow: 0 4px 24px #0005;
+  font:
+    calc(16px * var(--font-scale, 1))/1.6 Georgia,
+    serif;
+}
+#app.tenant-ui .lc-document-page img {
+  max-width: 100%;
+  height: auto;
+}
+#app.tenant-ui .lc-document-page table {
+  border-collapse: collapse;
+}
+#app.tenant-ui .lc-document-page td {
+  border: 1px solid #ccc;
+  padding: 6px;
+}
+#app.tenant-ui .lc-text-document {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: calc(14px * var(--font-scale, 1))/1.5 monospace;
+}
+#app.tenant-ui .lc-document-content > video,
+#app.tenant-ui .lc-document-content > img {
+  display: block;
+  max-width: calc(100vw - 64px);
+  max-height: calc(100dvh - 230px);
+}
+#app.tenant-ui .lc-audio-player {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  padding: 48px;
+  background: #263746;
+  border-radius: 16px;
+  color: white;
+}
+#app.tenant-ui .lc-audio-player > span {
+  font-size: calc(90px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-audio-player audio {
+  width: min(520px, 70vw);
+}
+#app.tenant-ui .lc-workbook {
+  background: white;
+  color: #222;
+}
+#app.tenant-ui .lc-workbook table {
+  border-collapse: collapse;
+  font:
+    calc(13px * var(--font-scale, 1))/1.5 Arial,
+    sans-serif;
+}
+#app.tenant-ui .lc-workbook th,
+#app.tenant-ui .lc-workbook td {
+  border: 1px solid #cbd5df;
+  min-width: 90px;
+  max-width: 320px;
+  padding: 6px 10px;
+  overflow-wrap: anywhere;
+}
+#app.tenant-ui .lc-workbook th {
+  background: #e8edf2;
+}
+#app.tenant-ui .lc-workbook nav,
+#app.tenant-ui .lc-sheet-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px;
+  background: #263746;
+  color: white;
+}
+#app.tenant-ui .lc-sheet-controls button,
+#app.tenant-ui .lc-workbook nav button {
+  border: 1px solid #627383;
+  background: #1c2c39;
+  color: white;
+  border-radius: 5px;
+  padding: 6px 10px;
+}
+#app.tenant-ui .lc-workbook nav button[aria-pressed="true"] {
+  background: #416b8a;
+}
+#app.tenant-ui .lc-pdf-document canvas {
+  display: block;
+  max-width: none;
+  background: white;
+  box-shadow: 0 4px 24px #0005;
+}
+#app.tenant-ui .lc-document-filmstrip {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  overflow-x: auto;
+  flex-shrink: 0;
+  padding: 12px;
+}
+#app.tenant-ui .lc-document-filmstrip > button {
+  flex: 0 0 72px;
+  height: 68px;
+  overflow: hidden;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  padding: 0;
+  background: #263746;
+  color: white;
+  cursor: pointer;
+}
+#app.tenant-ui .lc-document-filmstrip > button[aria-current="true"] {
+  border-color: #efab70;
+}
+#app.tenant-ui .lc-document-filmstrip > button:first-child,
+#app.tenant-ui .lc-document-filmstrip > button:last-child {
+  flex-basis: 32px;
+  font-size: calc(28px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-format-toggle {
+  bottom: 13px;
+}
+#app.tenant-ui .lc-document-page p,
+#app.tenant-ui .lc-document-page li,
+#app.tenant-ui .lc-document-page h1,
+#app.tenant-ui .lc-document-page h2,
+#app.tenant-ui .lc-document-page h3,
+#app.tenant-ui .lc-document-page td {
+  color: #222;
+}
+#app.tenant-ui .lc-mini-document p,
+#app.tenant-ui .lc-mini-document li {
+  color: #222;
+  font-size: calc(16px * var(--font-scale, 1));
+  line-height: 1.4;
+}
+#app.tenant-ui .lc-mini-sheet td {
+  font-size: calc(8px * var(--font-scale, 1));
+  line-height: calc(12px * var(--font-scale, 1));
+  color: #243442;
+}
+#app.tenant-ui .lc-document-filmstrip .lc-file-thumb-name {
+  font-size: calc(9px * var(--font-scale, 1));
+}
+#app.tenant-ui .lc-document-filmstrip .lc-mini-document {
+  transform: scale(0.12);
+}
+#app.tenant-ui .lc-document-filmstrip .lc-mini-sheet td {
+  font-size: calc(5px * var(--font-scale, 1));
+  padding: 2px;
+}
+#app.tenant-ui .lc-document-gallery button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+#app.tenant-ui.conversation-workspace .lc-rich-editor #conversation-draft {
+  min-height: 52px;
+  padding: 14px 38px 14px 12px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Word content must not inherit the application's data-table theme. */
+#app.tenant-ui :is(.lc-mini-document, .lc-document-page) table {
+  width:100%; max-width:100%; table-layout:fixed; border-collapse:collapse;
+  background:#fff; color:#222; font:inherit;
+}
+#app.tenant-ui :is(.lc-mini-document, .lc-document-page) :is(thead,tbody,tfoot,tr,th,td) {
+  background:#fff; color:#222; white-space:normal; overflow-wrap:anywhere;
+  min-width:0; max-width:none; height:auto; font-size:inherit; line-height:inherit;
+  text-transform:none; letter-spacing:normal;
+}
+#app.tenant-ui :is(.lc-mini-document, .lc-document-page) :is(th,td) {
+  padding:6px; border:1px solid #d5d5d5; text-align:left; vertical-align:top;
+}
+#app.tenant-ui :is(.lc-mini-document, .lc-document-page) :is(p,li) {
+  font-size:inherit; line-height:inherit; white-space:normal; overflow-wrap:anywhere;
+}
+#app.tenant-ui .lc-document-stage { overscroll-behavior:contain; }
+#app.tenant-ui .lc-pdf-page { background:white;color:#222;margin:0 auto 20px;scroll-margin-top:60px; }
+#app.tenant-ui .lc-pdf-document > .lc-sheet-controls { position:sticky;top:0;z-index:1; }
+/* Keep sender and file metadata together in every media viewer. */
+#app.tenant-ui .lc-gallery-caption { gap:1px; }
+#app.tenant-ui .lc-gallery-caption strong { margin:0; line-height:calc(18px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-gallery-caption small { margin:0; line-height:calc(16px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-gallery-caption small button { display:inline; min-height:0; height:auto; margin:0; line-height:inherit; vertical-align:baseline; }
+#app.tenant-ui .lc-document-fixed-controls { flex:none;max-height:140px;overflow:auto;background:#263746; }
+#app.tenant-ui .lc-document-fixed-controls:empty { display:none; }
+#app.tenant-ui .lc-document-fixed-controls .lc-sheet-controls { justify-content:center;flex-wrap:wrap;font-size:calc(13px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-document-fixed-controls nav { display:flex;gap:8px;padding:8px; }
+#app.tenant-ui .lc-document-fixed-controls nav button { color:white;padding:6px 10px; }
+#app.tenant-ui .lc-document-fixed-controls nav button[aria-pressed=true] { background:#416b8a; }
+/* Keep composer actions at its lower edge, including expanded rich drafts. */
+#app.tenant-ui .lc-messaging .composer-entry { position:relative; align-items:flex-end; }
+#app.tenant-ui .lc-messaging .composer-entry > .primary,
+#app.tenant-ui .lc-messaging .composer-entry > .lc-attach {
+  align-self:flex-end; margin-bottom:8px; height:36px; min-height:36px;
+}
+/* The code editor owns its scrolling; the surrounding composer fits the card. */
+#app.tenant-ui.conversation-workspace .lc-rich-editor #conversation-draft:has(.code-card) {
+  max-height:none; overflow:visible;
+}
+#app.tenant-ui .lc-messaging .composer .code-viewport:has(textarea) {
+  height:clamp(100px,30dvh,240px);
+}
+
+/* Isolate code headers from message metadata typography. */
+#app.tenant-ui .code-card header .code-detected {
+  margin:0 auto 0 4px; text-align:left; font-size:calc(11px * var(--font-scale, 1)); line-height:calc(20px * var(--font-scale, 1));
+}
+#app.tenant-ui .code-card header button {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:28px; height:28px; min-height:28px; padding:4px; flex:none;
+}
+#app.tenant-ui .code-card header button svg { width:16px; height:16px; }
+#app.tenant-ui .code-card .code-lines {
+  box-sizing:border-box; padding:12px 8px; max-height:none;
+  font:calc(13px * var(--font-scale, 1))/20px ui-monospace,SFMono-Regular,Consolas,monospace;
+}
+#app.tenant-ui .lc-messaging .composer .code-card textarea.code-input {
+  padding:12px 10px;
+}
+/* Sent code and its line numbers share one scroll surface. */
+#app.tenant-ui .code-card:not(:has(textarea)) .code-body {
+  overflow:auto; max-height:300px; align-items:flex-start;
+}
+#app.tenant-ui .code-card:not(:has(textarea)) .code-lines {
+  overflow:visible; position:sticky; left:0; z-index:1; background:var(--panel);
+}
+#app.tenant-ui .code-card:not(:has(textarea)) .code-viewport {
+  overflow:visible; flex:1 0 auto; max-width:none;
+}
+#app.tenant-ui .code-card:not(:has(textarea)) .code-highlight {
+  overflow:visible; max-height:none; max-width:none; width:max-content; min-width:100%;
+}
+
+/* Every embedded preview uses the same frame as an image. */
+#app.tenant-ui .lc-message-item .bubble:has(.lc-image-cell, .lc-file-cell, .lc-link-preview, .code-card) {
+  --preview-spacing:8px;
+  padding:var(--preview-spacing);
+}
+
+#app.tenant-ui .lc-message-item .lc-message-body:has(.code-card) {
+  width:100%;
+}
+#app.tenant-ui .lc-message-item .lc-message-body .code-card:first-child { margin-top:0; }
+#app.tenant-ui .lc-message-item .lc-message-body .code-card:last-child { margin-bottom:0; }
+#app.tenant-ui .lc-message-item .lc-file-card { display:block; margin:0; }
+#app.tenant-ui .lc-message-media.lc-image-grid {
+  gap:var(--preview-spacing,8px);
+  align-items:start;
+  align-content:start;
+}
+#app.tenant-ui .lc-image-grid .lc-image-cell {
+  min-width:0; padding:0; margin:0; line-height:0;
+}
+#app.tenant-ui .lc-image-grid .lc-image-button {
+  display:block; margin:0; padding:0; width:100%; aspect-ratio:1;
+}
+#app.tenant-ui .lc-image-grid .lc-image-button img {
+  display:block; width:100%; height:100%; object-fit:cover;
+}
+
+/* The gutter and both editor layers must share one viewport height. */
+#app.tenant-ui .code-card:has(textarea) .code-body {
+  height:clamp(100px,30dvh,240px);
+  min-height:0;
+  max-height:none;
+  overflow:hidden;
+}
+#app.tenant-ui .code-card:has(textarea) .code-lines {
+  height:100%; min-height:0; overflow:hidden;
+}
+#app.tenant-ui .lc-messaging .composer .code-viewport:has(textarea),
+#app.tenant-ui .code-card:has(textarea) .code-viewport {
+  height:100%; min-height:0; overflow:hidden;
+}
+
+#app.tenant-ui .lc-attachment-control { position:static; flex:none; align-self:flex-end; margin-bottom:8px; }
+#app.tenant-ui .lc-attachment-control > .lc-attach { height:36px; min-height:36px; width:36px; margin:0; }
+#app.tenant-ui .lc-attachment-menu { position:absolute; bottom:calc(100% + 12px); left:0; width:250px; padding:6px; border:1px solid var(--line); border-radius:12px; background:var(--panel); box-shadow:0 8px 28px #0004; z-index:30; }
+#app.tenant-ui .lc-attachment-menu button { display:block; width:100%; text-align:left; border:0; border-radius:7px; padding:10px 12px; background:transparent; color:var(--ink); font-size:calc(14px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-attachment-menu button:hover,#app.tenant-ui .lc-attachment-menu button:focus-visible { background:var(--surface); }
+#app.tenant-ui .lc-attachment-menu button span { display:block; margin-top:4px; font-size:calc(12px * var(--font-scale, 1)); color:var(--muted); }
+#app.tenant-ui .lc-modal:has(.lc-camera-capture) { width:min(720px,94vw); max-height:92dvh; overflow:auto; }
+.lc-camera-capture { display:grid; gap:12px; }
+.lc-camera-stage { background:#101820; border-radius:10px; overflow:hidden; aspect-ratio:16/9; display:grid; place-items:center; }
+.lc-camera-stage video,.lc-camera-stage img { display:block; width:100%; height:100%; max-height:55dvh; object-fit:contain; }
+.lc-camera-modes,.lc-camera-actions { display:flex; gap:8px; }
+.lc-camera-actions { justify-content:flex-end; }
+.lc-camera-capture button { padding:9px 16px; border:1px solid #728292; border-radius:8px; cursor:pointer; }
+.lc-camera-capture button[aria-pressed=true] { background:#1e507b; color:white; }
+.lc-camera-capture button:disabled { opacity:.45; cursor:default; }
+.lc-camera-capture p { margin:0; font-size:calc(13px * var(--font-scale, 1)); }
+
+/* A single photo's frame must shrink with the rendered image, not its natural width. */
+#app.tenant-ui .lc-message-media:not(.lc-image-grid) .lc-image-cell {
+  width:var(--photo-width,320px);
+  max-width:100%;
+}
+#app.tenant-ui .lc-message-media:not(.lc-image-grid) .lc-image-button {
+  width:fit-content;
+  max-width:100%;
+}
+#app.tenant-ui .lc-message-media:not(.lc-image-grid):has(> .lc-image-cell:only-child) {
+  width:fit-content;
+  max-width:min(320px,100%);
+}
+#app.tenant-ui .lc-modal:has(.lc-audio-capture) { width:min(460px,94vw); }
+.lc-audio-capture { display:grid; gap:20px; }
+.lc-audio-capture audio { width:100%; }
+.lc-audio-timer { display:flex; align-items:center; justify-content:center; gap:12px; font-size:calc(40px * var(--font-scale, 1)); font-variant-numeric:tabular-nums; }
+.lc-recording-dot { width:12px; height:12px; border-radius:50%; background:#e74c4c; }
+.lc-audio-capture p { margin:0; font-size:calc(14px * var(--font-scale, 1)); }
+.lc-audio-capture button { padding:9px 16px; border:1px solid #728292; border-radius:8px; cursor:pointer; }
+.lc-audio-capture button:disabled { opacity:.45; cursor:default; }
+
+#app.tenant-ui .lc-file-cell:has(.lc-audio-player) { max-width:100%; }
+#app.tenant-ui .lc-audio-player { display:grid; grid-template-columns:38px minmax(0,1fr); column-gap:10px; row-gap:4px; align-items:center; width:420px; max-width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:12px; background:var(--panel); color:var(--ink); }
+#app.tenant-ui .lc-audio-player > audio { display:none; }
+#app.tenant-ui .lc-audio-player .lc-audio-play { display:grid; place-items:center; width:36px; height:36px; min-height:36px; padding:8px; border:0; border-radius:50%; background:var(--accent); color:var(--accentink); }
+#app.tenant-ui .lc-audio-play svg { width:18px; height:18px; fill:currentColor; }
+#app.tenant-ui .lc-audio-track { min-width:0; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:10px; }
+#app.tenant-ui .lc-waveform { height:44px; position:relative; border-radius:4px; }
+#app.tenant-ui .lc-waveform svg { display:block; width:100%; height:100%; fill:var(--muted); }
+#app.tenant-ui .lc-waveform rect.played { fill:var(--accent); }
+#app.tenant-ui .lc-waveform-fallback { stroke:var(--muted); stroke-width:2; }
+#app.tenant-ui .lc-waveform-cursor { stroke:var(--accent); stroke-width:2; }
+#app.tenant-ui .lc-waveform input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; margin:0; padding:0; }
+#app.tenant-ui .lc-waveform:focus-within { outline:2px solid var(--accent); outline-offset:2px; }
+#app.tenant-ui .lc-audio-meta { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:calc(11px * var(--font-scale, 1)); line-height:calc(18px * var(--font-scale, 1)); font-variant-numeric:tabular-nums; }
+#app.tenant-ui .lc-audio-footer a { color:inherit; padding:0 5px; text-decoration:none; font-size:calc(17px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-audio-name { grid-column:1/-1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:calc(11px * var(--font-scale, 1)); color:var(--muted); }
+#app.tenant-ui .lc-audio-notice { grid-column:1/-1; margin:0; text-align:left; }
+#app.tenant-ui .lc-audio-footer a { display:inline-flex; align-items:center; justify-content:center; width:26px; height:22px; padding:2px; border-radius:5px; }
+#app.tenant-ui .lc-audio-footer a:hover { color:var(--ink); background:var(--surface); }
+#app.tenant-ui .lc-audio-footer a:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+
+#app.tenant-ui .lc-modal:has(.lc-clip-studio) { width:min(840px,94vw); padding:0; border-radius:12px; overflow:auto; }
+#app.tenant-ui .lc-modal:has(.lc-clip-studio) > header { margin:0; padding:14px 18px; }
+#app.tenant-ui .lc-clip-studio { gap:0; }
+#app.tenant-ui .lc-clip-studio .lc-camera-stage { position:relative; border-radius:0; }
+#app.tenant-ui .lc-capture-controls { position:absolute; left:50%; bottom:18px; transform:translateX(-50%); display:flex; align-items:center; gap:8px; padding:7px; border:3px solid #fff; border-radius:40px; background:#272a33cc; color:white; box-shadow:0 4px 16px #0005; }
+#app.tenant-ui .lc-capture-controls button { display:grid; place-items:center; width:34px; height:34px; border:0; padding:0; background:transparent; color:white; border-radius:50%; }
+#app.tenant-ui .lc-capture-controls .lc-capture-main { background:#5962c7; font-size:calc(20px * var(--font-scale, 1)); width:40px; height:40px; }
+#app.tenant-ui .lc-capture-time { font-size:calc(14px * var(--font-scale, 1)); font-variant-numeric:tabular-nums; white-space:nowrap; padding:0 6px; }
+#app.tenant-ui .lc-capture-toolbar { display:flex; align-items:center; flex-wrap:wrap; gap:12px; padding:14px 18px; border-top:1px solid var(--line); }
+#app.tenant-ui .lc-capture-toolbar label { display:grid; gap:3px; font-size:calc(11px * var(--font-scale, 1)); color:var(--muted); min-width:0; }
+#app.tenant-ui .lc-capture-toolbar select { max-width:170px; margin:0; padding:5px; font-size:calc(12px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-capture-toolbar button { background:transparent; color:var(--ink); }
+#app.tenant-ui .lc-capture-toolbar .lc-capture-next { background:var(--accent); color:var(--accentink); border-color:transparent; }
+#app.tenant-ui .lc-capture-spacer { flex:1; }
+#app.tenant-ui .lc-capture-footnote,#app.tenant-ui .lc-capture-notice { padding:0 18px 14px; color:var(--muted); font-size:calc(12px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-video-review { padding:0 28px 18px; }
+#app.tenant-ui .lc-video-review > video { display:block; width:100%; max-height:55dvh; aspect-ratio:16/9; object-fit:contain; background:#101820; border-radius:8px; cursor:pointer; }
+#app.tenant-ui .lc-video-timeline-row { display:flex; align-items:center; gap:10px; margin-top:20px; }
+#app.tenant-ui .lc-video-timeline-row button { padding:4px; width:32px; height:32px; }
+#app.tenant-ui .lc-video-timeline-row a { color:var(--ink); display:flex; padding:5px; }
+#app.tenant-ui .lc-video-timeline { position:relative; flex:1; height:40px; border:2px solid var(--muted); border-radius:6px; background:var(--surface); }
+#app.tenant-ui .lc-video-filmstrip { height:100%; display:flex; overflow:hidden; border-radius:4px; }
+#app.tenant-ui .lc-video-filmstrip img { height:100%; width:10%; object-fit:cover; }
+#app.tenant-ui .lc-video-timeline input { position:absolute; inset:0; width:100%; height:100%; opacity:0; margin:0; cursor:pointer; }
+#app.tenant-ui .lc-video-playhead { position:absolute; top:-6px; bottom:-6px; width:2px; background:var(--accent); pointer-events:none; }
+#app.tenant-ui .lc-video-playhead::before { content:""; width:10px; height:10px; border-radius:50%; position:absolute; top:0; left:-4px; background:var(--accent); }
+#app.tenant-ui .lc-video-review-time { text-align:center; margin-top:10px; font-variant-numeric:tabular-nums; }
+#app.tenant-ui .lc-video-timeline:focus-within { outline:2px solid var(--accent); outline-offset:3px; }
+#app.tenant-ui .lc-upload-list > .lc-draft-video { flex:0 0 min(360px,75vw); width:min(360px,75vw); height:auto; aspect-ratio:16/9; }
+#app.tenant-ui .lc-draft-video > video { display:block; width:100%; height:100%; border-radius:10px; background:#101820; object-fit:contain; }
+
+/* Keep capture geometry independent of device resolution and loading state. */
+#app.tenant-ui .lc-clip-studio .lc-camera-stage { height:min(472px,52dvh); min-height:180px; aspect-ratio:auto; width:100%; }
+#app.tenant-ui .lc-clip-studio .lc-camera-stage > :is(video,img) { position:absolute; inset:0; width:100%; height:100%; max-height:none; object-fit:contain; }
+#app.tenant-ui .lc-clip-studio .lc-capture-notice { height:32px; box-sizing:border-box; padding:7px 18px; overflow:auto; }
+#app.tenant-ui .lc-capture-toolbar { min-height:80px; box-sizing:border-box; justify-content:center; gap:18px; }
+#app.tenant-ui .lc-capture-toolbar .lc-camera-modes { border-right:1px solid var(--line); padding-right:18px; }
+#app.tenant-ui .lc-capture-device { display:flex; align-items:center; }
+#app.tenant-ui .lc-capture-device > button,#app.tenant-ui .lc-capture-tool { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; padding:6px 10px; border:0; min-width:54px; font-size:calc(11px * var(--font-scale, 1)); border-radius:6px; }
+#app.tenant-ui .lc-capture-device button[aria-pressed=true],#app.tenant-ui .lc-capture-tool[aria-pressed=true] { background:var(--surface); }
+#app.tenant-ui .lc-device-picker { position:relative; width:24px; height:36px; display:grid; place-items:center; }
+#app.tenant-ui .lc-device-picker select { position:absolute; inset:0; width:100%; height:100%; max-width:none; opacity:0; cursor:pointer; }
+#app.tenant-ui .lc-device-picker:focus-within { outline:2px solid var(--accent); border-radius:5px; }
+#app.tenant-ui .lc-capture-toolbar .lc-camera-modes button { border:0; padding:7px 10px; font-size:calc(12px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-audio-capture .lc-audio-player { width:100%; }
+
+#app.tenant-ui .lc-internal-thread { position:relative; align-self:flex-start; width:min(480px,calc(100% - 20px)); margin:10px 0 8px 20px; padding:12px; border:1px solid var(--line); border-radius:14px; background:var(--panel); }
+#app.tenant-ui .lc-internal-thread::before { content:""; position:absolute; left:-15px; top:-12px; width:12px; height:28px; border-left:2px solid var(--line); border-bottom:2px solid var(--line); border-radius:0 0 0 9px; }
+#app.tenant-ui .lc-internal-thread-toggle { display:flex; align-items:center; gap:8px; width:100%; padding:0; border:0; background:none; color:var(--ink); font-size:calc(12px * var(--font-scale, 1)); text-align:left; }
+#app.tenant-ui .lc-internal-thread-toggle > span:last-child { margin-left:auto; }
+#app.tenant-ui .lc-internal-thread-comments { max-height:320px; overflow:auto; }
+#app.tenant-ui .lc-internal-thread article { margin:14px 0; }
+#app.tenant-ui .lc-internal-thread article header { display:flex; flex-wrap:wrap; gap:8px; align-items:center; color:var(--muted); font-size:calc(11px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-internal-thread article p { margin:5px 0 0; padding:8px 10px; border-radius:10px; background:var(--surface); font-size:calc(13px * var(--font-scale, 1)); white-space:pre-wrap; overflow-wrap:anywhere; }
+#app.tenant-ui .lc-internal-comment-input { display:flex; align-items:flex-end; gap:6px; margin-top:12px; padding:6px; border:1px solid var(--line); border-radius:12px; }
+#app.tenant-ui .lc-internal-comment-input:focus-within { border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
+#app.tenant-ui .lc-internal-comment-input textarea { flex:1; min-width:0; width:100%; min-height:38px; max-height:160px; resize:vertical; border:0; outline:0; background:transparent; color:var(--ink); padding:8px; font:inherit; font-size:calc(13px * var(--font-scale, 1)); }
+#app.tenant-ui .lc-internal-comment-input button { flex:none; border:0; border-radius:50%; width:30px; height:30px; padding:0; background:var(--accent); color:var(--accentink); }
+#app.tenant-ui .lc-internal-comment-input button:disabled { opacity:.4; }
+#app.tenant-ui .lc-internal-thread footer { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-top:8px; font-size:calc(10px * var(--font-scale, 1)); color:var(--muted); }
+#app.tenant-ui .lc-internal-thread footer button { border:0; background:none; color:var(--muted); font-size:calc(11px * var(--font-scale, 1)); padding:3px; }
+#app.tenant-ui .lc-internal-thread article:has(+ .lc-comment-continuation) { margin-bottom:0; }
+#app.tenant-ui .lc-internal-thread article.lc-comment-continuation { margin-top:4px; }
+#app.tenant-ui .lc-internal-thread article.lc-comment-continuation p { margin-top:0; }
+#app.tenant-ui .lc-internal-thread-expand { display:grid; grid-template-rows:0fr; opacity:0; transition:grid-template-rows 180ms ease,opacity 180ms ease; }
+#app.tenant-ui .lc-internal-thread-expand.is-expanded { grid-template-rows:1fr; opacity:1; }
+#app.tenant-ui .lc-internal-thread-content { min-height:0; overflow:hidden; }
+@media (prefers-reduced-motion:reduce) {
+  #app.tenant-ui .lc-internal-thread-expand { transition:none; }
+}
+#app.tenant-ui .lc-internal-thread { width:min(var(--thread-width,210px),calc(100% - 20px)); transition:width 180ms ease; }
+#app.tenant-ui .lc-internal-thread-label { display:inline-flex; align-items:center; gap:8px; width:max-content; flex:none; white-space:nowrap; }
+@media (prefers-reduced-motion:reduce) {
+  #app.tenant-ui .lc-internal-thread { transition:none; }
+}
+
+/* Internal comments join both sides within a timestamp group. */
+#app.tenant-ui .lc-internal-thread article:has(+ .lc-comment-continuation) p { border-bottom-left-radius:0; border-bottom-right-radius:0; }
+#app.tenant-ui .lc-internal-thread article.lc-comment-continuation p { border-top-left-radius:0; border-top-right-radius:0; }
+#app.tenant-ui .lc-message-item .lc-quoted-message { display:flex; align-items:center; gap:9px; width:100%; max-width:100%; border:1px solid light-dark(#8095a955,#ffffff45); border-left:3px solid var(--accent); border-radius:5px; background:light-dark(#ffffffb3,#0c1724b3); color:var(--ink); text-align:left; cursor:pointer; padding:9px; margin:0 0 8px; line-height:1.4; }
+#app.tenant-ui .lc-quoted-message > img { width:44px; height:44px; object-fit:cover; border-radius:4px; flex:none; }
+#app.tenant-ui .lc-quoted-message > span { display:grid; gap:3px; min-width:0; }
+#app.tenant-ui .lc-quoted-message strong { font-size:calc(11px * var(--font-scale, 1)); font-weight:600; }
+#app.tenant-ui .lc-quoted-message span { overflow-wrap:anywhere; }
+#app.tenant-ui .lc-quoted-message:hover { background:light-dark(#eaf1f8,#122e48); }
+#app.tenant-ui .lc-quoted-message:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
+#app.tenant-ui .lc-message-jump-highlight > .bubble { outline:2px solid var(--accent); outline-offset:4px; box-shadow:0 0 18px #ffb36b44; }
+
+#app.tenant-ui .lc-internal-thread-comments { width:100%; max-width:100%; }
+#app.tenant-ui .lc-comment-group { width:fit-content; max-width:100%; }
+
+#app.tenant-ui .lc-company-title-row { display:flex; align-items:center; gap:7px; min-width:0; }
+#app.tenant-ui .conversation-card-top > .lc-company-title-row { flex:1; }
+#app.tenant-ui .lc-company-title-row > :is(strong,h2) { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin:0; }
+#app.tenant-ui .lc-peer-group-badge { display:inline-block; flex:0 1 auto; max-width:140px; padding:2px 6px; border:1px solid var(--line); border-radius:4px; background:var(--surface); color:var(--muted); font-size:calc(11px * var(--font-scale, 1)); font-weight:400; line-height:calc(16px * var(--font-scale, 1)); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+#app.tenant-ui .conversation-card-top > time { flex:none; }
+#app.tenant-ui.conversation-workspace .conversation-card-top .lc-company-title-row { justify-content:flex-start; }
+#app.tenant-ui.conversation-workspace .conversation-card-top .lc-company-title-row > strong { flex:0 1 auto; }
+#app.tenant-ui .lc-thread-header-actions { display:flex; align-items:center; gap:8px; flex:none; }
+#app.tenant-ui .lc-thread-header-actions > .button { white-space:nowrap; }
+#app.tenant-ui .lc-thread-header-actions select { max-width:150px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--ink); padding:7px 9px; font-size:calc(12px * var(--font-scale, 1)); }
+@media (max-width:700px) {
+  #app.tenant-ui .lc-messaging .thread-head { flex-wrap:wrap; }
+  #app.tenant-ui .lc-thread-header-actions { margin-left:auto; flex-wrap:wrap; justify-content:flex-end; }
+}
+#app.tenant-ui.conversation-workspace .lc-messaging .inbox .conversation { height:72px; min-height:72px; max-height:72px; padding:12px; }
+#app.tenant-ui.conversation-workspace .lc-messaging .conversation-copy { display:flex; flex-direction:column; gap:3px; }
+#app.tenant-ui.conversation-workspace .lc-messaging .conversation-card-top,
+#app.tenant-ui.conversation-workspace .lc-messaging .conversation-card-bottom { margin:0; }
+#app.tenant-ui.conversation-workspace .lc-messaging .conversation-card-bottom small { line-height:calc(18px * var(--font-scale, 1)); margin:0; }
+
+/* Conversation details: participants stay out of the primary header actions. */
+#app.tenant-ui .lc-participants .section-head {gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:16px;}
+#app.tenant-ui .lc-participants .section-head h3 {margin:0;}
+#app.tenant-ui .lc-participants h4 {font-size:calc(12px * var(--font-scale, 1));color:var(--muted);margin:20px 0 10px;font-weight:500;}
+#app.tenant-ui .lc-participant-company + .lc-participant-company {border-top:1px solid var(--line);margin-top:14px;}
+#app.tenant-ui .lc-participant-person {display:flex;align-items:center;gap:10px;padding:9px 0;min-width:0;}
+#app.tenant-ui .lc-participant-person > div {min-width:0;overflow-wrap:anywhere;}
+#app.tenant-ui .lc-participant-person strong {font-size:calc(13px * var(--font-scale, 1));}
+#app.tenant-ui .lc-participants small {display:block;color:var(--muted);font-size:calc(11px * var(--font-scale, 1));margin-top:3px;}
+#app.tenant-ui .lc-participant-company summary {display:flex;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;font-size:calc(12px * var(--font-scale, 1));}
+#app.tenant-ui .lc-participant-company summary::after {content:'⌄';}
+#app.tenant-ui .lc-participants input[type=search] {width:100%;min-width:0;margin:12px 0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);color:var(--ink);}
+#app.tenant-ui .lc-participant-choice {display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0;cursor:pointer;}
+#app.tenant-ui .lc-participant-choice input {width:16px;height:16px;flex:none;accent-color:var(--accent);}
+#app.tenant-ui .lc-participant-choice:has(input:checked) {border-color:var(--accent);}
+#app.tenant-ui .lc-participant-choice:has(input:disabled) {opacity:.55;}
+#app.tenant-ui .lc-participant-choice strong {font-size:calc(13px * var(--font-scale, 1));}
+#app.tenant-ui .lc-participant-continue {width:100%;margin-top:16px;}
+#app.tenant-ui .lc-participant-footnote {border-top:1px solid var(--line);padding-top:15px;margin-top:18px;}
+#app.tenant-ui .lc-participant-request {border:1px solid var(--line);border-radius:8px;padding:12px;margin:8px 0;}
+#app.tenant-ui .lc-participant-request p {font-size:calc(12px * var(--font-scale, 1));margin:8px 0;}
+#app.tenant-ui .lc-participant-activity {margin-top:14px;font-size:calc(12px * var(--font-scale, 1));}
+#app.tenant-ui .lc-participant-activity p {margin-top:10px;}
+#app.tenant-ui .lc-participant-error {color:light-dark(#a12d22,#ffb0a7);margin-top:12px;font-size:calc(13px * var(--font-scale, 1));}
+#app.tenant-ui .lc-messaging .chat-detail > hr {border:0;border-top:1px solid var(--line);margin:18px 0;}
+#app.tenant-ui .lc-messaging .chat-detail > h3 {margin:14px 0 8px;}
+/* Detail sections use one compact navigation and a uniform media library. */
+#app.tenant-ui .lc-details-tab-bar {display:flex;align-items:center;gap:2px;min-width:0;margin-top:-6px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+#app.tenant-ui .lc-details-tabs {display:flex;flex:1;min-width:0;gap:5px;overflow-x:auto;scrollbar-width:none;padding:3px 6px;scroll-padding-inline:6px;mask-image:linear-gradient(to right,transparent,black 10px,black calc(100% - 10px),transparent);-webkit-mask-image:linear-gradient(to right,transparent,black 10px,black calc(100% - 10px),transparent);}
+#app.tenant-ui .lc-details-tabs::-webkit-scrollbar {display:none;}
+#app.tenant-ui .lc-details-tab-scroll {flex:0 0 14px;width:14px;min-width:14px;padding:4px 0;border:0;background:transparent;color:var(--muted);}
+#app.tenant-ui .lc-details-tabs button {border:1px solid var(--line);border-radius:7px;padding:7px 8px;background:var(--surface);color:var(--muted);font-size:calc(12px * var(--font-scale, 1));white-space:nowrap;flex:0 0 auto;}
+#app.tenant-ui .lc-details-tabs button[aria-selected=true] {background:var(--hover);border-color:var(--accent);color:var(--ink);}
+#app.tenant-ui .lc-details-section-heading {display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:16px;}
+#app.tenant-ui .lc-details-section-heading h3 {margin:0;font-size:calc(14px * var(--font-scale, 1));}
+#app.tenant-ui .lc-demo-label {font-size:calc(10px * var(--font-scale, 1));letter-spacing:.3px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:3px 6px;}
+#app.tenant-ui .lc-shared-media-grid {display:grid;grid-template-columns:repeat(auto-fill,56px);gap:8px;}
+#app.tenant-ui .lc-shared-media-tile {display:flex;flex-direction:column;min-width:0;padding:0 0 8px;overflow:hidden;border:1px solid var(--line);border-radius:9px;background:var(--panel);text-align:left;color:var(--ink);}
+#app.tenant-ui .lc-shared-media-tile:hover {border-color:var(--accent);}
+#app.tenant-ui .lc-shared-media-preview {display:grid;place-items:center;width:100%;aspect-ratio:1;overflow:hidden;background:var(--surface);border-bottom:1px solid var(--line);position:relative;}
+#app.tenant-ui .lc-shared-media-tile > strong {display:block;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:5px 4px 2px;font-size:calc(10px * var(--font-scale, 1));font-weight:500;}
+#app.tenant-ui .lc-shared-media-tile > small {display:block;width:100%;padding:0 4px;font-size:calc(9px * var(--font-scale, 1));color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#app.tenant-ui .lc-shared-media-preview > .lc-file-thumbnail {width:100%;height:100%;min-height:0;max-height:none;border:0;border-radius:0;margin:0;}
+#app.tenant-ui .lc-shared-media-preview > img,#app.tenant-ui .lc-shared-media-preview video {display:block;width:100%;height:100%;object-fit:cover;}
+#app.tenant-ui .lc-shared-media-preview canvas {width:100%;height:100%;object-fit:contain;object-position:top;}
+#app.tenant-ui .lc-shared-media-preview .lc-file-thumb-name {display:none;}
+#app.tenant-ui .lc-shared-media-preview .lc-file-type-label {font-size:calc(6px * var(--font-scale, 1));padding:2px 3px;left:3px;top:3px;max-width:calc(100% - 6px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#app.tenant-ui .lc-shared-media-preview .lc-mini-document {width:360px;height:450px;transform:scale(.15);transform-origin:top left;}
+#app.tenant-ui .lc-shared-media-preview .lc-mini-sheet {width:360px;transform:scale(.15);transform-origin:top left;}
+#app.tenant-ui .lc-shared-media-preview .lc-mini-text {font-size:calc(7px * var(--font-scale, 1));padding:15px 5px 5px;}
+#app.tenant-ui .lc-media-more {width:100%;margin-top:14px;}
+#app.tenant-ui .lc-details-audio {margin-top:16px;min-width:0;}
+#app.tenant-ui .lc-details-audio .lc-audio-player {max-width:100%;}
+#app.tenant-ui .lc-related-list {display:grid;gap:12px;}
+#app.tenant-ui .lc-related-card {padding:14px;border:1px solid var(--line);border-radius:10px;background:var(--panel);min-width:0;}
+#app.tenant-ui .lc-related-card header,#app.tenant-ui .lc-related-card summary {display:flex;align-items:center;justify-content:space-between;gap:10px;}
+#app.tenant-ui .lc-related-card strong {font-size:calc(13px * var(--font-scale, 1));font-weight:600;}
+#app.tenant-ui .lc-related-card p {margin:10px 0 0;font-size:calc(12px * var(--font-scale, 1));}
+#app.tenant-ui .lc-related-card small {display:block;margin-top:7px;color:var(--muted);font-size:calc(11px * var(--font-scale, 1));}
+#app.tenant-ui .lc-related-meta {display:flex;justify-content:space-between;gap:8px;font-size:calc(11px * var(--font-scale, 1));color:var(--muted);margin-top:10px;}
+#app.tenant-ui .lc-lane-route {display:grid;grid-template-columns:12px 1fr;column-gap:8px;align-items:center;}
+#app.tenant-ui .lc-route-dot {width:8px;height:8px;border:2px solid var(--accent);border-radius:50%;}
+#app.tenant-ui .lc-route-dot.destination {background:var(--accent);grid-column:1;}
+#app.tenant-ui .lc-route-link {height:15px;border-left:1px solid var(--line);margin-left:3px;grid-column:1;}
+#app.tenant-ui .lc-route-link + .lc-route-dot {grid-row:3;}
+#app.tenant-ui .lc-load-status {font-size:calc(10px * var(--font-scale, 1));padding:3px 6px;border-radius:4px;background:var(--hover);color:var(--muted);white-space:nowrap;}
+#app.tenant-ui .lc-load-status.transit {background:light-dark(#e0ecff,#193e63);color:light-dark(#254f7a,#a9d3ff);}
+#app.tenant-ui .lc-load-status.delivered {background:light-dark(#e3f2e9,#183d32);color:light-dark(#226042,#b5e6ce);}
+#app.tenant-ui .lc-history-sample {font-size:calc(10px * var(--font-scale, 1));color:var(--muted);margin-top:12px;}
+
+#app.tenant-ui .lc-shared-media-preview .lc-file-audio-icon {font-size:calc(24px * var(--font-scale, 1));}
+
+#app.tenant-ui .lc-inline-group-name {display:flex;align-items:center;flex-wrap:wrap;gap:4px;min-width:0;max-width:100%;margin:0;}
+#app.tenant-ui .lc-inline-group-name input {width:clamp(120px,22vw,320px);max-width:100%;min-width:0;flex:1;padding:4px 7px;margin:0;font-size:calc(16px * var(--font-scale, 1));font-weight:600;}
+#app.tenant-ui .lc-inline-group-name .icon {width:26px;min-width:26px;height:28px;padding:3px;border:0;}
+#app.tenant-ui .lc-inline-group-name small {flex-basis:100%;color:var(--red);}
+
+/* Keep the add-people action visible while only the results scroll. */
+#app.tenant-ui.conversation-workspace .lc-messaging.contact-revealed > .chat-detail:has(.lc-participants-picking) {display:flex;flex-direction:column;overflow:hidden;}
+#app.tenant-ui .chat-detail:has(.lc-participants-picking) > .section-head,
+#app.tenant-ui .chat-detail:has(.lc-participants-picking) .lc-details-tab-bar {flex-shrink:0;}
+#app.tenant-ui .lc-details-content:has(.lc-participants-picking),
+#app.tenant-ui #conversation-details-panel:has(.lc-participants-picking),
+#app.tenant-ui .lc-participants-picking {display:flex;flex-direction:column;flex:1;min-height:0;}
+#app.tenant-ui .lc-participants-picking > .section-head,
+#app.tenant-ui .lc-participants-picking > .tabs,
+#app.tenant-ui .lc-participants-picking > input {flex-shrink:0;}
+#app.tenant-ui .lc-participant-results {flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;}
+#app.tenant-ui .lc-participant-footer {flex:none;padding-top:12px;background:var(--panel);border-top:1px solid var(--line);}
+#app.tenant-ui .lc-participant-footer .lc-participant-continue {margin:0;}
+
+#app.tenant-ui .lc-modal:has(.lc-new-chat) {display:flex;flex-direction:column;width:min(500px,calc(100vw - 24px));max-height:calc(100dvh - 24px);overflow:hidden;}
+#app.tenant-ui .lc-modal:has(.lc-new-chat) > header {flex-shrink:0;}
+#app.tenant-ui .lc-new-chat {padding:4px 0 0;gap:10px;display:flex;flex-direction:column;min-height:0;}
+#app.tenant-ui .lc-new-chat > * {flex-shrink:0;}
+#app.tenant-ui .lc-new-chat-results {flex:1 1 260px;min-height:80px;max-height:300px;overflow:auto;padding:0;}
+#app.tenant-ui .lc-new-chat > p {margin:0;}
+#app.tenant-ui .lc-new-chat .lc-messaging-status:empty {display:none;}
+
+/* Global search shares the inbox surface and keeps the conversation in place. */
+#app.tenant-ui .lc-normal-inbox,
+#app.tenant-ui .lc-global-search {display:flex;flex-direction:column;min-height:0;height:100%;}
+#app.tenant-ui .lc-normal-inbox[hidden],
+#app.tenant-ui .lc-global-search[hidden] {display:none;}
+#app.tenant-ui .lc-search-scope {font-size:calc(11px * var(--font-scale,1));color:var(--muted);margin:8px 0;}
+#app.tenant-ui .lc-search-filters {display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0 0;}
+#app.tenant-ui .lc-search-filters select,
+#app.tenant-ui .lc-search-filters input {width:100%;min-width:0;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:7px;padding:8px;font-size:calc(12px * var(--font-scale,1));}
+#app.tenant-ui .lc-search-filters label {font-size:calc(11px * var(--font-scale,1));color:var(--muted);}
+#app.tenant-ui .lc-search-results {overflow:auto;min-height:0;flex:1;padding-bottom:12px;}
+#app.tenant-ui .lc-search-count {padding:10px 16px;margin:0;color:var(--muted);font-size:calc(12px * var(--font-scale,1));}
+#app.tenant-ui .lc-search-result {display:flex;flex-direction:column;gap:6px;text-align:left;width:100%;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:14px 16px;background:transparent;color:var(--ink);cursor:pointer;}
+#app.tenant-ui .lc-search-result:hover {background:var(--surface);}
+#app.tenant-ui .lc-search-result.selected {background:color-mix(in srgb,var(--accent) 16%,var(--panel));box-shadow:inset 3px 0 var(--accent);}
+#app.tenant-ui .lc-search-result small,
+#app.tenant-ui .lc-search-hit-kind {font-size:calc(11px * var(--font-scale,1));color:var(--muted);}
+#app.tenant-ui .lc-search-excerpt {font-size:calc(13px * var(--font-scale,1));line-height:1.5;overflow-wrap:anywhere;}
+#app.tenant-ui .lc-search-result mark {background:color-mix(in srgb,var(--accent) 30%,var(--panel));color:var(--ink);border-radius:2px;}
+#app.tenant-ui .lc-search-empty {padding:20px;color:var(--muted);font-size:calc(13px * var(--font-scale,1));line-height:1.5;}
+#app.tenant-ui .lc-search-empty .button {margin:6px;}
+#app.tenant-ui .lc-search-match-bar {display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 16px;border-bottom:1px solid var(--line);color:var(--muted);font-size:calc(12px * var(--font-scale,1));}
+#app.tenant-ui .lc-internal-thread-comments article[data-search-match] p {outline:2px solid var(--accent);outline-offset:2px;}
+#app.tenant-ui .lc-message-search:focus-within {border-color:var(--accent);outline:1px solid var(--accent);outline-offset:-1px;}
+#app.tenant-ui .lc-message-search input:focus,
+#app.tenant-ui .lc-message-search input:focus-visible {outline:none;box-shadow:none;}
+#app.tenant-ui .lc-global-search .lc-search-back {margin:12px 0 0;padding:7px 10px;background:transparent;border-radius:5px;font-size:calc(12px * var(--font-scale,1));}
+#app.tenant-ui .lc-global-search .lc-message-search {padding:8px 10px;min-height:42px;}
+#app.tenant-ui .lc-global-search .lc-search-scope {margin:12px 0 16px;font-size:calc(12px * var(--font-scale,1));}
+#app.tenant-ui .lc-global-search .lc-search-filters {display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;}
+#app.tenant-ui .lc-global-search .lc-search-filters select {width:auto;max-width:42%;padding:6px 7px;font-size:calc(11px * var(--font-scale,1));border-radius:6px;}
+#app.tenant-ui .lc-search-recent {padding:20px 14px;color:var(--muted);}
+#app.tenant-ui .lc-search-recent small {font-size:calc(11px * var(--font-scale,1));}
+#app.tenant-ui .lc-search-recent p {font-size:calc(12px * var(--font-scale,1));}
+#app.tenant-ui .lc-search-recent button {display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:transparent;color:var(--ink);text-align:left;font-size:calc(14px * var(--font-scale,1));}
+@media(min-width:851px) {
+ #app.tenant-ui.conversation-workspace .chat-layout.lc-search-open.contact-closed {grid-template-columns:minmax(320px, 44%) minmax(0,1fr);}
+}
+
+#app.tenant-ui .lc-search-match-actions {display:flex;align-items:center;gap:6px;}
+
+/* Theme-aware teal distinguishes the writing surface from surrounding panels. */
+#app.tenant-ui .lc-messaging {--composer-surface:light-dark(#E8F4F2,#142D35);}
+
+/* Keep attachment and send actions outside the bordered message editor. */
+#app.tenant-ui.conversation-workspace .lc-messaging .composer-entry {
+  border:0;
+  border-radius:0;
+  background:transparent;
+  padding:0;
+  gap:9px;
+  min-height:46px;
+}
+#app.tenant-ui .lc-messaging .composer-entry .lc-rich-editor {
+  border:1px solid var(--line);
+  border-radius:9px;
+  background:var(--composer-surface);
+  box-shadow:none;
+}
+#app.tenant-ui .lc-messaging .composer-entry .lc-rich-editor:focus-within {
+  border-color:var(--accent);
+  box-shadow:inset 0 0 0 1px var(--accent);
+}
+#app.tenant-ui.conversation-workspace .composer-entry #conversation-draft {
+  min-height:44px;
+  padding:11px 40px 11px 12px;
+  outline:none;
+  box-shadow:none;
+}
+#app.tenant-ui .lc-messaging .composer-entry .lc-attachment-control,
+#app.tenant-ui .lc-messaging .composer-entry > .primary {
+  margin-bottom:5px;
+}
+#app.tenant-ui .lc-messaging .composer-entry > .primary {
+  background:transparent;
+  color:var(--accent);
+  border:0;
+  border-radius:6px;
+  box-shadow:none;
+}
+#app.tenant-ui .lc-messaging .composer-entry > .primary:hover:not(:disabled) {
+  background:var(--surface);
+}
+#app.tenant-ui .composer-entry .lc-format-toggle {bottom:7px;}
+
+/* Formatting starts at seven lines and grows to fourteen before scrolling. */
+#app.tenant-ui .lc-rich-editor.formatting-open .lc-writing-area {
+  min-height:calc(7 * 22px * var(--font-scale,1) + 22px);
+}
+#app.tenant-ui .lc-rich-editor.formatting-open .lc-rich-input,
+#app.tenant-ui.conversation-workspace .lc-rich-editor.formatting-open #conversation-draft,
+#app.tenant-ui.conversation-workspace .lc-rich-editor.formatting-open #conversation-draft:has(.code-card) {
+  min-height:calc(7 * 22px * var(--font-scale,1) + 22px);
+  max-height:calc(14 * 22px * var(--font-scale,1) + 22px);
+  overflow:auto;
+}
+#app.tenant-ui .lc-rich-editor .lc-format-toggle {
+  font-size:calc(19px * var(--font-scale,1));
+  font-weight:500;
+  text-underline-offset:3px;
+  width:30px;
+  height:30px;
+}
+#app.tenant-ui .lc-rich-editor .lc-rich-toolbar {padding:5px 0;margin:0 12px;gap:2px;align-items:center;}
+#app.tenant-ui .lc-rich-toolbar button {display:inline-flex;align-items:center;justify-content:center;height:30px;}
+#app.tenant-ui .lc-rich-toolbar strong {font-weight:800;}
+#app.tenant-ui .lc-rich-toolbar em {font-style:italic;font-family:Georgia,serif;}
+#app.tenant-ui .lc-rich-toolbar u {text-decoration:underline;text-underline-offset:3px;}
+#app.tenant-ui .lc-rich-toolbar s {text-decoration:line-through;}
+#app.tenant-ui .lc-rich-toolbar select {width:auto;min-height:28px;padding:3px 5px;margin-right:6px;border:1px solid var(--line);border-radius:5px;background:var(--panel);color:var(--ink);font-size:calc(12px * var(--font-scale,1));}
+
+#app.tenant-ui .lc-rich-editor .lc-clear-draft {position:absolute;right:40px;top:7px;display:flex;align-items:center;justify-content:center;width:28px;height:28px;padding:4px;border:0;border-radius:5px;background:transparent;color:var(--muted);}
+#app.tenant-ui .lc-rich-editor.formatting-open .lc-clear-draft {right:8px;top:7px;}
+#app.tenant-ui .lc-rich-editor .lc-clear-draft:hover {color:var(--red);background:var(--surface);}
+#app.tenant-ui .lc-rich-editor.formatting-open .lc-rich-toolbar {padding-right:32px;}
+#app.tenant-ui .lc-messaging .lc-send-identity {margin-left:45px;}
+#app.tenant-ui .lc-messaging .lc-attachment-menu {left:45px;max-width:calc(100% - 45px);}
+#app.tenant-ui .lc-participant-person > div:not(.lc-person-actions) {min-width:0;flex:1;}
+#app.tenant-ui .lc-participant-person .lc-person-actions {display:flex;gap:4px;flex:none;margin-left:auto;}
+#app.tenant-ui .lc-person-actions .icon {width:28px;height:28px;padding:5px;}
+#app.tenant-ui .lc-call-people {display:flex;flex-direction:column;gap:8px;}
+#app.tenant-ui .lc-call-people > button {display:flex;align-items:center;gap:12px;width:100%;text-align:left;}
+#app.tenant-ui .lc-call-people > button > span:not(.avatar) {flex:1;}
+#app.tenant-ui .lc-call-people small {display:block;color:var(--muted);}
+#app.tenant-ui .lc-call-destination {text-align:center;padding:16px;}
+
+#app.tenant-ui .lc-call-people > button > .avatar {flex:none;width:36px;height:36px;}
+
+#app.tenant-ui .lc-call-menu-anchor {position:relative;}
+#app.tenant-ui .lc-call-dropdown {position:absolute;top:calc(100% + 8px);right:0;z-index:40;width:300px;max-width:calc(100vw - 40px);padding:8px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:0 12px 32px #0004;}
+#app.tenant-ui .lc-call-menu-heading {padding:6px 8px 10px;color:var(--muted);font-size:12px;}
+#app.tenant-ui .lc-call-dropdown .lc-call-people {max-height:320px;overflow:auto;gap:4px;}
+#app.tenant-ui .lc-call-dropdown .lc-call-people > button {background:transparent;border:0;padding:10px 8px;}
+#app.tenant-ui .lc-call-dropdown .lc-call-people > button:hover,#app.tenant-ui .lc-call-dropdown .lc-call-people > button:focus-visible {background:var(--surface-2);}
+
+/* Match the editor border, leaving action-sized gutters for people and receipts. */
+#app.tenant-ui.conversation-workspace .lc-messaging .thread .messages {padding-left:55px;padding-right:55px;}
+#app.tenant-ui .lc-message-item .bubble {position:relative;}
+#app.tenant-ui .lc-message-avatar {position:absolute;left:-41px;top:2px;line-height:1;}
+#app.tenant-ui .lc-message-avatar > .avatar {width:28px;height:28px;min-width:28px;font-size:10px;}
+#app.tenant-ui .lc-message-avatar .presence-dot {width:8px;height:8px;border-width:2px;right:-1px;bottom:-1px;}
+#app.tenant-ui .lc-message-item .bubble > .message-status:has(.lc-receipt) {position:absolute;right:-41px;bottom:4px;margin:0;padding:0;height:24px;display:flex;align-items:center;}
+#app.tenant-ui .lc-message-item .bubble .lc-receipt {width:28px;min-width:28px;height:24px;min-height:24px;padding:0 2px;display:flex;align-items:center;justify-content:center;}
+
+#app.tenant-ui .lc-typing-label {color:var(--accent);font-style:italic;}
+#app.tenant-ui .lc-message-item button.sender-name{background:transparent;border:0;padding:0;text-align:left;cursor:pointer;}
+#app.tenant-ui .lc-message-item button.lc-message-avatar{background:transparent;border:0;padding:0;min-height:0;cursor:pointer;}
+#app.tenant-ui .lc-message-item button.sender-name:hover{text-decoration:underline;}
+@media(max-width:850px){#app.tenant-ui .lc-person-actions{flex-wrap:wrap;}#app.tenant-ui .lc-person-actions .icon{width:36px;height:36px;}}
+
+/* Message controls size against the conversation, never the short bubble or
+   the window (which can also contain an inbox and a details panel). */
+#app.tenant-ui .lc-messaging .messages { container-type: inline-size; }
+#app.tenant-ui .lc-message-item .bubble .lc-message-actions {
+  width: max-content;
+  max-width: 100cqw;
+  flex-wrap: wrap;
+  right: 0;
+  left: auto;
+  top: auto;
+  bottom: 100%;
+}
+#app.tenant-ui .lc-message-item .bubble:not(.out) .lc-message-actions {
+  left: auto;
+  right: 0;
+  max-width: min(100cqw, calc(100% + 40px));
+}
+#app.tenant-ui .lc-message-actions > button,
+#app.tenant-ui .lc-message-actions > .message-more { flex: 0 0 auto; }
+#app.tenant-ui .lc-message-item .bubble:has(.lc-inline-edit) {
+  width: min(460px, 100%);
+  max-width: 100%;
+  min-width: 0;
+}
+#app.tenant-ui .lc-inline-edit .lc-rich-editor,
+#app.tenant-ui .lc-inline-edit .lc-writing-area { width: 100%; min-width: 0; }
+#app.tenant-ui .lc-inline-edit .lc-edit-actions { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; }
+#app.tenant-ui .lc-inline-edit .lc-edit-actions small { flex: 1 1 130px; min-width: 0; }
+#app.tenant-ui .lc-inline-edit .lc-edit-actions button { flex: 0 0 auto; }
+
+@container (max-width: 300px) {
+  #app.tenant-ui .lc-inline-edit .lc-edit-actions small { grid-column: 1 / -1; }
+  #app.tenant-ui .lc-inline-edit .lc-edit-actions button:first-of-type { grid-column: 2; }
+}
+
+#app.tenant-ui .lc-audio-meta {white-space:nowrap;}
+#app.tenant-ui .lc-audio-footer {grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;}
+#app.tenant-ui .lc-audio-footer .lc-audio-name {min-width:0;flex:1;}
+#app.tenant-ui .lc-audio-footer a {flex-shrink:0;color:var(--muted);}
+
+#app.tenant-ui .lc-participant-person {flex-wrap:wrap;}
+#app.tenant-ui .lc-owner-badge {color:var(--muted);border:1px solid var(--line);padding:2px 6px;border-radius:4px;}
+#app.tenant-ui .lc-depart-confirm {flex-basis:100%;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:8px;}
+#app.tenant-ui .lc-depart-confirm p {font-size:12px;margin:8px 0;}
+#app.tenant-ui .lc-depart-confirm select {width:100%;margin:8px 0;}
+#app.tenant-ui .lc-depart-confirm > div {display:flex;gap:8px;justify-content:flex-end;}
+#app.tenant-ui .lc-danger {color:var(--red);}
+#app.tenant-ui .lc-group-leave {margin:20px 0;}
+#app.tenant-ui .lc-member-menu {position:relative;}
+#app.tenant-ui .lc-member-menu summary {cursor:pointer;list-style:none;padding:6px;}
+#app.tenant-ui .lc-member-menu > button {position:absolute;right:0;z-index:2;background:var(--panel);}
+#app.tenant-ui .lc-group-system-event {align-self:center;text-align:center;font-size:12px;color:var(--muted);padding:8px 0;}
+#app.tenant-ui .lc-left-group-notice {color:var(--muted);font-size:12px;margin-bottom:8px;}
+/* Give audio captions a little breathing room within their message bubble. */
+#app.tenant-ui .lc-message-media:has(.lc-audio-player) + .lc-message-text-line:has(.lc-message-body:not(:empty)) { margin-top: 6px; }
+
+#app.tenant-ui .lc-participant-person > .lc-depart-confirm:not(.lc-person-actions) {flex:0 0 100%;}
+#app.tenant-ui .lc-member-menu summary::after {display:none;}
+#app.tenant-ui .lc-member-menu summary::-webkit-details-marker {display:none;}
+
+/* Keep the latest message close to the editor; empty feedback is not a spacer. */
+#app.tenant-ui .lc-messaging .lc-new-message-slot:empty,
+#app.tenant-ui .lc-messaging .composer .lc-messaging-status:empty {
+  display: none;
+}
+#app.tenant-ui.conversation-workspace .lc-messaging .thread .messages {
+  padding-bottom: 12px;
+}
+#app.tenant-ui .lc-messaging .lc-send-identity {
+  min-height: 24px;
+  padding-bottom: 6px;
+}
+
+/* Soften only the bottom scroll edges without adding layout space. */
+#app.tenant-ui.conversation-workspace .lc-messaging .thread .messages,
+#app.tenant-ui.conversation-workspace .lc-messaging .lc-conversation-list {
+  -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 20px), rgb(0 0 0 / 90%) calc(100% - 12px), transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0, #000 calc(100% - 20px), rgb(0 0 0 / 90%) calc(100% - 12px), transparent 100%);
+}
+
+/* A quoted reply is part of the editor, separate from editable reply text. */
+#app.tenant-ui .lc-rich-editor > .lc-reply-quote {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: min(460px, calc(100% - 24px));
+  margin: 12px 12px 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  background: var(--panel);
+  box-shadow: 0 1px 3px #0001;
+}
+#app.tenant-ui .lc-reply-quote-content {flex:1;min-width:0;border-left:2px solid var(--muted);padding-left:10px;}
+#app.tenant-ui .lc-reply-quote-heading {display:flex;flex-wrap:wrap;gap:3px 10px;margin-bottom:4px;color:var(--muted);font-size:11px;line-height:1.4;}
+#app.tenant-ui .lc-reply-quote-heading > span {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%;}
+#app.tenant-ui .lc-reply-quote-heading time {white-space:nowrap;}
+#app.tenant-ui .lc-reply-quote-content p {margin:0;font-size:13px;line-height:1.45;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere;white-space:pre-wrap;}
+#app.tenant-ui .lc-reply-quote > button {flex:none;border:0;background:transparent;color:var(--muted);padding:0;width:22px;height:22px;min-height:22px;font-size:21px;line-height:1;cursor:pointer;}
+#app.tenant-ui .lc-reply-quote > button:hover {color:var(--ink);background:var(--hover);border-radius:4px;}
+#app.tenant-ui .lc-message-actions > button > svg {width:17px;height:17px;display:block;}
+#app.tenant-ui .lc-message-item .bubble .lc-message-actions {gap:0;}
+#app.tenant-ui .lc-message-actions > button,
+#app.tenant-ui .lc-message-actions > .message-more > summary {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-sizing:border-box;
+  width:28px;
+  height:28px;
+  min-height:28px;
+  padding:4px;
+  line-height:1;
+}

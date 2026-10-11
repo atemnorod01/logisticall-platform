@@ -4,6 +4,7 @@ export const groupInput = z
     name: z.string().trim().min(1).max(80),
     description: z.string().trim().max(500).default(""),
     visibility: z.enum(["private", "network"]).default("private"),
+    show_individual_participants: z.boolean().optional(),
   })
   .strict();
 export const groupCreate = groupInput.extend({ id: z.uuid() }).strict();
@@ -16,6 +17,7 @@ export const groupSchema = z.object({
   name: z.string(),
   description: z.string(),
   visibility: z.enum(["private", "network"]),
+  show_individual_participants: z.boolean().optional(),
   archived: z.boolean(),
   version: z.number().int().positive(),
   member_count: z.number().int().nonnegative().optional(),

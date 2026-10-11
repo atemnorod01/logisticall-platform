@@ -1,3 +1,7 @@
+import { postgresCalls } from "./calls-store.js";
+import { supabaseMediaStorage } from "./media-storage.js";
+import { cloudflareTurn } from "./turn.js";
+import { postgresMessaging } from "./messaging-store.js";
 import { postgresGroups } from "./groups-store.js";
 import { postgresPresence } from "./presence.js";
 import { z } from "zod";
@@ -11,6 +15,9 @@ import { postgresLoginAdmission } from "./auth/admission.js";
 const https = z.url().refine((v) => new URL(v).protocol === "https:");
 const config = z
   .object({
+    CALL_ICE_SERVERS: z.string().default("[]").transform(v => z.array(z.object({urls:z.union([z.string(),z.array(z.string())]),username:z.string().optional(),credential:z.string().optional()})).parse(JSON.parse(v))),
+    TURN_KEY_ID: z.string().optional(),
+    TURN_API_TOKEN: z.string().optional(),
     IAM_ISSUER: https,
     IAM_CLIENT_ID: z.string().min(1),
     IAM_API_URL: https,
@@ -18,6 +25,9 @@ const config = z
     APP_ORIGIN: https.optional(),
     SESSION_DATABASE_URL: z.string().optional(),
     PLATFORM_DATABASE_URL: z.string().optional(),
+    MEDIA_STORAGE_ORIGIN: https.optional(),
+    MEDIA_STORAGE_SECRET: z.string().min(1).optional(),
+    MEDIA_STORAGE_BUCKET: z.string().default("conversation-media"),
     SESSION_ENCRYPTION_KEY: z
       .string()
       .regex(/^[0-9a-f]{64}$/i)
@@ -28,6 +38,15 @@ const config = z
     HOST: z.string().default("127.0.0.1"),
   })
   .parse(process.env);
+if (!!config.MEDIA_STORAGE_ORIGIN !== !!config.MEDIA_STORAGE_SECRET)
+  throw Error("Both media storage origin and secret are required");
+if (process.env.NODE_ENV === "production" && config.PLATFORM_DATABASE_URL && !config.MEDIA_STORAGE_ORIGIN)
+  throw Error("Private media storage is required for cloud messaging");
+const mediaStorage = config.MEDIA_STORAGE_ORIGIN && config.MEDIA_STORAGE_SECRET
+  ? supabaseMediaStorage(config.MEDIA_STORAGE_ORIGIN, config.MEDIA_STORAGE_SECRET, config.MEDIA_STORAGE_BUCKET)
+  : undefined;
+if (!!config.TURN_KEY_ID !== !!config.TURN_API_TOKEN) throw Error("Both TURN key ID and API token are required");
+const turn = config.TURN_KEY_ID && config.TURN_API_TOKEN ? cloudflareTurn(config.TURN_KEY_ID, config.TURN_API_TOKEN) : undefined;
 let pool: Pool | undefined;
 let browser: ReturnType<typeof browserSessions> | undefined;
 if (config.AUTH_MODE === "browser") {
@@ -123,8 +142,16 @@ const app = buildApp(
     iamApi: config.IAM_API_URL,
   },
   {
+    iceServers: config.CALL_ICE_SERVERS.map(s => ({urls:s.urls,...(s.username ? {username:s.username} : {}),...(s.credential ? {credential:s.credential} : {})})),
+    ...(turn ? {iceServersFor: turn} : {}),
     ...(browser ? { browser, presence: postgresPresence(pool!) } : {}),
-    ...(groupsPool ? { groups: postgresGroups(groupsPool) } : {}),
+    ...(groupsPool
+      ? {
+          calls: postgresCalls(groupsPool),
+          groups: postgresGroups(groupsPool),
+          messaging: postgresMessaging(groupsPool, pool ? postgresPresence(pool) : undefined, mediaStorage),
+        }
+      : {}),
   },
 );
 if (groupsPool) {

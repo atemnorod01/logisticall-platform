@@ -1,3 +1,4 @@
+import { groupIdentityChanged } from "./messaging-events.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
@@ -14,6 +15,7 @@ export function groupRoutes(
   app: FastifyInstance,
   options: {
     store: GroupStore | undefined;
+    messaging?: boolean;
     authorize: (
       req: FastifyRequest,
       organization: string,
@@ -57,13 +59,13 @@ export function groupRoutes(
   });
   app.patch(prefix + "/groups/:groupId", async (req) => {
     const a = await auth(req, true);
-    return {
-      group: await a.store.update(
-        a.actor,
-        id(req),
-        groupUpdate.parse(req.body),
-      ),
-    };
+    const group = await a.store.update(
+      a.actor,
+      id(req),
+      groupUpdate.parse(req.body),
+    );
+    groupIdentityChanged(group.id);
+    return { group };
   });
   app.post(prefix + "/groups/:groupId/members", async (req) => {
     const a = await auth(req, true),
@@ -128,7 +130,7 @@ export function groupRoutes(
     );
     return {
       group: await a.store.inbox(a.actor, id(req), membership.membership_key),
-      channels: { messaging: false, calling: false },
+      channels: { messaging: options.messaging === true, calling: false },
     };
   });
   app.get(prefix + "/network-groups", async (req) => {
