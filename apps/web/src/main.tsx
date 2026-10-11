@@ -1,3 +1,4 @@
+import { useUnreadMessages } from "./unread.js";
 import { preventPortalPinch } from "./portal-zoom.js";
 import type { Conversation } from "../../../packages/types/src/messaging.js";
 import { Conversations } from "./conversations-view.js";
@@ -56,6 +57,7 @@ function App() {
   useEffect(() => preventPortalPinch(), []);
   const state = useSyncExternalStore(controller.subscribe, controller.snapshot);
   const calling = useCalls(state.context?.organization_id, state.session?.userId, state.session?.csrfToken);
+  const unreadMessages = useUnreadMessages(state.context?.organization_id, state.session?.userId);
   const presence = usePresence(
     state.context?.organization_id,
     state.session?.csrfToken,
@@ -249,7 +251,7 @@ function App() {
               <button
                 type="button"
                 className={page === label ? "active" : ""}
-                aria-label={label}
+                aria-label={label === "Conversations" && unreadMessages ? `Conversations, ${unreadMessages} unread messages` : label === "Calls" && calling.state.unread ? `Calls, ${calling.state.unread} unreviewed missed calls` : label}
                 aria-current={page === label ? "page" : undefined}
                 disabled={!state.context}
                 title={label}
@@ -259,6 +261,9 @@ function App() {
                 }}
               >
                 <Icon name={icon!} />
+                {(label === 'Conversations' ? unreadMessages : label === 'Calls' ? calling.state.unread : 0) > 0 && (
+                  <span className="rail-unread" aria-hidden="true">{Math.min(label === 'Conversations' ? unreadMessages : calling.state.unread, 100) >= 100 ? '99+' : label === 'Conversations' ? unreadMessages : calling.state.unread}</span>
+                )}
               </button>
               <span>{label}</span>
             </div>

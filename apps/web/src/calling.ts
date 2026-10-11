@@ -13,6 +13,7 @@ export type CallState = {
   error: string;
   audioBlocked: boolean;
   ready: boolean;
+  unread: number;
 };
 export function callController(
   organizationId: string,
@@ -30,6 +31,7 @@ export function callController(
     error: "",
     audioBlocked: false,
     ready: false,
+    unread: 0,
   };
   const listeners = new Set<() => void>();
   const publish = (patch: Partial<CallState>) => {
@@ -53,6 +55,7 @@ export function callController(
   let disposed = false,
     generation = 0,
     syncing = false,
+    syncPending = false,
     applyingAnswer = false,
     lastSync = Date.now();
   let iceServers: RTCIceServer[] = [],
@@ -303,7 +306,8 @@ export function callController(
     }
   }
   async function sync() {
-    if (disposed || syncing) return;
+    if (disposed) return;
+    if (syncing) { syncPending = true; return; }
     syncing = true;
     const syncRevision = revision;
     try {
@@ -313,7 +317,7 @@ export function callController(
       iceServers = result.iceServers;
       const calls = result.calls as AudioCall[];
       const current = calls.find((c) => c.status !== "ended") ?? null;
-      publish({ calls, ready: true });
+      publish({ calls, ready: true, unread: typeof result.unread === "number" ? result.unread : 0 });
       if (syncRevision !== revision || state.preparing || state.voicemail)
         return;
       const previous = state.current;
@@ -374,6 +378,7 @@ export function callController(
       }
     } finally {
       syncing = false;
+      if (syncPending && !disposed) { syncPending = false; void sync(); }
     }
   }
   return {
@@ -389,6 +394,10 @@ export function callController(
     accept,
     end,
     sync,
+    async review(before: number) {
+      const result = await request({ action: "review", before });
+      if (!disposed) publish({ unread: result.unread });
+    },
     incoming,
     owns,
     mute() {

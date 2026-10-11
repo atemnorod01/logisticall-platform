@@ -632,3 +632,12 @@ body[data-tenant-theme="dark"] .logisticall-logo .brand-dark { display:block; }
 @media(max-width:579px) {
   #app.tenant-ui.conversation-workspace { --chat-rail:58px; }
 }
+
+/* Counts sit on the navigation icon without shifting the rail or its labels. */
+#app.tenant-ui.conversation-workspace .rail-nav-item button { position:relative; overflow:visible; }
+#app.tenant-ui.conversation-workspace .rail-nav-item .rail-unread {
+ position:absolute; top:-4px; right:-7px; min-width:18px; height:18px; padding:0 4px;
+ display:flex; align-items:center; justify-content:center; box-sizing:border-box;
+ border-radius:999px; background:#b74432; color:#fff; font-size:10px; line-height:1;
+ font-weight:700; border:2px solid var(--panel, #fff); pointer-events:none;
+}

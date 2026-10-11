@@ -1,3 +1,4 @@
+import { subscribeWorkspace } from "./realtime.js";
 import type { CallTarget } from "../../../packages/types/src/calls.js";
 import { GlobalSearch } from "./chat/global-search.js";
 import type { GlobalSearchHit } from "../../../packages/types/src/messaging.js";
@@ -86,19 +87,24 @@ export function Conversations({
   const [searchResults,setSearchResults] = useState<GlobalSearchHit[]>([]);
   const [typingPeople,setTypingPeople]=useState<Record<string,{id:string;name:string;expiresAt:string}[]>>({});
   const typingWatch=JSON.stringify([...new Map([...state.rows,...(state.selected?[state.selected]:[])].filter(c=>!c.readOnly).map(c=>[c.id,{id:c.id,...(c.inbox.kind==="group"?{groupId:c.inbox.id}:{})}])).values()].slice(0,100));
-  useEffect(()=>{
+  useEffect(() => {
     setTypingPeople({});
-    if(typingWatch==="[]")return;
-    const events=new EventSource(`/v1/organizations/${organizationId}/messaging/typing-events?${new URLSearchParams({watch:typingWatch})}`);
-    events.addEventListener("typing",event=>{
+    if (typingWatch === '[]') return;
+    let live = true, busy = false, pending = false;
+    const load = async () => {
+      if (busy) { pending = true; return; }
+      busy = true;
       try {
-        const rows=z.array(z.object({id:z.string(),people:z.array(z.object({id:z.string(),name:z.string(),expiresAt:z.string()}))})).parse(JSON.parse((event as MessageEvent).data));
-        setTypingPeople(Object.fromEntries(rows.map(r=>[r.id,r.people])));
-      } catch {setTypingPeople({});}
-    });
-    events.onerror=()=>setTypingPeople({});
-    return()=>events.close();
-  },[organizationId,typingWatch]);
+        const result = z.object({ statuses: z.array(z.object({ id: z.string(), people: z.array(z.object({ id: z.string(), name: z.string(), expiresAt: z.string() })) })) })
+          .parse(await controller.request(`/typing?${new URLSearchParams({ watch: typingWatch })}`));
+        if (live) setTypingPeople(Object.fromEntries(result.statuses.map(r => [r.id, r.people])));
+      } catch { if (live) setTypingPeople({}); }
+      finally { busy = false; if (pending && live) { pending = false; void load(); } }
+    };
+    void load();
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'typing' || event.kind === 'resync') void load(); });
+    return () => { live = false; unsubscribe(); };
+  }, [organizationId, userId, typingWatch, controller]);
   function typingLabel(id:string) {
     const names=(typingPeople[id]??[]).filter(p=>Date.parse(p.expiresAt)>Date.now()).map(p=>p.name);
     if(!names.length)return "";
@@ -516,18 +522,20 @@ export function Conversations({
     void load();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void load();
-    }, 30000);
+    }, 60000);
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'groups' || event.kind === 'resync') void load(); });
     return () => {
+      unsubscribe();
       live = false;
       ac.abort();
       clearInterval(timer);
     };
-  }, [organizationId]);
+  }, [organizationId, userId]);
   useEffect(() => {
     let live = true,
-      busy = false;
+      busy = false, pending = false;
     const load = async () => {
-      if (busy) return;
+      if (busy) { pending = true; return; }
       busy = true;
       try {
         const result = z
@@ -557,39 +565,28 @@ export function Conversations({
         /* Keep the last counts during a transient refresh failure. */
       } finally {
         busy = false;
+        if (pending && live) { pending = false; void load(); }
       }
     };
     void load();
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void load();
-    }, 10000);
+    }, 60000);
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind !== 'typing' && event.kind !== 'calls') void load(); });
     return () => {
+      unsubscribe();
       live = false;
       clearInterval(timer);
     };
-  }, [controller]);
+  }, [controller, organizationId, userId]);
   useEffect(() => {
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") void controller.refresh({ background: true });
-    }, 2000);
-    const visible = () => {
-      if (document.visibilityState === "visible") void controller.refresh();
-    };
-    document.addEventListener("visibilitychange", visible);
-    return () => {
-      clearInterval(timer);
-      document.removeEventListener("visibilitychange", visible);
-    };
-  }, [controller]);
-  useEffect(() => {
-    if (!state.selected) return;
-    const events = new EventSource(
-      `/v1/organizations/${organizationId}/messaging/${state.selected.id}/identity-events?${new URLSearchParams(state.groupId ? { groupId: state.groupId } : {})}`,
-    );
-    const update = () => void controller.refresh();
-    events.addEventListener("identity", update);
-    return () => events.close();
-  }, [controller, organizationId, state.selected?.id, state.groupId]);
+    const refresh = () => { if (document.visibilityState === 'visible') void controller.refresh(); };
+    const timer = setInterval(refresh, 60000);
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind !== 'typing' && event.kind !== 'calls') refresh(); });
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('online', refresh);
+    return () => { clearInterval(timer); unsubscribe(); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('online', refresh); };
+  }, [controller, organizationId, userId]);
   useEffect(() => {
     stopTyping();
     setDraft(

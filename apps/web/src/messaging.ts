@@ -48,8 +48,10 @@ export function messagingController(
     selection = 0,
     disposed = false,
     polling = false,
+    refreshPending = false,
     identityVersion = "",
     lastListRefresh = 0;
+  let refreshRetry: ReturnType<typeof setTimeout> | undefined;
   const abort = new AbortController();
   const cache = new Map<string, { messages: Message[]; hasMore: boolean }>();
   let prefetched: {
@@ -131,6 +133,7 @@ export function messagingController(
       disposed = true;
       ++epoch;
       ++selection;
+      clearTimeout(refreshRetry);
       abort.abort();
     },
     request,
@@ -228,7 +231,12 @@ export function messagingController(
       }
     },
     async refresh(options: { background?: boolean } = {}) {
-      if (polling || disposed || state.loading || state.busy) return;
+      if (disposed) return;
+      if (polling) { refreshPending = true; return; }
+      if (state.loading || state.busy) {
+        if (!refreshRetry) refreshRetry = setTimeout(() => { refreshRetry = undefined; void api.refresh(); }, 150);
+        return;
+      }
       polling = true;
       const current = epoch,
         ticket = selection,
@@ -306,6 +314,7 @@ export function messagingController(
         if (current === epoch && ticket === selection) fail(e);
       } finally {
         polling = false;
+        if (refreshPending && !disposed) { refreshPending = false; void api.refresh(); }
       }
     },
     async read() {

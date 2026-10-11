@@ -1,3 +1,4 @@
+import { subscribeWorkspace } from "./realtime.js";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Avatar, Icon } from "./ui.js";
 import { callController } from "./calling.js";
@@ -16,18 +17,33 @@ export function useCalls(
   useEffect(() => {
     if (!org || !user || !csrf) return;
     void controller.sync();
-    const timer = setInterval(() => void controller.sync(), 1500);
+    // Idle clients catch up once a minute; call transitions arrive via Realtime.
+    const timer = setInterval(() => void controller.sync(), 60000);
+    const unsubscribe = subscribeWorkspace(org, user, event => {
+      if (event.kind === 'calls' || event.kind === 'resync') void controller.sync();
+    });
     const refresh = () => void controller.sync();
     const leave = () => controller.leave();
     window.addEventListener("online", refresh);
     window.addEventListener("pagehide", leave);
     return () => {
       clearInterval(timer);
+      unsubscribe();
       window.removeEventListener("online", refresh);
       window.removeEventListener("pagehide", leave);
       controller.dispose();
     };
   }, [controller, org, user, csrf]);
+  useEffect(() => {
+    if (!state.current || state.current.status === 'ended') return;
+    // Active-call liveness is a keepalive, not an idle inbox poll. It remains
+    // comfortably inside the server's 35-second abandoned-call timeout.
+    const heartbeat = setInterval(() => void controller.sync(), 10000);
+    const deadline = state.current.status === 'ringing'
+      ? setTimeout(() => void controller.sync(), Math.max(0, state.current.createdAt + (state.current.ringSeconds ?? 45) * 1000 - Date.now() + 100))
+      : undefined;
+    return () => { clearInterval(heartbeat); clearTimeout(deadline); };
+  }, [controller, state.current?.id, state.current?.status]);
   return { controller, state, user };
 }
 export type Calling = ReturnType<typeof useCalls>;
@@ -350,6 +366,12 @@ export function CallPanel({ calling }: { calling: Calling }) {
 }
 export function Calls({ calling }: { calling: Calling }) {
   const { state, user } = calling;
+  const reviewedThrough = Math.max(0, ...state.calls.map(c => c.endedAt ?? 0));
+  useEffect(() => {
+    const review = () => { if (state.ready && reviewedThrough && document.visibilityState === 'visible') void calling.controller.review(reviewedThrough).catch(() => {}); };
+    review(); document.addEventListener('visibilitychange', review);
+    return () => document.removeEventListener('visibilitychange', review);
+  }, [calling.controller, state.ready, reviewedThrough]);
   function duration(c: AudioCall) {
     if (!c.acceptedAt || !c.endedAt) return "—";
     const seconds = Math.floor((c.endedAt - c.acceptedAt) / 1000);
