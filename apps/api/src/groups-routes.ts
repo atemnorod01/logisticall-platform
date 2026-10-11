@@ -138,7 +138,8 @@ export function groupRoutes(
   app.get(prefix + "/industry-directory", async req => {
     const a = await auth(req);
     if (!options.industry) throw new GroupFailure(503);
-    return options.industry(a.token, a.actor.organizationId, industryQuery.parse(req.query));
+    const page = await options.industry(a.token, a.actor.organizationId, industryQuery.parse(req.query));
+    return {...page, organizations: page.organizations.filter(company => company.id !== a.actor.organizationId)};
   });
   app.get(prefix + "/network-groups", async (req) => {
     const a = await auth(req),
@@ -146,10 +147,11 @@ export function groupRoutes(
         .object({
           offset: z.coerce.number().int().min(0).max(100000).default(0),
           search: z.string().max(100).default(""),
+          organizationId: z.uuid().optional(),
         })
         .strict()
         .parse(req.query);
-    const rows = await a.store.network(a.actor, p.offset, p.search);
+    const rows = await a.store.network(a.actor, p.offset, p.search, p.organizationId);
     const active = await options.eligibility.active(
       a.token,
       a.actor.organizationId,

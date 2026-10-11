@@ -54,6 +54,7 @@ export interface GroupStore {
     actor: GroupActor,
     offset: number,
     search: string,
+    organizationId?: string,
   ): Promise<z.infer<typeof networkGroupSchema>[]>;
 }
 export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
@@ -282,11 +283,11 @@ export function postgresGroups(pool: Pick<Pool, "connect">): GroupStore {
         return groupSchema.parse(r.rows[0]);
       });
     },
-    network(a, offset, search) {
+    network(a, offset, search, organizationId) {
       return transaction(a, async (c) => {
         const r = await c.query(
-          "select * from platform.group_directory where organization_id<>$3 and ($1='' or strpos(lower(name||' '||organization_name),lower($1))>0) order by organization_name,name,id offset $2 limit 50",
-          [search, offset, a.organizationId],
+          "select * from platform.group_directory where organization_id<>$3 and ($4::uuid is null or organization_id=$4) and ($1='' or strpos(lower(name||' '||organization_name),lower($1))>0) order by organization_name,name,id offset $2 limit 50",
+          [search, offset, a.organizationId, organizationId ?? null],
         );
         return r.rows.map((r) => networkGroupSchema.parse(r));
       });
