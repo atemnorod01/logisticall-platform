@@ -2,6 +2,7 @@ import { z } from 'zod';
 export const industryQuery = z.object({
   search: z.string().trim().max(120).default(''),
   type: z.enum(['all','broker','carrier','forwarder','shipper','factoring','other']).default('all'),
+  onPlatformOnly:z.enum(['true','false']).default('false').transform(value=>value==='true'),
   offset: z.coerce.number().int().min(0).max(1000000).default(0),
 }).strict();
 export const industryOrganization = z.object({

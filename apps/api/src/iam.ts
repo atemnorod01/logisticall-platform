@@ -322,7 +322,7 @@ export function iamIndustry(baseUrl: string, fetcher: typeof fetch = fetch) {
   return async (token: string, org: string, input: z.infer<typeof industryQuery>) => {
     try {
       const url = new URL(`/v1/integration/organizations/${encodeURIComponent(org)}/industry-directory`, base);
-      url.search = new URLSearchParams({search: input.search, type: input.type, offset: String(input.offset)}).toString();
+      url.search = new URLSearchParams({search: input.search, type: input.type, offset: String(input.offset),...(input.onPlatformOnly?{onPlatformOnly:'true'}:{})}).toString();
       const response = await fetcher(url, {headers:{Authorization:`Bearer ${token}`},redirect:'error',signal:AbortSignal.timeout(5000)});
       if (!response.ok) throw new IamFailure([401,403].includes(response.status)?response.status:503);
       return industryPage.parse(await response.json());
