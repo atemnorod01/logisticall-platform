@@ -1,3 +1,5 @@
+import { platformAdminRoutes } from "./platform-admin-routes.js";
+import { iamIdentity } from "./iam.js";
 import { callsRoutes } from "./calls-routes.js";
 import type { CallsStore } from "./calls-store.js";
 import { messagingRoutes } from "./messaging-routes.js";
@@ -30,6 +32,7 @@ export function buildApp(
     iceServers?: RTCIceServer[];
     iceServersFor?: (userId: string) => Promise<RTCIceServer[]>;
     settings?: ReturnType<typeof iamSettings>;
+    identity?: ReturnType<typeof iamIdentity>;
     verify?: ReturnType<typeof tokenVerifier>;
     context?: ReturnType<typeof iamGateway>;
     organizations?: ReturnType<typeof iamOrganizations>;
@@ -300,6 +303,19 @@ export function buildApp(
       }
     },
   );
+  platformAdminRoutes(app, {
+    request: deps.settings ?? iamSettings(config.iamApi),
+    async authorize(req) {
+      if (req.headers['x-iam-impersonation'] !== undefined) throw new IamFailure(403);
+      const token = deps.browser ? await deps.browser.accessToken(req) : /^Bearer ([^\s]+)$/i.exec(req.headers.authorization ?? '')?.[1];
+      if (!token) throw new IamFailure(401);
+      let actor;
+      try { actor = await verify(token); } catch { throw new IamFailure(401); }
+      const identity = await (deps.identity ?? iamIdentity(config.iamApi))(token);
+      if (identity.user_id !== actor.userId || !identity.platform_admin) throw new IamFailure(403);
+      return token;
+    },
+  });
   settingsRoutes(app, {
     presence: deps.presence
       ? (org, ids) => deps.presence!.read(org, ids)

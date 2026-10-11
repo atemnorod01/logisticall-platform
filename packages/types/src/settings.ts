@@ -5,6 +5,7 @@ export const profileEdit = z
 export const organizationType = z.enum([
   "broker",
   "carrier",
+  "forwarder",
   "shipper",
   "factoring",
   "other",
