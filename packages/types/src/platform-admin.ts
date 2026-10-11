@@ -27,3 +27,10 @@ export const platformEdit=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('user'),revision:z.string().min(1).max(100),name:z.string().trim().min(1).max(100),status:z.enum(['active','suspended'])}).strict(),
 ]);
 export const platformRecord=platformRow.extend({revision:z.string().min(1)});
+
+export const platformInvite = z.object({
+ name:z.string().trim().min(1).max(100),
+ email:z.email().max(254),
+ role:z.enum(['member','admin']).default('member'),
+}).strict();
+export const platformInviteResult = z.object({id:z.uuid(),local_only:z.boolean().optional()});

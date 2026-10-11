@@ -2,6 +2,7 @@ import type { Pool } from "pg";
 export type PresenceStatus =
   "available" | "away" | "busy" | "offline" | "unknown";
 export interface PresenceStore {
+  publicTeams?(organizations: string[]): Promise<Record<string, PresenceStatus>>;
   beat(
     session: string,
     user: string,
@@ -14,7 +15,11 @@ export interface PresenceStore {
   ): Promise<Record<string, PresenceStatus>>;
 }
 export function postgresPresence(pool: Pick<Pool, "query">): PresenceStore {
-  return {
+  const store: PresenceStore = {
+    async publicTeams(ids) {
+      const result = await pool.query<{organization_id:string;user_id:string}>("select * from platform.public_team_presence_members($1::uuid[])",[ids]);
+      return publicTeamPresence(ids,result.rows,store.read);
+    },
     async beat(session, user, organization, status) {
       // Bind to a currently valid opaque workspace session; never create standalone presence.
       await pool.query(
@@ -42,6 +47,15 @@ export function postgresPresence(pool: Pick<Pool, "query">): PresenceStore {
       return Object.fromEntries(result.rows.map((r) => [r.user_id, r.status]));
     },
   };
+  return store;
+}
+
+export async function publicTeamPresence(ids:string[],members:{organization_id:string;user_id:string}[],read:PresenceStore["read"]):Promise<Record<string,PresenceStatus>> {
+ return Object.fromEntries(await Promise.all(ids.map(async org=>{
+  const users=[...new Set(members.filter(m=>m.organization_id===org).map(m=>m.user_id))];
+  const statuses=await read(org,users);
+  return [org,aggregatePresence(users.map(id=>statuses[id]??"offline"))];
+ })));
 }
 
 // Available wins. Unknown is never presented as a confirmed offline team.

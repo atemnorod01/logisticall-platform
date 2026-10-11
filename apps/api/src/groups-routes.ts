@@ -1,3 +1,4 @@
+import type { PresenceStore } from './presence.js';
 import { industryQuery } from '../../../packages/types/src/industry.js';
 import { groupIdentityChanged } from "./messaging-events.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
@@ -16,6 +17,7 @@ export function groupRoutes(
   app: FastifyInstance,
   options: {
     store: GroupStore | undefined;
+    presence?: PresenceStore | undefined;
     messaging?: boolean;
     industry?: ReturnType<typeof iamIndustry>;
     authorize: (
@@ -134,6 +136,13 @@ export function groupRoutes(
       group: await a.store.inbox(a.actor, id(req), membership.membership_key),
       channels: { messaging: options.messaging === true, calling: false },
     };
+  });
+  app.get(prefix+'/industry-presence',async req=>{
+    const a=await auth(req);
+    const {ids}=z.object({ids:z.string().transform(s=>s.split(',')).pipe(z.array(z.uuid()).max(50))}).strict().parse(req.query);
+    const active=await options.eligibility.active(a.token,a.actor.organizationId,ids);
+    const statuses=await options.presence?.publicTeams?.(active);
+    return {presence:Object.fromEntries(ids.map(id=>[id,active.includes(id)?statuses?.[id]??'unknown':'offline']))};
   });
   app.get(prefix + "/industry-directory", async req => {
     const a = await auth(req);

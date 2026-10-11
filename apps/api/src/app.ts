@@ -304,6 +304,7 @@ export function buildApp(
     },
   );
   platformAdminRoutes(app, {
+    presence: deps.presence,
     request: deps.settings ?? iamSettings(config.iamApi),
     async authorize(req) {
       if (req.headers['x-iam-impersonation'] !== undefined) throw new IamFailure(403);
@@ -349,6 +350,7 @@ export function buildApp(
     },
   });
   groupRoutes(app, {
+    presence: deps.presence,
     industry: deps.industry ?? iamIndustry(config.iamApi),
     store: deps.groups,
     messaging: Boolean(deps.messaging),

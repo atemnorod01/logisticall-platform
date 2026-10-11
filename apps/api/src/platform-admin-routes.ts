@@ -1,3 +1,8 @@
+import type { PresenceStore } from './presence.js';
+import {
+  platformInvite,
+  platformInviteResult,
+} from "../../../packages/types/src/platform-admin.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
@@ -10,10 +15,14 @@ import {
   platformResult,
   platformPage,
 } from "../../../packages/types/src/platform-admin.js";
-import { invitationLink } from "../../../packages/types/src/settings.js";
+import {
+  invitationLink,
+  invitationRows,
+} from "../../../packages/types/src/settings.js";
 export function platformAdminRoutes(
   app: FastifyInstance,
   options: {
+    presence?: PresenceStore | undefined;
     authorize: (req: FastifyRequest) => Promise<string>;
     request: (
       token: string,
@@ -23,6 +32,12 @@ export function platformAdminRoutes(
     ) => Promise<unknown>;
   },
 ) {
+  app.get('/v1/platform/directory-presence',async req=>{
+    await options.authorize(req);
+    const {ids}=z.object({ids:z.string().transform(s=>s.split(',')).pipe(z.array(z.uuid()).max(50))}).strict().parse(req.query);
+    const statuses=await options.presence?.publicTeams?.(ids);
+    return {presence:statuses??Object.fromEntries(ids.map(id=>[id,'unknown']))};
+  });
   app.get("/v1/platform/:section", async (req) => {
     const token = await options.authorize(req),
       section = platformSection.parse(
@@ -81,6 +96,34 @@ export function platformAdminRoutes(
       );
     return platformResult.parse(
       await options.request(token, "/platform/companies", "POST", body),
+    );
+  });
+  app.get("/v1/platform/organizations/:id/invitations", async (req) => {
+    const token = await options.authorize(req),
+      id = z.uuid().parse((req.params as { id: string }).id);
+    return z
+      .object({
+        invitations: invitationRows,
+        local_only: z.boolean().optional(),
+      })
+      .parse(
+        await options.request(
+          token,
+          `/platform/organizations/${id}/invitations`,
+        ),
+      );
+  });
+  app.post("/v1/platform/organizations/:id/invitations", async (req) => {
+    const token = await options.authorize(req);
+    const id = z.uuid().parse((req.params as { id: string }).id);
+    const body = platformInvite.parse(req.body);
+    return platformInviteResult.parse(
+      await options.request(
+        token,
+        `/platform/organizations/${id}/invitations`,
+        "POST",
+        body,
+      ),
     );
   });
   app.post("/v1/platform/invitations/:id/link", async (req) => {
