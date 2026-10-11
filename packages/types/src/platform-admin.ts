@@ -1,6 +1,6 @@
 import { z } from 'zod';
 export const platformSection = z.enum(['organizations','directory','users','audit']);
-export const platformQuery = z.object({search:z.string().trim().max(120).default(''),offset:z.coerce.number().int().min(0).max(1000000).default(0)}).strict();
+export const platformQuery = z.object({limit:z.coerce.number().int().min(1).max(50).default(50),search:z.string().trim().max(120).default(''),offset:z.coerce.number().int().min(0).max(1000000).default(0)}).strict();
 export const companyInput = z.object({
  name:z.string().trim().min(2).max(120),organization_type:z.enum(['carrier','broker','forwarder','shipper','factoring','other']),
  dba:z.string().trim().max(160).default(''),mc:z.string().regex(/^\d{0,12}$/).default(''),dot:z.string().regex(/^\d{0,12}$/).default(''),

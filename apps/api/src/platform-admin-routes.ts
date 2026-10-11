@@ -5,7 +5,7 @@ import { invitationLink } from '../../../packages/types/src/settings.js';
 export function platformAdminRoutes(app:FastifyInstance,options:{authorize:(req:FastifyRequest)=>Promise<string>;request:(token:string,path:string,method?:string,body?:unknown)=>Promise<unknown>}) {
  app.get('/v1/platform/:section',async req=>{
   const token=await options.authorize(req),section=platformSection.parse((req.params as {section:string}).section),q=platformQuery.parse(req.query);
-  return platformPage.parse(await options.request(token,`/platform/${section}?${new URLSearchParams({search:q.search,offset:String(q.offset)})}`));
+  return platformPage.parse(await options.request(token,`/platform/${section}?${new URLSearchParams({search:q.search,offset:String(q.offset),limit:String(q.limit)})}`));
  });
  const params=(value:unknown)=>z.object({kind:platformRecordKind,id:z.uuid()}).parse(value);
  app.get('/v1/platform/records/:kind/:id',async req=>{
