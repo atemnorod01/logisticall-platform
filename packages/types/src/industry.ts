@@ -8,6 +8,8 @@ export const industryOrganization = z.object({
   id:z.uuid(), name:z.string().min(1).max(160),
   organization_type:z.enum(['broker','carrier','forwarder','shipper','factoring','other']),
   organization_id:z.uuid().nullable().default(null),on_platform:z.boolean().default(false),
+  power_units:z.number().int().min(0).max(2147483647).nullable().default(null),drivers:z.number().int().min(0).max(2147483647).nullable().default(null),
+  fleet_as_of:z.string().nullable().default(null),fmcsa_entity_type:z.string().default(''),
   dba:z.string().default(''),mc:z.string().default(''),dot:z.string().default(''),ff:z.string().default(''),
   status:z.enum(['active','inactive','unknown']).default('unknown'),
   phones:z.array(z.string()).max(2).default([]),street:z.string().default(''),city:z.string().default(''),state:z.string().default(''),postal_code:z.string().default(''),country:z.string().default('US'),
