@@ -67,3 +67,4 @@ export const passwordResetLink = z.object({
   url: z.url().refine((v) => new URL(v).protocol === "https:"),
   expires_at: z.iso.datetime(),
 });
+export const membershipRemoval = z.object({can_remove:z.boolean(),reason:z.string().nullable(),membership_key:z.string().min(1).max(100)});

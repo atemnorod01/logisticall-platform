@@ -17,6 +17,7 @@ import { z } from "zod";
 import { tokenVerifier } from "../../../packages/auth/src/index.js";
 import { permissionsFor } from "../../../packages/permissions/src/index.js";
 import {
+  iamIndustry,
   iamGateway,
   iamOrganizations,
   iamDirectory,
@@ -33,6 +34,7 @@ export function buildApp(
     context?: ReturnType<typeof iamGateway>;
     organizations?: ReturnType<typeof iamOrganizations>;
     directory?: ReturnType<typeof iamDirectory>;
+    industry?: ReturnType<typeof iamIndustry>;
     presence?: PresenceStore;
     groups?: GroupStore;
     messaging?: MessagingStore;
@@ -331,6 +333,7 @@ export function buildApp(
     },
   });
   groupRoutes(app, {
+    industry: deps.industry ?? iamIndustry(config.iamApi),
     store: deps.groups,
     messaging: Boolean(deps.messaging),
     eligibility: deps.groupEligibility ?? iamGroupEligibility(config.iamApi),

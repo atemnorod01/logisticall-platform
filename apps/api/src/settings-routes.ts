@@ -1,6 +1,7 @@
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
+  membershipRemoval,
   managedMember,
   passwordResetLink,
   memberEdit,
@@ -104,6 +105,17 @@ export function settingsRoutes(
         );
       },
     });
+  app.get(prefix + '/members/:userId/removal', async req=>{
+    const p=z.object({organizationId:z.uuid(),userId:z.uuid()}).parse(req.params);
+    const token=await options.authorize(req,p.organizationId);
+    return membershipRemoval.parse(await options.request(token,`/organizations/${p.organizationId}/members/${p.userId}/removal`));
+  });
+  app.delete(prefix + '/members/:userId', async req=>{
+    const p=z.object({organizationId:z.uuid(),userId:z.uuid()}).parse(req.params);
+    const body=z.object({membership_key:z.string().min(1).max(100)}).strict().parse(req.body);
+    const token=await options.authorize(req,p.organizationId);
+    return z.object({removed:z.literal(true)}).parse(await options.request(token,`/organizations/${p.organizationId}/members/${p.userId}`,'DELETE',body));
+  });
   app.post(prefix + "/members/:userId/password-reset-link", async (req, reply) => {
     reply.header("Cache-Control", "no-store");
     const p = z.object({ organizationId: z.uuid(), userId: z.uuid() }).parse(req.params);

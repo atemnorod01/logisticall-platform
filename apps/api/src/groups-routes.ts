@@ -1,3 +1,4 @@
+import { industryQuery } from '../../../packages/types/src/industry.js';
 import { groupIdentityChanged } from "./messaging-events.js";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
@@ -10,12 +11,13 @@ import {
   type GroupActor,
   GroupFailure,
 } from "./groups-store.js";
-import type { iamGroupEligibility } from "./iam.js";
+import type { iamIndustry, iamGroupEligibility } from "./iam.js";
 export function groupRoutes(
   app: FastifyInstance,
   options: {
     store: GroupStore | undefined;
     messaging?: boolean;
+    industry?: ReturnType<typeof iamIndustry>;
     authorize: (
       req: FastifyRequest,
       organization: string,
@@ -132,6 +134,11 @@ export function groupRoutes(
       group: await a.store.inbox(a.actor, id(req), membership.membership_key),
       channels: { messaging: options.messaging === true, calling: false },
     };
+  });
+  app.get(prefix + "/industry-directory", async req => {
+    const a = await auth(req);
+    if (!options.industry) throw new GroupFailure(503);
+    return options.industry(a.token, a.actor.organizationId, industryQuery.parse(req.query));
   });
   app.get(prefix + "/network-groups", async (req) => {
     const a = await auth(req),

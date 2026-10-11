@@ -1,3 +1,4 @@
+import { industryPage, industryQuery } from '../../../packages/types/src/industry.js';
 import { addressSchema } from "../../../packages/types/src/messaging.js";
 import { z } from "zod";
 import {
@@ -312,5 +313,19 @@ export function iamMessaging(baseUrl: string, fetcher: typeof fetch = fetch) {
       if (!row) throw new IamFailure(403);
       return row;
     },
+  };
+}
+
+export function iamIndustry(baseUrl: string, fetcher: typeof fetch = fetch) {
+  const base = new URL(baseUrl);
+  if (base.protocol !== 'https:') throw Error('HTTPS IAM API required');
+  return async (token: string, org: string, input: z.infer<typeof industryQuery>) => {
+    try {
+      const url = new URL(`/v1/integration/organizations/${encodeURIComponent(org)}/industry-directory`, base);
+      url.search = new URLSearchParams({search: input.search, type: input.type, offset: String(input.offset)}).toString();
+      const response = await fetcher(url, {headers:{Authorization:`Bearer ${token}`},redirect:'error',signal:AbortSignal.timeout(5000)});
+      if (!response.ok) throw new IamFailure([401,403].includes(response.status)?response.status:503);
+      return industryPage.parse(await response.json());
+    } catch(error) { throw error instanceof IamFailure ? error : new IamFailure(503); }
   };
 }
