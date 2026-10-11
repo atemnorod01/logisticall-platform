@@ -166,7 +166,8 @@ export function messagingRoutes(
       pending.set(`${change.kind}:${'conversationId' in change ? change.conversationId ?? '' : ''}`, change);
       if (!timer && !checking) timer = setTimeout(() => void flush(), 100);
     });
-    const keepalive = setInterval(() => { if (!closed) reply.raw.write(': heartbeat\n\n'); }, 15000);
+    // Stay below the API's 10-second idle socket timeout without reading data.
+    const keepalive = setInterval(() => { if (!closed) reply.raw.write(': heartbeat\n\n'); }, 5000);
     // Existing edge stream limit is 60 seconds; reconnect reauthorizes and catches up.
     const expiry = setTimeout(() => reply.raw.end(), 55000);
     reply.raw.on('close', () => { closed = true; unsubscribe(); clearTimeout(timer); clearTimeout(expiry); clearInterval(keepalive); pending.clear(); });
