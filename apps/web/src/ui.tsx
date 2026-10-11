@@ -165,14 +165,17 @@ export function Avatar({
   name,
   large = false,
   presence,
+  inNetwork = false,
 }: {
   name: string;
   large?: boolean;
-  presence?: string;
+  presence?: string | undefined;
+  inNetwork?: boolean;
 }) {
+  presence = presence ?? (inNetwork ? "unknown" : undefined);
   const tone = [...name].reduce((sum, c) => sum + c.charCodeAt(0), 0) % 5;
   return (
-    <span className={`avatar tone-${tone}${large ? " large" : ""}`}>
+    <span className={`avatar tone-${tone}${large ? " large" : ""}${inNetwork ? " lc-company-network-avatar" : ""}`} title={inNetwork ? "On LogistiCall" : undefined}>
       {name
         .trim()
         .split(/\s+/)
@@ -185,8 +188,8 @@ export function Avatar({
           className="presence-dot"
           data-presence={presence}
           role="img"
-          aria-label={`Presence: ${presence}`}
-          title={`Presence: ${presence}`}
+          aria-label={`${inNetwork ? "On LogistiCall · " : ""}Presence: ${presence}`}
+          title={`${inNetwork ? "On LogistiCall · " : ""}Presence: ${presence}`}
         />
       )}
     </span>

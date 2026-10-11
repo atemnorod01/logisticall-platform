@@ -1,3 +1,5 @@
+import { useCompanyPresence } from './company-presence.js';
+import { PlatformAddUser } from "./platform-add-user.js";
 import { useEffect, useState, useRef } from "react";
 import {
   platformPage,
@@ -115,11 +117,7 @@ export function PlatformAdmin({
   if (page === "phones" || page === "jambonz" || page === "devices")
     return (
       <section className="admin lc-platform-admin">
-        <SettingsHeader
-
-          title={tab.label}
-          description={tab.description}
-        />
+        <SettingsHeader title={tab.label} description={tab.description} />
         <div className="lc-platform-unavailable">
           <Icon name={tab.icon} />
           <h2>
@@ -176,6 +174,7 @@ function PlatformAdminData({
       url: string;
       expires_at: string | null;
     } | null>(null);
+  const companyPresence=useCompanyPresence(section==='organizations'?rows.map(r=>r.id):section==='directory'?rows.flatMap(r=>r.organization_id?[r.organization_id]:[]):[]);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   useEffect(() => {
     panel.current?.scrollTo(0, 0);
@@ -185,11 +184,14 @@ function PlatformAdminData({
   }, [form, editing, section, offset]);
   useEffect(() => {
     if (section !== "directory" || search.trim() === query) return;
-    const timer = setTimeout(() => {
-      setOffset(0);
-      setQuery(search.trim());
-      setEditing(null);
-    }, search.trim() ? 180 : 0);
+    const timer = setTimeout(
+      () => {
+        setOffset(0);
+        setQuery(search.trim());
+        setEditing(null);
+      },
+      search.trim() ? 180 : 0,
+    );
     return () => clearTimeout(timer);
   }, [section, search, query]);
   useEffect(() => {
@@ -324,9 +326,8 @@ function PlatformAdminData({
       aria-label="Platform administration"
     >
       <SettingsHeader
-
         title={tabs.find((t) => t.id === section)!.label}
-        description={section === "directory" ? "" : tabs.find((t) => t.id === section)!.description}
+        description={tabs.find((t) => t.id === section)!.description}
       />
       {notice && <p role="status">{notice}</p>}
       {error && (
@@ -552,32 +553,32 @@ function PlatformAdminData({
                     className={`lc-platform-row${editing?.id === row.id ? " selected" : ""}${section === "audit" ? " lc-platform-audit-row" : ""}`}
                   >
                     {section !== "audit" && (
-                      <Avatar name={row.name || row.email || "Company"} />
+                      <Avatar name={row.name || row.email || "Company"} inNetwork={section==='organizations'||section==='directory'&&Boolean(row.organization_id)} presence={section==='organizations'?companyPresence[row.id]??'unknown':section==='directory'&&row.organization_id?companyPresence[row.organization_id]??'unknown':undefined} />
                     )}
                     <div
                       className="lc-platform-row-copy"
                       title={row.name || row.email}
                     >
                       <div className="lc-platform-row-identity">
-                      {section === "audit" ? (
-                        <strong>{row.name}</strong>
-                      ) : (
-                        <button
-                          className="lc-platform-row-name"
-                          onClick={() => {
-                            setNotice("");
-                            setError("");
-                            setEditing(row);
-                          }}
-                        >
-                          {row.name || row.email}
-                        </button>
-                      )}
-                      {row.platform_admin && (
-                        <span className="lc-platform-badge">
-                          Platform admin
-                        </span>
-                      )}
+                        {section === "audit" ? (
+                          <strong>{row.name}</strong>
+                        ) : (
+                          <button
+                            className="lc-platform-row-name"
+                            onClick={() => {
+                              setNotice("");
+                              setError("");
+                              setEditing(row);
+                            }}
+                          >
+                            {row.name || row.email}
+                          </button>
+                        )}
+                        {row.platform_admin && (
+                          <span className="lc-platform-badge">
+                            Platform admin
+                          </span>
+                        )}
                       </div>
                       <small>
                         {section === "users"
@@ -600,7 +601,6 @@ function PlatformAdminData({
                           {m.organization} · {m.role} · {m.status}
                         </small>
                       ))}
-
                     </div>
                     <div className="lc-platform-row-actions">
                       {section !== "audit" && (
@@ -624,7 +624,6 @@ function PlatformAdminData({
                             : row.status}
                         </span>
                       )}
-
                     </div>
                   </article>
                 ))
@@ -692,18 +691,51 @@ function PlatformAdminData({
                       }
                     : undefined
                 }
-                organizationAccess={section === "organizations" && editing.invitations?.length ? (
-                  <section className="lc-platform-profile-section">
-                    <header><h3>Owner invitation</h3></header>
-                    {editing.invitations.map(inv => (
-                      <div className="lc-platform-owner-invitation" key={inv.id}>
-                        <p>{inv.email}</p>
-                        <small>{Date.parse(inv.expires_at) < Date.now() ? "Invitation expired" : "Awaiting acceptance"}</small>
-                        <button type="button" className="button" disabled={busy || Date.parse(inv.expires_at) < Date.now()} onClick={() => void link(inv.id)}>Get setup link</button>
-                      </div>
-                    ))}
-                  </section>
-                ) : null}
+                organizationAccess={
+                  section === "organizations" ? (
+                    <>
+                      <PlatformAddUser
+                        key={editing.id}
+                        organizationId={editing.id}
+                        organizationName={editing.name}
+                        memberCount={editing.members ?? 0}
+                        active={editing.status === "active"}
+                        csrf={csrf}
+                      />
+                      {!!editing.invitations?.length && (
+                        <section className="lc-platform-profile-section">
+                          <header>
+                            <h3>Owner invitation</h3>
+                          </header>
+                          {editing.invitations?.map((inv) => (
+                            <div
+                              className="lc-platform-owner-invitation"
+                              key={inv.id}
+                            >
+                              <p>{inv.email}</p>
+                              <small>
+                                {Date.parse(inv.expires_at) < Date.now()
+                                  ? "Invitation expired"
+                                  : "Awaiting acceptance"}
+                              </small>
+                              <button
+                                type="button"
+                                className="button"
+                                disabled={
+                                  busy ||
+                                  Date.parse(inv.expires_at) < Date.now()
+                                }
+                                onClick={() => void link(inv.id)}
+                              >
+                                Get setup link
+                              </button>
+                            </div>
+                          ))}
+                        </section>
+                      )}
+                    </>
+                  ) : null
+                }
                 onClose={() => setEditing(null)}
                 onSaved={() => {
                   setEditing(null);

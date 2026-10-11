@@ -1,3 +1,4 @@
+import { useCompanyPresence } from './company-presence.js';
 import { useEffect, useState, type ReactNode } from "react";
 import {
   platformRecord,
@@ -95,6 +96,7 @@ export function PlatformEditor({
     [busy, setBusy] = useState(false);
   const readOnly = kind === "directory",
     sections = kind === "users" ? userSections : companySections;
+  const companyPresence=useCompanyPresence(kind==='organizations'?[id]:readOnly&&record?.organization_id?[record.organization_id]:[]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
   useEffect(() => {
     const abort = new AbortController();
@@ -192,7 +194,7 @@ export function PlatformEditor({
       <div className="lc-platform-editor-body">
         {record && (
           <div className="lc-platform-profile-heading">
-            <Avatar name={draft.name || record.name} />
+            <Avatar name={draft.name || record.name} inNetwork={kind==='organizations'||readOnly&&Boolean(record.organization_id)} presence={kind==='organizations'?companyPresence[id]??'unknown':readOnly&&record.organization_id?companyPresence[record.organization_id]??'unknown':undefined} />
             <div>
               <strong>{draft.name || record.name}</strong>
               {kind !== "users" && (
@@ -207,10 +209,10 @@ export function PlatformEditor({
             </div>
           </div>
         )}
-        {record && readOnly && (
+        {record && readOnly && !record.organization_id && (
           <div className="lc-platform-company-access">
             {record.organization_id ? (
-              <span className="lc-platform-badge">On LogistiCall</span>
+              null
             ) : (
               <button
                 className="button"

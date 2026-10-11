@@ -297,7 +297,6 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .lc-platform-profile-section dt {margin:0;}
 
 /* Directory search and company identity start directly below the page heading. */
-#app.tenant-ui.conversation-workspace .lc-platform-directory > .lc-settings-header {min-height:0;margin-bottom:16px;}
 #app.tenant-ui.conversation-workspace .lc-platform-editor {position:relative;}
 #app.tenant-ui.conversation-workspace .lc-platform-editor .lc-platform-editor-top {position:absolute;top:0;right:0;z-index:1;border:0;padding:0;}
 #app.tenant-ui.conversation-workspace .lc-platform-editor .lc-platform-profile-heading {padding-top:4px;padding-right:48px;min-height:40px;}
@@ -327,3 +326,25 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .lc-platform-row-identity {display:flex;align-items:center;gap:8px;min-width:0;flex-wrap:wrap;}
 #app.tenant-ui.conversation-workspace .lc-platform-row-identity .lc-platform-row-name {width:auto;min-width:0;}
 #app.tenant-ui.conversation-workspace .lc-platform-row-identity .lc-platform-badge {flex-shrink:0;white-space:nowrap;}
+
+/* Match the rounded, outlined details panel used in Members. */
+#app.tenant-ui.conversation-workspace .lc-platform-editor-panel {
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  padding: 16px 16px 0;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-content.is-editing > .lc-platform-list-view {
+  padding-bottom: 1px;
+}
+
+/* Shared header rhythm aligns the list rule with the identity rule in each panel. */
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar {height:44px;min-height:44px;flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-list-heading {box-sizing:border-box;height:28px;display:flex;align-items:center;padding-block:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor .lc-platform-profile-heading {box-sizing:border-box;height:70px;min-height:70px;padding-top:0;padding-bottom:16px;margin:0;flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-company-access {border-top:1px solid var(--line);padding-top:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-invite-actions {display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap;}
+#app.tenant-ui.conversation-workspace .lc-platform-add-user p {margin:0;overflow-wrap:anywhere;}
+#app.tenant-ui.conversation-workspace .lc-platform-add-user h3 small {display:inline;font-weight:400;}
+#app.tenant-ui.conversation-workspace .lc-platform-add-user > header > .button {padding:6px 10px;font-size:12px;}

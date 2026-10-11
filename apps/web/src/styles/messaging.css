@@ -452,8 +452,7 @@
 
 /* Company identity and inbox availability have separate visual meanings. */
 #app.tenant-ui .lc-network-avatar > .avatar {
-  outline: 2px solid #39b879;
-  outline-offset: 2px;
+  outline: none;
 }
 #app.tenant-ui .lc-messaging .presence-dot[data-presence="unknown"] {
   background: var(--panel);

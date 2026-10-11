@@ -109,3 +109,10 @@
 #app.tenant-ui .lc-industry-filter-row{display:flex;align-items:center;flex-wrap:wrap;gap:12px;}
 #app.tenant-ui .lc-industry-network-filter{display:inline-flex;align-items:center;gap:8px;cursor:pointer;color:var(--text);font-size:13px;}
 #app.tenant-ui .lc-industry-network-filter input{width:16px;height:16px;min-width:16px;margin:0;accent-color:var(--accent);}
+
+/* Company dots denote platform membership and public-team availability. */
+#app.tenant-ui .avatar.lc-company-network-avatar {outline:none;}
+#app.tenant-ui .avatar.lc-company-network-avatar .presence-dot[data-presence="unknown"] {background:var(--panel);box-shadow:inset 0 0 0 1px var(--muted);}
+
+#app.tenant-ui .avatar.lc-company-network-avatar .presence-dot {width:16px;height:16px;right:0;bottom:0;border:2px solid var(--panel);box-sizing:border-box;}
+#app.tenant-ui :is(.lc-contact-row, .lc-platform-list, .lc-conversation-list, .lc-platform-profile-heading) .avatar.lc-company-network-avatar .presence-dot {width:12px;height:12px;}

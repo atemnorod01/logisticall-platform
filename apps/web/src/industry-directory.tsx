@@ -1,3 +1,4 @@
+import { useCompanyPresence } from './company-presence.js';
 import { useEffect, useState } from 'react';
 import { industryPage, type IndustryOrganization } from '../../../packages/types/src/industry.js';
 import { networkGroupList } from '../../../packages/types/src/groups.js';
@@ -11,6 +12,7 @@ export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:R
   const [rows,setRows]=useState<IndustryOrganization[]>([]),[selected,setSelected]=useState<IndustryOrganization>(),[next,setNext]=useState<number|null>(null),[offset,setOffset]=useState(0);
   const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
   const [groups,setGroups]=useState<ReturnType<typeof networkGroupList.parse>['groups']>([]),[networkLoading,setNetworkLoading]=useState(false),[networkError,setNetworkError]=useState(''),[networkNext,setNetworkNext]=useState<number|null>(null),[networkOffset,setNetworkOffset]=useState(0);
+  const companyPresence=useCompanyPresence([...rows,...(selected?[selected]:[])].flatMap(c=>c.on_platform&&c.organization_id?[c.organization_id]:[]),org);
   useEffect(()=>{
     const abort=new AbortController();setLoading(true);setError('');
     if(!offset){setRows([]);setNext(null);}
@@ -37,13 +39,13 @@ export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:R
       </form>
       <div className="lc-industry-filter-row"><select aria-label="Business type" value={type} onChange={e=>{setType(e.target.value);setOffset(0);setSelected(undefined);}}>{Object.entries(labels).map(([value,label])=><option value={value} key={value}>{label}</option>)}</select><label className="lc-industry-network-filter"><input type="checkbox" checked={onPlatformOnly} onChange={e=>{setOnPlatformOnly(e.target.checked);setOffset(0);setSelected(undefined);}}/>On LogistiCall only</label></div>
       <div className="lc-contact-list-heading"><h3>{search?'Search results':'Companies'}</h3><small>{rows.length}{next!==null?' +':''} {rows.length===1&&next===null?'company':'companies'}</small></div>
-      {rows.map(company=><div className={`lc-contact-row ${selected?.id===company.id?'selected':''}`} key={company.id}><button className="lc-contact-open" onClick={()=>choose(company)}><Avatar name={company.name}/><span><strong>{company.name}</strong><small>{businessLabel(company)}{company.city ? ` · ${company.city}, ${company.state}` : ""}</small><small>{[company.mc && `MC ${company.mc}`, company.dot && `DOT ${company.dot}`, company.ff && `FF ${company.ff}`].filter(Boolean).join(" · ")}</small><span className="lc-registry-badges">{company.on_platform && <span className="lc-network-badge">On LogistiCall</span>}{company.source==='synthetic' && <span className="tag">Sample</span>}{company.status==='inactive'&&<span className="tag">Inactive</span>}</span></span><span aria-hidden="true">›</span></button></div>)}
+      {rows.map(company=><div className={`lc-contact-row ${selected?.id===company.id?'selected':''}`} key={company.id}><button className="lc-contact-open" onClick={()=>choose(company)}><Avatar name={company.name} inNetwork={company.on_platform} presence={company.on_platform&&company.organization_id?companyPresence[company.organization_id]??'unknown':undefined}/><span><strong>{company.name}</strong><small>{businessLabel(company)}{company.city ? ` · ${company.city}, ${company.state}` : ""}</small><small>{[company.mc && `MC ${company.mc}`, company.dot && `DOT ${company.dot}`, company.ff && `FF ${company.ff}`].filter(Boolean).join(" · ")}</small><span className="lc-registry-badges">{company.source==='synthetic' && <span className="tag">Sample</span>}{company.status==='inactive'&&<span className="tag">Inactive</span>}</span></span><span aria-hidden="true">›</span></button></div>)}
       {loading&&<p role="status">Loading companies…</p>}{error&&<p role="alert">{error}</p>}{!loading&&!error&&!rows.length&&<p className="quiet">No matching companies.</p>}{next!==null&&<button className="button" disabled={loading} onClick={()=>setOffset(next)}>Load more companies</button>}
     </section>
     <aside className="lc-contact-details" aria-label="Company details">
       {selected?<>
         <button className="button lc-contact-back" onClick={()=>setSelected(undefined)}>← Back to companies</button>
-        <div className="lc-contact-identity"><Avatar name={selected.name} large/><h2>{selected.name}</h2>{selected.dba&&<p>DBA {selected.dba}</p>}<div className="lc-registry-badges"><span className="tag">{businessLabel(selected)}</span>{selected.on_platform&&<span className="lc-network-badge">On LogistiCall</span>}{selected.source==='synthetic'&&<span className="tag">Sample company</span>}</div></div>
+        <div className="lc-contact-identity"><Avatar name={selected.name} large inNetwork={selected.on_platform} presence={selected.on_platform&&selected.organization_id?companyPresence[selected.organization_id]??'unknown':undefined}/><h2>{selected.name}</h2>{selected.dba&&<p>DBA {selected.dba}</p>}<div className="lc-registry-badges"><span className="tag">{businessLabel(selected)}</span>{selected.source==='synthetic'&&<span className="tag">Sample company</span>}</div></div>
         <dl className="lc-registry-facts">
           <div><dt>Registration status</dt><dd>{selected.status==='unknown'?'Not verified':selected.status==='active'?'Active':'Inactive'}</dd></div>
           {selected.mc&&<div><dt>MC number</dt><dd>{selected.mc}</dd></div>}{selected.dot&&<div><dt>USDOT number</dt><dd>{selected.dot}</dd></div>}{selected.ff&&<div><dt>FF number</dt><dd>{selected.ff}</dd></div>}
