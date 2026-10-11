@@ -8,7 +8,7 @@
 }
 #app.tenant-ui.conversation-workspace .lc-platform-admin > * {
   width: 100%;
-  max-width: 960px;
+  max-width: 720px;
   margin-inline: auto;
   box-sizing: border-box;
   flex-shrink: 0;
@@ -107,7 +107,7 @@ body[data-tenant-theme="light"]
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
-  margin-top: auto;
+  margin-top: 8px;
 }
 #app.tenant-ui.conversation-workspace .lc-platform-fields {
   display: grid;
@@ -186,3 +186,97 @@ body[data-tenant-theme="light"]
   #app.tenant-ui.conversation-workspace .lc-platform-open > .lc-platform-nav-panel {max-height:none;overflow:auto;}
   #app.tenant-ui.conversation-workspace .lc-platform-nav-panel > .lc-platform-nav-group {display:block;margin-bottom:18px;}
 }
+
+/* Keep the app frame stationary; only the contents of this panel scroll. */
+#app.tenant-ui.conversation-workspace .lc-platform-open > .workspace {
+  background: var(--panel);
+  min-height: 0;
+  overflow: hidden;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-open .admin.lc-platform-admin {
+  height: 100%;
+  min-height: 0;
+  margin: 0;
+  box-sizing: border-box;
+  background: var(--panel);
+  overflow: auto;
+  scrollbar-gutter: stable both-edges;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-row {align-items:center;gap:12px;padding:14px 0;}
+#app.tenant-ui.conversation-workspace .lc-platform-row > .avatar {width:36px;height:36px;flex:0 0 36px;font-size:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-row > .lc-platform-row-copy {flex:1;min-width:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-actions {gap:10px;}
+#app.tenant-ui.conversation-workspace .lc-platform-edit {display:inline-flex;align-items:center;gap:6px;padding:7px 10px;}
+#app.tenant-ui.conversation-workspace .lc-platform-edit svg {width:14px;height:14px;}
+#app.tenant-ui.conversation-workspace .lc-platform-list-heading {display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;border-bottom:1px solid var(--line);padding-bottom:10px;}
+#app.tenant-ui.conversation-workspace .lc-platform-status {color:var(--muted);font-size:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-edit-heading {display:flex;align-items:center;gap:12px;margin:22px 0;}
+#app.tenant-ui.conversation-workspace .lc-platform-edit-heading h2 {margin:0;font-size:18px;}
+#app.tenant-ui.conversation-workspace .lc-platform-edit-heading p {margin:4px 0 0;color:var(--muted);}
+#app.tenant-ui.conversation-workspace .lc-platform-editor small {color:var(--muted);font-size:12px;line-height:1.5;}
+@media(max-width:750px){
+ #app.tenant-ui.conversation-workspace .lc-platform-row {flex-direction:row;flex-wrap:wrap;}
+ #app.tenant-ui.conversation-workspace .lc-platform-row-actions {margin-left:48px;}
+}
+
+/* Inline list/editor split; neither pane overlays the app or moves its frame. */
+#app.tenant-ui.conversation-workspace .lc-platform-admin > .lc-platform-content {display:flex;gap:0;flex:1;min-height:0;overflow:hidden;container-type:inline-size;}
+#app.tenant-ui.conversation-workspace .lc-platform-list-view {display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;gap:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-list {flex:1;min-height:0;overflow:auto;scrollbar-gutter:stable;}
+#app.tenant-ui.conversation-workspace .lc-platform-list-heading {position:sticky;top:0;background:var(--panel);z-index:1;padding-top:4px;}
+#app.tenant-ui.conversation-workspace .lc-platform-pagination {flex-shrink:0;border-top:1px solid var(--line);background:var(--panel);padding-top:12px;margin-top:0;gap:8px;font-size:12px;flex-wrap:wrap;}
+#app.tenant-ui.conversation-workspace .lc-platform-pagination label {display:flex;align-items:center;gap:6px;margin:0 auto 0 0;}
+#app.tenant-ui.conversation-workspace .lc-platform-pagination select {width:auto;margin:0;padding:6px;}
+#app.tenant-ui.conversation-workspace .lc-platform-pagination .button {padding:7px 9px;}
+#app.tenant-ui.conversation-workspace .lc-platform-content.is-editing > .lc-platform-list-view {flex:0 0 42%;padding-right:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor-panel {flex:1;min-width:0;min-height:0;overflow:hidden;border-left:1px solid var(--line);padding-left:16px;animation:lc-editor-in .16s ease-out;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor {height:100%;display:flex;flex-direction:column;overflow:hidden;max-width:none;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor-top {display:flex;align-items:center;justify-content:space-between;gap:8px;flex-shrink:0;padding-bottom:12px;border-bottom:1px solid var(--line);}
+#app.tenant-ui.conversation-workspace .lc-platform-editor-top h2 {margin:0;font-size:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor-body {flex:1;min-height:0;overflow:auto;padding:0 8px 16px 0;scrollbar-gutter:stable;}
+#app.tenant-ui.conversation-workspace .lc-platform-editor .lc-platform-fields {grid-template-columns:minmax(0,1fr);}
+#app.tenant-ui.conversation-workspace .lc-platform-editor footer {flex-shrink:0;background:var(--panel);border-top:1px solid var(--line);margin:0;padding-top:12px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-toolbar {flex-direction:column;align-items:stretch;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row {flex-wrap:wrap;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions {margin-left:48px;}
+#app.tenant-ui.conversation-workspace .lc-platform-row.selected {background:var(--platform-fill);border-radius:8px;}
+@container(max-width:580px){
+ #app.tenant-ui.conversation-workspace .lc-platform-content.is-editing > .lc-platform-list-view {display:none;}
+ #app.tenant-ui.conversation-workspace .lc-platform-editor-panel {border-left:0;padding-left:0;}
+}
+@keyframes lc-editor-in {from{opacity:0;transform:translateX(8px);}to{opacity:1;transform:translateX(0);}}
+@media(prefers-reduced-motion:reduce){#app.tenant-ui.conversation-workspace .lc-platform-editor-panel {animation:none;}}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions {flex:0 0 calc(100% - 48px);justify-content:flex-start;margin-left:48px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-copy {flex-basis:calc(100% - 48px);}
+#app.tenant-ui.conversation-workspace .lc-platform-row.selected {padding-inline:8px;}
+
+/* Compact record rows remain readable when the inline editor is open. */
+#app.tenant-ui.conversation-workspace .lc-platform-row,
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row {display:grid;grid-template-columns:36px minmax(0,1fr) auto;gap:10px;padding:12px 6px;align-items:center;min-height:68px;box-sizing:border-box;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-copy {overflow:hidden;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-copy > small {white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:18px;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-name {display:block;max-width:100%;width:100%;padding:0;background:transparent;border:0;color:var(--ink);font:inherit;font-weight:650;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:20px;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-name:hover {text-decoration:underline;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-actions,
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions {display:flex;flex-wrap:nowrap;margin:0;gap:8px;}
+#app.tenant-ui.conversation-workspace .lc-platform-row-actions .lc-platform-status {order:-1;}
+#app.tenant-ui.conversation-workspace .lc-platform-edit {padding:7px;border:0;background:transparent;min-width:30px;min-height:30px;}
+#app.tenant-ui.conversation-workspace .lc-platform-edit:hover {background:var(--platform-fill);}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions .lc-platform-status,
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-row-actions .lc-platform-badge {display:none;}
+#app.tenant-ui.conversation-workspace .lc-platform-content.is-editing > .lc-platform-list-view {flex-basis:46%;padding-right:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar,
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-toolbar {flex-direction:row;align-items:center;gap:8px;}
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar form {gap:0;position:relative;}
+#app.tenant-ui.conversation-workspace .lc-platform-toolbar input {padding-right:34px;}
+#app.tenant-ui.conversation-workspace .lc-platform-search-submit {position:absolute;right:2px;padding:7px;border:0;background:transparent;}
+#app.tenant-ui.conversation-workspace .lc-platform-search-submit svg {width:16px;height:16px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-add {padding:8px 12px;font-size:20px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-add-label {display:none;}
+#app.tenant-ui.conversation-workspace .lc-platform-company-access {margin-bottom:18px;}
+#app.tenant-ui.conversation-workspace .lc-platform-list-heading {padding-left:6px;padding-right:6px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-list-heading > span:last-child {display:none;}
+#app.tenant-ui.conversation-workspace .lc-platform-pagination {font-size:11px;gap:6px;}
+#app.tenant-ui.conversation-workspace .is-editing .lc-platform-pagination .button {padding:6px;}
+#app.tenant-ui.conversation-workspace .lc-platform-row.lc-platform-audit-row {grid-template-columns:minmax(0,1fr) auto;}
+#app.tenant-ui.conversation-workspace .lc-platform-audit-row .lc-platform-row-copy > small {white-space:normal;}

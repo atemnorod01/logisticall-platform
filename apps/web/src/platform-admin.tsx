@@ -6,7 +6,8 @@ import {
   type PlatformRow,
   type PlatformSection,
 } from "../../../packages/types/src/platform-admin.js";
-import { Icon } from "./ui.js";
+import { PlatformEditor } from "./platform-editor.js";
+import { Avatar, Icon } from "./ui.js";
 import { invitationLink } from "../../../packages/types/src/settings.js";
 export type PlatformAdminPage = PlatformSection | "phones" | "jambonz" | "devices";
 const tabs: { id: PlatformAdminPage; label: string; icon: string; group: string; description: string }[] = [
@@ -34,6 +35,8 @@ export function PlatformAdmin({csrf,page,onPage}:{csrf:string;page:PlatformAdmin
 }
 function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:PlatformSection;setSection:(page:PlatformSection)=>void}) {
   const panel = useRef<HTMLElement>(null);
+  const [editing,setEditing]=useState<PlatformRow|null>(null);
+  const [pageSize,setPageSize]=useState(20);
   const [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
     [offset, setOffset] = useState(0),
@@ -55,14 +58,15 @@ function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:Platfo
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   useEffect(() => {
     panel.current?.scrollTo(0, 0);
-  }, [form, section, offset]);
+    panel.current?.querySelector(".lc-platform-row.selected")?.scrollIntoView({block:"nearest"});
+  }, [form, editing, section, offset]);
   useEffect(() => {
     const abort = new AbortController();
     setLoading(true);
     setError("");
     setRows([]);
     fetch(
-      `/v1/platform/${section}?${new URLSearchParams({ search: query, offset: String(offset) })}`,
+      `/v1/platform/${section}?${new URLSearchParams({ search: query, offset: String(offset), limit:String(pageSize) })}`,
       { credentials: "same-origin", signal: abort.signal },
     )
       .then(async (response) => {
@@ -85,7 +89,7 @@ function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:Platfo
         if (!abort.signal.aborted) setLoading(false);
       });
     return () => abort.abort();
-  }, [section, query, offset, revision]);
+  }, [section, query, offset, pageSize, revision]);
   async function post(path: string, body: unknown) {
     const response = await fetch(`/v1/platform/${path}`, {
       method: "POST",
@@ -339,13 +343,15 @@ function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:Platfo
           </footer>
         </form>
       ) : (
-        <>
+        <div className={`lc-platform-content${editing?" is-editing":""}`}>
+        <div className="lc-platform-list-view">
           <div className="lc-platform-toolbar">
             <form
               onSubmit={(e) => {
                 e.preventDefault();
                 setOffset(0);
                 setQuery(search);
+                setEditing(null);
               }}
             >
               <input
@@ -355,35 +361,37 @@ function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:Platfo
                 maxLength={120}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <button className="button">Search</button>
+              <button className="button lc-platform-search-submit" aria-label="Search"><Icon name="search"/></button>
             </form>
             {section === "organizations" && (
               <button
-                className="button primary"
+                className="button primary lc-platform-add" aria-label="Create organization" title="Create organization"
                 onClick={() => open("organization")}
               >
-                + Create organization
+                <span aria-hidden="true">+</span><span className="lc-platform-add-label"> Create organization</span>
               </button>
             )}
             {section === "directory" && (
               <button
-                className="button primary"
+                className="button primary lc-platform-add" aria-label="Add company" title="Add company"
                 onClick={() => open("directory")}
               >
-                + Add company
+                <span aria-hidden="true">+</span><span className="lc-platform-add-label"> Add company</span>
               </button>
             )}
           </div>
           <div className="lc-platform-list" aria-busy={loading}>
+            <div className="lc-platform-list-heading"><span>{section==="organizations"?"Organization":section==="users"?"Person":section==="directory"?"Company":"Event"}</span><span>{section==="audit"?"":"Status"}</span></div>
             {loading ? (
               <p role="status">Loading…</p>
             ) : rows.length === 0 && !error ? (
               <p>No results found.</p>
             ) : (
               rows.map((row) => (
-                <article key={row.id} className="lc-platform-row">
-                  <div>
-                    <strong>{row.name || row.email}</strong>
+                <article key={row.id} className={`lc-platform-row${editing?.id===row.id?" selected":""}${section==="audit"?" lc-platform-audit-row":""}`}>
+                  {section!=="audit" && <Avatar name={row.name || row.email || "Company"}/>}
+                  <div className="lc-platform-row-copy" title={row.name || row.email}>
+                    {section==='audit'?<strong>{row.name}</strong>:<button className="lc-platform-row-name" onClick={()=>{setNotice('');setError('');setEditing(row);}}>{row.name || row.email}</button>}
                     <small>
                       {section === "users"
                         ? row.email
@@ -392,14 +400,13 @@ function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:Platfo
                           : section === "directory"
                             ? [
                                 row.organization_type,
-                                row.city,
-                                row.state,
+
                                 row.mc && `MC ${row.mc}`,
                                 row.dot && `DOT ${row.dot}`,
                               ]
                                 .filter(Boolean)
                                 .join(" · ")
-                            : `${row.organization_type} · ${row.members ?? 0} members`}
+                            : `${row.organization_type} · ${row.members ?? 0} ${row.members===1?"member":"members"}`}
                     </small>
                     {row.memberships?.map((m, i) => (
                       <small key={i}>
@@ -427,6 +434,7 @@ function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:Platfo
                     ))}
                   </div>
                   <div className="lc-platform-row-actions">
+                    {section!=="audit" && <button className="button lc-platform-edit" aria-label={`Edit ${row.name || row.email}`} onClick={()=>{setNotice("");setError("");setEditing(row);}}><Icon name="edit"/></button>}
                     {row.status && (
                       <span className="lc-platform-status">
                         {row.status === "inactive" &&
@@ -438,42 +446,33 @@ function PlatformAdminData({csrf,section,setSection}:{csrf:string;section:Platfo
                     {row.platform_admin && (
                       <span className="lc-platform-badge">Platform admin</span>
                     )}
-                    {section === "directory" &&
-                      (row.organization_id ? (
-                        <span className="lc-platform-badge">
-                          Organization linked
-                        </span>
-                      ) : (
-                        <button
-                          className="button"
-                          onClick={() => open("organization", row)}
-                        >
-                          Create organization
-                        </button>
-                      ))}
+
                   </div>
                 </article>
               ))
             )}
           </div>
           <footer className="lc-platform-pagination">
+            <label>Rows<select aria-label="Rows per page" value={pageSize} onChange={e=>{setPageSize(Number(e.target.value));setOffset(0);setEditing(null);}}>{[10,20,50].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
             <button
               className="button"
               disabled={loading || offset === 0}
-              onClick={() => setOffset(Math.max(0, offset - 50))}
+              onClick={() => {setOffset(Math.max(0, offset - pageSize));setEditing(null);}}
             >
               Previous
             </button>
-            <span>Page {Math.floor(offset / 50) + 1}</span>
+            <span>Page {Math.floor(offset / pageSize) + 1}</span>
             <button
               className="button"
               disabled={loading || next === null}
-              onClick={() => setOffset(next!)}
+              onClick={() => {setOffset(next!);setEditing(null);}}
             >
               Next
             </button>
           </footer>
-        </>
+        </div>
+        {editing && section!=="audit" && <aside className="lc-platform-editor-panel" aria-label={section==='users'?'User editor':'Company editor'}><PlatformEditor key={editing.id} kind={section} id={editing.id} csrf={csrf} onCreateOrganization={section==="directory"?()=>{open("organization",editing);setEditing(null);}:undefined} onClose={()=>setEditing(null)} onSaved={()=>{setEditing(null);setRevision(v=>v+1);setNotice("Changes saved.");}}/></aside>}
+        </div>
       )}
     </section>
   );
