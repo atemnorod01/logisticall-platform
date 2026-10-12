@@ -673,14 +673,6 @@ export function postgresMessaging(
     messages(a: MessageActor, inbox: Address, id: string, before: number, changes?: {after: number; oldest: number}) {
       return transaction(a, inbox, async (c) => {
         const conversation = await get(c, id, inbox,false,true);
-        const identities = await c.query(
-          "select platform.messaging_group_identity($1,$2::jsonb) as a,platform.messaging_group_identity($1,$3::jsonb) as b",
-          [id, JSON.stringify(conversation.a), JSON.stringify(conversation.b)],
-        );
-        const identity = (sender: Address) =>
-          addressKey(sender) === addressKey(conversation.a)
-            ? identities.rows[0].a
-            : identities.rows[0].b;
         const changeVersion = Number((conversation as unknown as {change_revision:number}).change_revision ?? 0);
         const r = changes ? await c.query(
           `select * from platform.messages where conversation_id=$1 and not (internal and reply_to is not null)
@@ -690,31 +682,39 @@ export function postgresMessaging(
           "select * from platform.messages where conversation_id=$1 and not (internal and reply_to is not null) and sequence<$2 order by sequence desc limit 51",
           [id, before],
         );
-        const sources = await c.query(
-          "select id,body,deleted_at from platform.messages where conversation_id=$1 and id=any($2::uuid[])",
-          [id, r.rows.map(m => m.reply_to).filter(Boolean)],
-        );
-        const ids = [...r.rows.map((m) => m.id), ...sources.rows.map(m => m.id)];
-        const comments = await c.query(
-          "select id,reply_to,sequence,body,actor_name,actor_id,created_at,deleted_at from platform.messages where conversation_id=$1 and internal and reply_to=any($2::uuid[]) order by sequence",
-          [id, ids],
-        );
-        const reactions = await c.query(
-          "select message_id,emoji,count(*)::int as count,bool_or(user_id=$2) as mine from platform.message_reactions where message_id=any($1::uuid[]) group by message_id,emoji",
-          [ids, a.userId],
-        );
-        const files = await c.query(
-          "select id,message_id,filename,mime,size from platform.message_attachments where message_id=any($1::uuid[]) and state='ready' order by position,id",
-          [ids],
-        );
-        const reads = await c.query(
-          "select * from platform.messaging_receipts($1)",
-          [id],
-        );
-        const typing = await c.query(
-          "select expires_at from platform.message_typing where conversation_id=$1 and user_id<>$2 and expires_at>now() order by expires_at desc limit 1",
-          [id, a.userId],
-        );
+        // Related timeline data is read in one database round trip under the same
+        // transaction/RLS context. JSON aggregation keeps the page payload bounded.
+        const related = await c.query(`with sources as materialized (
+          select id,body,deleted_at from platform.messages where conversation_id=$1 and id=any($3::uuid[])
+        ), ids as (select unnest($2::uuid[]) as id union select id from sources)
+        select
+          platform.messaging_group_identity($1,$5::jsonb) as a,
+          platform.messaging_group_identity($1,$6::jsonb) as b,
+          coalesce((select jsonb_agg(s) from sources s),'[]') as sources,
+          coalesce((select jsonb_agg(m order by m.sequence) from (
+            select id,reply_to,sequence,body,actor_name,actor_id,created_at,deleted_at from platform.messages
+            where conversation_id=$1 and internal and reply_to in (select id from ids)
+          ) m),'[]') as comments,
+          coalesce((select jsonb_agg(r) from (
+            select message_id,emoji,count(*)::int as count,bool_or(user_id=$4) as mine
+            from platform.message_reactions where message_id in (select id from ids) group by message_id,emoji
+          ) r),'[]') as reactions,
+          coalesce((select jsonb_agg(f order by f.position,f.id) from (
+            select id,message_id,filename,mime,size,position from platform.message_attachments
+            where message_id in (select id from ids) and state='ready'
+          ) f),'[]') as files,
+          coalesce((select jsonb_agg(r) from platform.messaging_receipts($1) r),'[]') as reads,
+          (select max(expires_at) from platform.message_typing where conversation_id=$1 and user_id<>$4 and expires_at>now()) as typing_until`,
+          [id,r.rows.map(m=>m.id),r.rows.map(m=>m.reply_to).filter(Boolean),a.userId,JSON.stringify(conversation.a),JSON.stringify(conversation.b)]);
+        const data = related.rows[0];
+        const identities = {rows:[{a:data.a,b:data.b}]};
+        const identity = (sender: Address) => addressKey(sender) === addressKey(conversation.a) ? data.a : data.b;
+        const sources = {rows:data.sources as {id:string;body:string;deleted_at:string|null}[]};
+        const comments = {rows:(data.comments as {id:string;reply_to:string;sequence:number;body:string;actor_name:string;actor_id:string;created_at:string;deleted_at:string|null}[]).map(m=>({...m,created_at:new Date(m.created_at),deleted_at:m.deleted_at ? new Date(m.deleted_at) : null}))};
+        const reactions = {rows:data.reactions as {message_id:string;emoji:string;count:number;mine:boolean}[]};
+        const files = {rows:data.files as {id:string;message_id:string;filename:string;mime:string;size:number}[]};
+        const reads = {rows:data.reads as {user_id:string;address_key:string;last_sequence:number}[]};
+        const typing = {rows:data.typing_until ? [{expires_at:data.typing_until as Date}] : []};
         const senderPresence = new Map<string, PresenceStatus>();
         if (presence) {
           const organizations = new Map<string, Set<string>>();
