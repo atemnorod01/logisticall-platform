@@ -76,6 +76,10 @@ export function IndustryDirectory({org,messaging,onOpen,onCall,callDisabled}:{or
         </section>}
         <section className="lc-company-information"><h3>Company information</h3>
         <dl className="lc-registry-facts">
+          <div><dt>Address</dt><dd>{selected.street?<>{selected.street}<br/>{[selected.city,selected.state,selected.postal_code].filter(Boolean).join(' ')}<br/>{selected.country}</>:'Not provided'}</dd></div>
+          <div><dt>Phone</dt><dd>{selected.phones.length?selected.phones.map(phone=><a key={phone} href={`tel:${phone.replace(/[^+0-9]/g,'')}`}>{phone}</a>):'Not provided'}</dd></div>
+          <div><dt>{selected.email_kind==='registration'?'Registration email':'Contact email'}</dt><dd>{selected.email?<a href={`mailto:${selected.email}`}>{selected.email}</a>:'Not provided'}</dd></div>
+          {selected.website&&/^https?:\/\//.test(selected.website)&&<div><dt>Website</dt><dd><a href={selected.website} target="_blank" rel="noreferrer">{new URL(selected.website).hostname}</a></dd></div>}
           <div><dt>Registration status</dt><dd>{selected.status==='unknown'?'Not verified':selected.status==='active'?'Active':'Inactive'}</dd></div>
           {selected.mc&&<div><dt>MC number</dt><dd>{selected.mc}</dd></div>}{selected.dot&&<div><dt>USDOT number</dt><dd>{selected.dot}</dd></div>}{selected.ff&&<div><dt>FF number</dt><dd>{selected.ff}</dd></div>}
           {(selected.organization_type==='carrier'||selected.organization_type==='broker')&&<>
@@ -83,10 +87,6 @@ export function IndustryDirectory({org,messaging,onOpen,onCall,callDisabled}:{or
             <div><dt>Drivers</dt><dd>{selected.drivers===null?'Not reported':selected.drivers.toLocaleString()}</dd></div>
             {selected.fleet_as_of&&<div><dt>Fleet data as of</dt><dd>{selected.fleet_as_of}</dd></div>}
           </>}
-          <div><dt>Address</dt><dd>{selected.street?<>{selected.street}<br/>{[selected.city,selected.state,selected.postal_code].filter(Boolean).join(' ')}<br/>{selected.country}</>:'Not provided'}</dd></div>
-          <div><dt>Phone</dt><dd>{selected.phones.length?selected.phones.map(phone=><a key={phone} href={`tel:${phone.replace(/[^+0-9]/g,'')}`}>{phone}</a>):'Not provided'}</dd></div>
-          <div><dt>{selected.email_kind==='registration'?'Registration email':'Contact email'}</dt><dd>{selected.email?<a href={`mailto:${selected.email}`}>{selected.email}</a>:'Not provided'}</dd></div>
-          {selected.website&&/^https?:\/\//.test(selected.website)&&<div><dt>Website</dt><dd><a href={selected.website} target="_blank" rel="noreferrer">{new URL(selected.website).hostname}</a></dd></div>}
         </dl></section>
         {selected.source==='synthetic'?<p className="note">Synthetic sample. Registration numbers and contact details are for demonstration only.</p>:selected.sources.length>0&&<details className="lc-registry-sources"><summary>Sources{selected.verified_at?` · checked ${selected.verified_at}`:''}</summary>{selected.sources.filter(url=>/^https?:\/\//.test(url)).map((url,i)=><a href={url} key={url} target="_blank" rel="noreferrer">{new URL(url).hostname} {i+1}</a>)}{selected.email_kind!=='registration'&&<p>Published business contact; registration email has not been verified.</p>}</details>}
       </>:<div className="lc-contact-empty"><Icon name="users"/><h2>Company details</h2><p>Select a company to view its registration, contact details and public teams.</p></div>}

@@ -141,3 +141,5 @@
 @media(max-width:1050px){#app.tenant-ui .lc-industry-body{grid-template-columns:minmax(240px,1fr) minmax(0,440px);}}
 @media(max-width:850px){#app.tenant-ui .lc-industry-body{grid-template-columns:1fr;}#app.tenant-ui .lc-industry-body .lc-contact-details{width:100%;max-width:528px;margin:0 auto;}}
 @media(max-width:480px){#app.tenant-ui .lc-industry-body .lc-contact-details{padding:18px;}#app.tenant-ui .lc-public-team-row{flex-wrap:wrap;}#app.tenant-ui .lc-public-team-copy{flex-basis:calc(100% - 44px);}#app.tenant-ui .lc-public-team-actions{margin-left:44px;}#app.tenant-ui .lc-company-information .lc-registry-facts>div{grid-template-columns:85px minmax(0,1fr);gap:12px;}}
+
+#app.tenant-ui .lc-company-profile-heading>.avatar.large{width:48px;height:48px;min-width:48px;font-size:16px;}
