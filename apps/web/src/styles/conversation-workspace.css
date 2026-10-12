@@ -641,3 +641,16 @@ body[data-tenant-theme="dark"] .logisticall-logo .brand-dark { display:block; }
  border-radius:999px; background:#b74432; color:#fff; font-size:10px; line-height:1;
  font-weight:700; border:2px solid var(--panel, #fff); pointer-events:none;
 }
+
+/* Static, cached wallpaper: only the message area, never the inbox or controls. */
+#app.tenant-ui.conversation-workspace .thread .messages {
+  background-color: var(--panel);
+  background-image: linear-gradient(#0b0d0e55, #0b0d0e55), url('/backgrounds/freight-doodles-v1.jpg');
+  background-size: auto, 700px auto;
+  background-repeat: repeat;
+  background-blend-mode: normal, normal;
+}
+body[data-tenant-theme="light"] #app.tenant-ui.conversation-workspace .thread .messages {
+  background-image: linear-gradient(#edf0f388, #edf0f388), url('/backgrounds/freight-doodles-v1.jpg');
+  background-blend-mode: normal, difference;
+}
