@@ -1,3 +1,4 @@
+import {useInboxSummary} from "./inbox-summary.js";
 import {parseAppPath,currentPath,conversationPath,navigate} from "./navigation.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { subscribeWorkspace } from "./realtime.js";
@@ -96,18 +97,18 @@ export function Conversations({
     setTypingPeople({});
     if (typingWatch === '[]') return;
     let live = true, busy = false, pending = false;
-    const load = async () => {
+    const load = async (ids?: string[]) => {
       if (busy) { pending = true; return; }
       busy = true;
       try {
         const result = z.object({ statuses: z.array(z.object({ id: z.string(), people: z.array(z.object({ id: z.string(), name: z.string(), expiresAt: z.string() })) })) })
-          .parse(await controller.request(`/typing?${new URLSearchParams({ watch: typingWatch })}`));
-        if (live) setTypingPeople(Object.fromEntries(result.statuses.map(r => [r.id, r.people])));
+          .parse(await controller.request(`/typing?${new URLSearchParams({ watch: ids ? JSON.stringify(JSON.parse(typingWatch).filter((item:{id:string})=>ids.includes(item.id))) : typingWatch })}`));
+        if (live) setTypingPeople(old=>({...old,...Object.fromEntries(result.statuses.map(r => [r.id, r.people]))}));
       } catch { if (live) setTypingPeople({}); }
       finally { busy = false; if (pending && live) { pending = false; void load(); } }
     };
     void load();
-    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'typing' || event.kind === 'resync') void load(); });
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'typing' || event.kind === 'resync') void load(event.conversationIds ?? (event.conversationId ? [event.conversationId] : undefined)); });
     return () => { live = false; unsubscribe(); };
   }, [organizationId, userId, typingWatch, controller]);
   function typingLabel(id:string) {
@@ -214,15 +215,18 @@ export function Conversations({
     atBottom = useRef(true),
     viewportHeight = useRef(0),
     previous = useRef({ id: "", last: 0, height: 0, first: 0 });
+  const messageById = useMemo(()=>new Map(state.messages.map(m=>[m.id,m])),[state.messages]);
+  const latestOwnId = useMemo(()=>state.messages.filter(m=>m.own ?? m.outgoing).at(-1)?.id,[state.messages]);
   const [forwardTargets, setForwardTargets] = useState<Conversation[]>([]),
     [forwardOffset, setForwardOffset] = useState(0),
     [forwardNext, setForwardNext] = useState<number | null>(null),
     [forwardLoading, setForwardLoading] = useState(false);
-  const [now, setNow] = useState(Date.now());
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 500);
-    return () => clearInterval(timer);
-  }, []);
+    const expirations = Object.values(typingPeople).flat().map(p=>Date.parse(p.expiresAt)).filter(t=>t>Date.now());
+    if (!expirations.length) return;
+    const timer = setTimeout(() => setTypingPeople(old=>Object.fromEntries(Object.entries(old).map(([id,people])=>[id,people.filter(p=>Date.parse(p.expiresAt)>Date.now())]))), Math.max(0,Math.min(...expirations)-Date.now())+10);
+    return () => clearTimeout(timer);
+  }, [typingPeople]);
   const [edit, setEdit] = useState<Message | null>(null),
     [editDraft, setEditDraft] = useState<Draft>(emptyDraft),
     [reply, setReply] = useState<Message | null>(null),
@@ -582,7 +586,7 @@ export function Conversations({
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void load();
     }, 60000);
-    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'groups' || event.kind === 'profiles' || event.kind === 'resync') void load(); });
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'groups' || event.kind === 'resync') void load(); });
     return () => {
       unsubscribe();
       live = false;
@@ -590,58 +594,16 @@ export function Conversations({
       clearInterval(timer);
     };
   }, [organizationId, userId]);
-  useEffect(() => {
-    let live = true,
-      busy = false, pending = false;
-    const load = async () => {
-      if (busy) { pending = true; return; }
-      busy = true;
-      try {
-        const result = z
-          .object({
-            inboxes: z.array(
-              z.object({
-                id: z.string(),
-                name: z.string(),
-                unread: z.number(),
-              }),
-            ),
-          })
-          .parse(await controller.request("/inboxes"));
-        if (!live) return;
-        setInboxCounts(
-          Object.fromEntries(result.inboxes.map((i) => [i.id, i.unread])),
-        );
-        const ranked = result.inboxes
-          .filter((i) => i.id)
-          .sort((a, b) => b.unread - a.unread || a.name.localeCompare(b.name))
-          .map((i) => i.id);
-        setInboxOrder((old) => [
-          ...old.filter((id) => ranked.includes(id)),
-          ...ranked.filter((id) => !old.includes(id)),
-        ]);
-      } catch {
-        /* Keep the last counts during a transient refresh failure. */
-      } finally {
-        busy = false;
-        if (pending && live) { pending = false; void load(); }
-      }
-    };
-    void load();
-    const timer = setInterval(() => {
-      if (document.visibilityState === "visible") void load();
-    }, 60000);
-    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind !== 'typing' && event.kind !== 'calls') void load(); });
-    return () => {
-      unsubscribe();
-      live = false;
-      clearInterval(timer);
-    };
-  }, [controller, organizationId, userId]);
+  const inboxSummary=useInboxSummary(organizationId,userId);
+  useEffect(()=>{
+    setInboxCounts(Object.fromEntries(inboxSummary.inboxes.map(i=>[i.id,i.unread])));
+    const ranked=[...inboxSummary.inboxes].filter(i=>i.id).sort((a,b)=>b.unread-a.unread||a.name.localeCompare(b.name)).map(i=>i.id);
+    setInboxOrder(old=>[...old.filter(id=>ranked.includes(id)),...ranked.filter(id=>!old.includes(id))]);
+  },[inboxSummary]);
   useEffect(() => {
     const refresh = () => { if (document.visibilityState === 'visible') void controller.refresh(); };
     const timer = setInterval(refresh, 60000);
-    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind !== 'typing' && event.kind !== 'calls') refresh(); });
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind !== 'typing' && event.kind !== 'calls' && event.kind !== 'profiles' && document.visibilityState === 'visible') void controller.refresh({conversationIds:event.conversationIds}); });
     document.addEventListener('visibilitychange', refresh);
     window.addEventListener('online', refresh);
     return () => { clearInterval(timer); unsubscribe(); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('online', refresh); };
@@ -1144,11 +1106,10 @@ export function Conversations({
                   continuation={continuesMessageGroup(m, state.messages[i - 1])}
                   continuesNext={!!state.messages[i + 1] && continuesMessageGroup(state.messages[i + 1]!, m)}
                   onJump={(id) => void jumpToMessage(id)}
-                  source={state.messages.find((v) => v.id === m.replyTo)}
+                  source={m.replyTo ? messageById.get(m.replyTo) : undefined}
                   latestOwn={
                     (m.own ?? m.outgoing) &&
-                    state.messages.filter((v) => v.own ?? v.outgoing).at(-1)
-                      ?.id === m.id
+                    latestOwnId === m.id
                   }
                   editing={edit?.id === m.id}
                   editDraft={editDraft}

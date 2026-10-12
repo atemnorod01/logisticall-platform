@@ -66,6 +66,36 @@ export function callController(
   let iceServers: RTCIceServer[] = [],
     pendingId: string | null = null,
     connectionTimer: ReturnType<typeof setTimeout> | undefined;
+  let candidateQueue: RTCIceCandidateInit[] = [], sentCandidates = 0;
+  let candidateTimer: ReturnType<typeof setTimeout> | undefined;
+  let sendingCandidates = false, signalReady = false, trickle = true;
+  const remoteCandidates = new Set<string>();
+  async function flushCandidates() {
+    const id = state.current?.id ?? pendingId, version = generation;
+    if (!id || !signalReady || sendingCandidates || disposed || sentCandidates>=candidateQueue.length) return;
+    sendingCandidates=true;
+    const batch=candidateQueue.slice(sentCandidates,sentCandidates+32);
+    try {
+      await request({action:"candidates",id,candidates:batch});
+      if(version===generation) sentCandidates+=batch.length;
+    } catch { /* Retry a transient signaling failure without dropping relay candidates. */ }
+    finally {
+      sendingCandidates=false;
+      if(version===generation && !disposed && sentCandidates<candidateQueue.length) candidateTimer=setTimeout(()=>void flushCandidates(),250);
+    }
+  }
+  async function applyCandidates(call:AudioCall) {
+    const connection=pc;
+    if (!connection?.remoteDescription) return;
+    const candidates=call.caller.id===userId ? call.calleeCandidates : call.callerCandidates;
+    for(const candidate of candidates ?? []) {
+      const key=JSON.stringify(candidate);
+      if(remoteCandidates.has(key))continue;
+      await connection.addIceCandidate(candidate);
+      if(pc!==connection)return;
+      remoteCandidates.add(key);
+    }
+  }
   const owns = (c: AudioCall) =>
     c.caller.id === userId
       ? c.callerClient === client
@@ -95,6 +125,8 @@ export function callController(
   function release() {
     generation++;
     revision++;
+    clearTimeout(candidateTimer);
+    candidateQueue=[]; sentCandidates=0; signalReady=false; remoteCandidates.clear();
     clearTimeout(connectionTimer);
     connectionTimer = undefined;
     pc?.close();
@@ -157,6 +189,12 @@ export function callController(
     publish({ preparation: "network" });
     const connection = new RTCPeerConnection({ iceServers });
     pc = connection;
+    connection.onicecandidate = event => {
+      if(pc!==connection || !trickle || !event.candidate)return;
+      candidateQueue.push(event.candidate.toJSON());
+      clearTimeout(candidateTimer);
+      candidateTimer=setTimeout(()=>void flushCandidates(),50);
+    };
     audio = new Audio();
     audio.autoplay = true;
     connection.ontrack = (e) => {
@@ -199,8 +237,9 @@ export function callController(
         ? await connection.createOffer()
         : await connection.createAnswer(),
     );
-    // Bundle ICE candidates with SDP: signaling remains replica-safe through ordinary HTTPS.
-    await gatherCallIce(connection);
+    // New peers signal immediately and send candidates as they become available.
+    // Existing calls from older clients retain bundled-SDP compatibility.
+    if (!trickle) await gatherCallIce(connection);
     ensureLive(version);
     return connection.localDescription!.sdp;
   }
@@ -225,6 +264,7 @@ export function callController(
       !state.ready
     )
       return;
+    trickle=true;
     outgoingTarget = target;
     publish({ preparing: true, preparation: "microphone", error: "" });
     const version = ++generation;
@@ -239,6 +279,7 @@ export function callController(
         id,
         target: { id: target.id, organizationId: target.organizationId, ...(target.kind ? {kind:target.kind} : {}) },
         offer,
+        trickle:true,
         ...(target.conversationId
           ? {
               source: {
@@ -254,6 +295,7 @@ export function callController(
       }
       revision++;
       publish({ current: result.call, preparing: false });
+      signalReady=true; void flushCandidates();
       await sync();
     } catch (e) {
       if (
@@ -277,6 +319,7 @@ export function callController(
       state.preparing
     )
       return;
+    trickle=!!call.trickle;
     publish({ preparing: true, preparation: "microphone", error: "" });
     const version = ++generation;
     try {
@@ -285,12 +328,14 @@ export function callController(
       publish({ current: result.call });
       const connection = await peer(version);
       await connection.setRemoteDescription({ type: "offer", sdp: call.offer });
+      await applyCandidates(result.call);
       const answer = await description(connection, "answer", version);
       publish({ preparation: "signaling" });
       const accepted = await request({ action: "answer", id: call.id, answer });
       ensureLive(version);
       revision++;
       publish({ current: accepted.call, preparing: false });
+      signalReady=true; void flushCandidates(); void sync();
     } catch (e) {
       await failed(e, version);
     }
@@ -355,6 +400,7 @@ export function callController(
           applyingAnswer = false;
         }
       }
+      if(current && pc && owns(current)) await applyCandidates(current);
     } catch {
       if (disposed) return;
       publish({ ready: false });

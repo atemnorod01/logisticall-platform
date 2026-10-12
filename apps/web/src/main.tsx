@@ -55,7 +55,7 @@ function App() {
   useEffect(() => {
     if (!state.context || !state.session) return;
     return subscribeWorkspace(state.context.organization_id, state.session.userId, event => {
-      if (event.kind === 'profiles') void controller.refreshSession();
+      if (event.kind === 'profiles' && event.selfProfile) void controller.refreshSession();
     });
   }, [state.context?.organization_id, state.session?.userId]);
   const calling = useCalls(state.context?.organization_id, state.session?.userId, state.session?.csrfToken);

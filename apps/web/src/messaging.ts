@@ -52,6 +52,7 @@ export function messagingController(
     refreshPending = false,
     identityVersion = "",
     lastListRefresh = 0;
+  let changeVersion: number | undefined;
   let refreshRetry: ReturnType<typeof setTimeout> | undefined;
   const abort = new AbortController();
   const cache = new Map<string, { messages: Message[]; hasMore: boolean }>();
@@ -221,6 +222,7 @@ export function messagingController(
         );
         if (current === epoch && ticket === selection) {
           identityVersion = p.identityVersion;
+          changeVersion = p.changeVersion;
           emit({
             messages: p.messages,
             hasMore: p.hasMore,
@@ -246,25 +248,23 @@ export function messagingController(
       const current = epoch;
       try {
         const identities = new Map<string, Conversation["identity"]>();
-        let offset: number | null = 0;
-        const wanted = state.rows.length;
-        let loaded = 0;
-        while (offset !== null && loaded < wanted) {
-          const page = conversationPage.parse(await request(listQuery({filter: state.filter, search: state.search, offset: String(offset)})));
+        const rows = [...state.rows, ...(state.selected ? [state.selected] : [])];
+        // The selected inbox is always authorized again on the server.
+        for (let i=0; i<rows.length; i+=1000) {
+          const result = await request(`/presence${query({ids:JSON.stringify([...new Set(rows.slice(i,i+1000).map(r=>r.id))])})}`) as {statuses:{id:string;identity:Conversation["identity"]}[]};
           if (current !== epoch || disposed) return;
-          for (const row of page.conversations) identities.set(`${row.inbox.id}:${row.id}`, row.identity);
-          loaded += page.conversations.length;
-          offset = page.nextOffset;
+          for (const row of result.statuses) identities.set(row.id,row.identity);
         }
         const update = (row: Conversation) => {
-          const identity = identities.get(`${row.inbox.id}:${row.id}`);
-          return identity && row.identity ? {...row, identity: {...row.identity, presence: identity.presence}} : row;
+          const identity = identities.get(row.id);
+          return identity && row.identity && identity.presence !== row.identity.presence ? {...row, identity: {...row.identity, presence: identity.presence}} : row;
         };
-        emit({rows: state.rows.map(update), selected: state.selected ? update(state.selected) : null});
+        const nextRows=state.rows.map(update), nextSelected=state.selected ? update(state.selected) : null;
+        if(nextSelected!==state.selected || nextRows.some((row,i)=>row!==state.rows[i])) emit({rows:nextRows,selected:nextSelected});
       } catch { /* A transient outage does not prove members are offline. */ }
       finally { presencePolling = false; }
     },
-    async refresh(options: { background?: boolean } = {}) {
+    async refresh(options: { background?: boolean; conversationIds?: string[] | undefined } = {}) {
       if (disposed) return;
       if (polling) { refreshPending = true; return; }
       if (state.loading || state.busy) {
@@ -276,7 +276,7 @@ export function messagingController(
         ticket = selection,
         id = state.selected?.id;
       try {
-        const selectedQuery = query();
+        const selectedQuery = query(changeVersion === undefined ? {} : {after:String(changeVersion),oldest:String(state.messages[0]?.sequence ?? 0)});
         const refreshList = async () => {
           if (options.background && Date.now() - lastListRefresh < 10000) return;
           const wanted = Math.max(30, state.rows.length), filter = state.filter, search = state.search;
@@ -293,13 +293,15 @@ export function messagingController(
         };
         const [, snapshot] = await Promise.all([
           refreshList(),
-          id ? request(`/${id}/snapshot${selectedQuery}`) : Promise.resolve(null),
+          id && (!options.conversationIds || options.conversationIds.includes(id)) ? request(`/${id}/snapshot${selectedQuery}`) : Promise.resolve(null),
         ]);
         if (id && snapshot) {
           const detail = conversationSchema.parse((snapshot as { conversation: unknown }).conversation);
-          const messages = messagePage.parse(snapshot);
+          let messages = messagePage.parse(snapshot);
           if (current !== epoch || ticket !== selection) return;
           const changedIdentity = identityVersion !== messages.identityVersion;
+          if (changedIdentity && changeVersion !== undefined) messages = messagePage.parse(await request(`/${id}/messages${query()}`));
+          if (current !== epoch || ticket !== selection) return;
           const refreshed = [...messages.messages];
           let hasMore = messages.hasMore;
           const oldest = state.messages[0]?.sequence ?? Number.MAX_SAFE_INTEGER;
@@ -313,7 +315,7 @@ export function messagingController(
               })),
             });
           }
-          if (changedIdentity || state.messages.length > 50) {
+          if (changedIdentity) {
             while (hasMore && refreshed[0] && refreshed[0].sequence > oldest) {
               const page = messagePage.parse(
                 await request(
@@ -326,6 +328,13 @@ export function messagingController(
               hasMore = page.hasMore;
             }
           }
+          while (messages.moreChanges && messages.changeVersion !== undefined) {
+            messages = messagePage.parse(await request(`/${id}/snapshot${query({after:String(messages.changeVersion),oldest:String(state.messages[0]?.sequence ?? 0)})}`));
+            if (current !== epoch || ticket !== selection) return;
+            if (messages.identityVersion !== identityVersion) { refreshPending=true; return; }
+            refreshed.push(...messages.messages);
+          }
+          changeVersion = messages.changeVersion;
           identityVersion = messages.identityVersion;
           const map = new Map(
             [...(changedIdentity ? [] : state.messages), ...refreshed].map(
@@ -336,8 +345,8 @@ export function messagingController(
             selected: detail,
             typing: messages.typing,
             typingExpiresAt: messages.typingExpiresAt,
-            messages: [...map.values()].sort((a, b) => a.sequence - b.sequence),
-            hasMore: changedIdentity
+            messages: [...map.values()].sort((a, b) => a.sequence - b.sequence).map(m=>messages.receiptState ? {...m,receipts:messages.receiptState.filter(r=>!m.internal || r.internal).map(r=>({name:r.name,read:r.sequence>=m.sequence}))} : m),
+            hasMore: !changedIdentity && changeVersion !== undefined ? state.hasMore : changedIdentity
               ? hasMore
               : state.messages.length > 50
                 ? state.hasMore
