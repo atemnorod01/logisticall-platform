@@ -133,7 +133,7 @@
 #app.tenant-ui .lc-public-team-copy small{display:block;color:var(--muted);font-size:12px;}
 #app.tenant-ui .lc-public-team-actions{display:flex;gap:7px;}
 #app.tenant-ui .lc-public-team-actions .button{padding:7px 10px;min-height:36px;font-size:12px;white-space:nowrap;}
-#app.tenant-ui .lc-company-information{border-top:1px solid var(--line);margin-top:24px;padding-top:20px;}
+#app.tenant-ui .lc-company-information{margin-top:24px;padding-top:0;}
 #app.tenant-ui .lc-company-information h3{margin:0;}
 #app.tenant-ui .lc-company-information .lc-registry-facts{margin:16px 0 0;gap:14px;}
 #app.tenant-ui .lc-company-information .lc-registry-facts>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:18px;}
