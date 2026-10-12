@@ -177,7 +177,7 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
         const busy = (id: string) =>
           rows.some(
             (c) =>
-              c.status !== "ended" && [c.caller.id, c.callee.id].includes(id),
+              c.status !== "ended" && ([c.caller.id, c.callee.id].includes(id) || (!c.acceptedAt && !c.declined?.includes(id) && c.recipients?.some(p=>p.id===id))),
           );
         if (busy(call.caller.id))
           throw new CallError(409, "You are already on a call.");
