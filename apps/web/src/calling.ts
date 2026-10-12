@@ -56,6 +56,7 @@ export function callController(
   let pc: RTCPeerConnection | null = null,
     stream: MediaStream | null = null;
   let audio: HTMLAudioElement | null = null;
+  let changingMicrophone = false;
   let revision = 0;
   let disposed = false,
     generation = 0,
@@ -436,6 +437,43 @@ export function callController(
     },
     incoming,
     owns,
+    async audioDevices() {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      return { devices, microphone: stream?.getAudioTracks()[0]?.getSettings().deviceId ?? "default",
+        speaker: audio?.sinkId || "default", canSelectSpeaker: !!audio && typeof audio.setSinkId === "function" };
+    },
+    async selectMicrophone(deviceId: string) {
+      if (changingMicrophone || !pc || !stream || !state.current || !owns(state.current)) throw Error("Microphone is not ready.");
+      changingMicrophone = true;
+      const connection = pc, previous = stream, version = generation;
+      let replacement: MediaStream | null = null;
+      try {
+        replacement = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId }, echoCancellation: true, noiseSuppression: true }, video: false });
+        ensureLive(version);
+        const track = replacement.getAudioTracks()[0];
+        const sender = connection.getSenders().find(s => s.track?.kind === "audio");
+        if (!track || !sender || pc !== connection) throw Error("Microphone is not ready.");
+        track.enabled = !state.muted && !state.held;
+        await sender.replaceTrack(track);
+        ensureLive(version);
+        track.enabled = !state.muted && !state.held;
+        stream = replacement;
+        replacement = null;
+        previous.getTracks().forEach(t => { t.onended = null; t.stop(); });
+        track.onended = () => {
+          if (pc === connection) { publish({ error: "Microphone disconnected." }); void end(); }
+        };
+      } finally {
+        replacement?.getTracks().forEach(t => t.stop());
+        changingMicrophone = false;
+      }
+    },
+    async selectSpeaker(deviceId: string) {
+      const output = audio, version = generation;
+      if (!output || typeof output.setSinkId !== "function" || !state.current || !owns(state.current)) throw Error("Speaker selection is not supported by this browser.");
+      await output.setSinkId(deviceId);
+      ensureLive(version);
+    },
     mute() {
       if (!stream) return;
       const muted = !state.muted;

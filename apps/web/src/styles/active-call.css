@@ -1,6 +1,6 @@
 /* Shared controls in the workspace and the controls-only secondary window. */
-.lc-active-call,
-.lc-call-window-return {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call,
+:is(#app.tenant-ui, .lc-call-window) .lc-call-window-return {
   --call-bg: light-dark(#e0edec, #102d32);
   --call-ink: light-dark(#263640, #eef4f6);
   --call-muted: light-dark(#586d76, #a7bec5);
@@ -20,7 +20,7 @@
   height: 100%;
   min-height: 0;
 }
-.lc-active-call {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call {
   position: absolute;
   left: var(--chat-rail, 68px);
   right: 8px;
@@ -28,33 +28,39 @@
   min-height: 70px;
   border-radius: 16px;
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 16px;
   padding: 12px 16px;
   z-index: 1500;
 }
-.lc-active-call button,
-.lc-call-window-return button {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call button,
+:is(#app.tenant-ui, .lc-call-window) .lc-call-window-return button {
   font: inherit;
   cursor: pointer;
 }
-.lc-active-call button:focus-visible,
-.lc-call-window-return button:focus-visible {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call button:focus-visible,
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-call-window-return
+  button:focus-visible {
   outline: 3px solid light-dark(#347c88, #9bd5d9);
   outline-offset: 3px;
 }
-.lc-active-call button:disabled {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call button:disabled {
   opacity: 0.32;
   cursor: not-allowed;
 }
-.lc-active-identity {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-identity {
   display: flex;
   gap: 12px;
   align-items: center;
   flex: 1;
   min-width: 0;
 }
-.lc-active-call .lc-active-identity > .avatar {
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-call
+  .lc-active-identity
+  > .avatar {
   display: grid;
   place-items: center;
   width: 42px;
@@ -65,10 +71,10 @@
   color: var(--call-ink);
   font-size: 14px;
 }
-.lc-active-summary {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-summary {
   min-width: 0;
 }
-.lc-active-call .lc-active-summary h2 {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call .lc-active-summary h2 {
   font-size: 14px;
   font-weight: 650;
   line-height: 1.4;
@@ -77,7 +83,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lc-active-call .lc-active-summary p {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call .lc-active-summary p {
   font-size: 12px;
   line-height: 1.4;
   margin: 4px 0 0;
@@ -86,21 +92,22 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.lc-active-duration {
-  font-size: 13px;
+:is(#app.tenant-ui, .lc-call-window) .lc-active-duration {
+  font-size: 18px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-.lc-active-controls,
-.lc-active-utilities {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-controls,
+:is(#app.tenant-ui, .lc-call-window) .lc-active-utilities {
   display: flex;
   gap: 7px;
   align-items: center;
   flex-shrink: 0;
 }
-.lc-active-call .lc-active-control,
-.lc-active-utilities button,
-.lc-active-heading button {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call .lc-active-control,
+:is(#app.tenant-ui, .lc-call-window) .lc-active-utilities button,
+:is(#app.tenant-ui, .lc-call-window) .lc-active-heading button {
   border: 0;
   background: var(--call-button);
   color: var(--call-ink);
@@ -113,35 +120,39 @@
   justify-content: center;
   flex-shrink: 0;
 }
-.lc-active-call button svg {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call button svg {
   width: 18px;
   height: 18px;
   flex: none;
 }
-.lc-active-controls span {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-controls span {
   display: none;
 }
-.lc-active-call .lc-active-control[aria-pressed="true"] {
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-call
+  .lc-active-control[aria-pressed="true"] {
   background: light-dark(#a6d3c8, #3e8073);
   box-shadow: inset 0 0 0 1px light-dark(#73aa9c, #64a294);
 }
-.lc-active-call .lc-active-hangup {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call .lc-active-hangup {
   background: #d94c43;
   color: #fff;
   margin-left: 5px;
 }
-.lc-active-hangup svg {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-hangup svg {
   transform: rotate(135deg);
 }
-.lc-active-call .lc-active-control:not(:disabled):hover,
-.lc-active-utilities button:hover {
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-call
+  .lc-active-control:not(:disabled):hover,
+:is(#app.tenant-ui, .lc-call-window) .lc-active-utilities button:hover {
   filter: brightness(0.94);
 }
-.lc-active-heading,
-.lc-active-expand {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-heading,
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expand {
   display: none;
 }
-.lc-active-feedback {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-feedback {
   position: absolute;
   bottom: calc(100% + 8px);
   right: 0;
@@ -153,7 +164,7 @@
   font-size: 13px;
   line-height: 1.5;
 }
-.lc-active-feedback button {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-feedback button {
   margin-left: 10px;
   border: 0;
   background: var(--call-button);
@@ -161,7 +172,7 @@
   padding: 6px 10px;
   border-radius: 6px;
 }
-.lc-call-window-return {
+:is(#app.tenant-ui, .lc-call-window) .lc-call-window-return {
   position: absolute;
   left: var(--chat-rail, 68px);
   right: 8px;
@@ -174,13 +185,13 @@
   font-size: 12px;
   min-height: 48px;
 }
-.lc-call-window-return span {
+:is(#app.tenant-ui, .lc-call-window) .lc-call-window-return span {
   margin-right: auto;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.lc-call-window-return button {
+:is(#app.tenant-ui, .lc-call-window) .lc-call-window-return button {
   border: 0;
   border-radius: 8px;
   background: var(--call-button);
@@ -192,20 +203,25 @@
   .conversation-shell.layout.lc-call-docked:has(> .lc-call-window-return) {
   padding-bottom: 64px;
 }
+/* Keep the dock on one row; drop future PSTN actions before the full-screen breakpoint. */
 @media (min-width: 651px) and (max-width: 1100px) {
-  #app.tenant-ui.conversation-workspace
-    .conversation-shell.layout.lc-call-docked {
-    padding-bottom: 124px;
+  :is(#app.tenant-ui, .lc-call-window)
+    .lc-active-call:not(.lc-active-expanded)
+    .lc-active-pstn {
+    display: none;
   }
-  .lc-active-call {
-    display: grid;
-    grid-template-columns: 1fr auto auto;
-    gap: 8px 14px;
-    min-height: 108px;
+  :is(#app.tenant-ui, .lc-call-window)
+    .lc-active-call:not(.lc-active-expanded) {
+    gap: 10px;
+    padding: 12px;
   }
-  .lc-active-controls {
-    grid-column: 1/-1;
-    justify-content: flex-end;
+  :is(#app.tenant-ui, .lc-call-window)
+    .lc-active-call:not(.lc-active-expanded)
+    .lc-active-controls,
+  :is(#app.tenant-ui, .lc-call-window)
+    .lc-active-call:not(.lc-active-expanded)
+    .lc-active-utilities {
+    gap: 5px;
   }
 }
 /* The detached view uses the approved taller window, not a second call session. */
@@ -216,7 +232,7 @@ body:has(> .lc-call-window) {
 .lc-call-window {
   min-height: 100dvh;
 }
-.lc-active-call.lc-active-detached {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call.lc-active-expanded {
   position: relative;
   inset: auto;
   min-height: 100dvh;
@@ -229,55 +245,64 @@ body:has(> .lc-call-window) {
   padding: 20px;
   background: light-dark(#eef2f5, #142431);
 }
-.lc-active-detached .lc-active-heading {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
   font-size: 12px;
   color: var(--call-muted);
 }
-.lc-active-detached .lc-active-heading button {
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-expanded
+  .lc-active-heading
+  button {
   background: transparent;
 }
-.lc-active-detached .lc-active-identity {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-identity {
   flex: none;
   flex-direction: column;
   text-align: center;
   margin: 16px 0 0;
   gap: 18px;
 }
-.lc-active-detached .lc-active-identity > .avatar {
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-expanded
+  .lc-active-identity
+  > .avatar {
   width: 84px;
   height: 84px;
   flex-basis: 84px;
   font-size: 26px;
 }
-.lc-active-detached .lc-active-summary h2 {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-summary h2 {
   font-size: 23px;
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.lc-active-detached .lc-active-summary p {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-summary p {
   white-space: normal;
   overflow-wrap: anywhere;
 }
-.lc-active-detached .lc-active-duration {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-duration {
   text-align: center;
-  font-size: 18px;
+  font-size: 28px;
 }
-.lc-active-detached .lc-active-utilities {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-utilities {
   justify-content: center;
 }
-.lc-active-detached .lc-active-utilities button:last-child {
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-expanded
+  .lc-active-utilities
+  button:last-child {
   display: none;
 }
-.lc-active-detached .lc-active-controls {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-controls {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
   margin-top: auto;
 }
-.lc-active-detached .lc-active-control {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-control {
   width: 100%;
   height: 66px;
   border-radius: 14px;
@@ -285,134 +310,67 @@ body:has(> .lc-call-window) {
   gap: 8px;
   background: light-dark(#e0e7ed, #263b48);
 }
-.lc-active-detached .lc-active-controls span {
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-expanded
+  .lc-active-controls
+  span {
   display: block;
   font-size: 12px;
 }
-.lc-active-detached .lc-active-hangup {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-hangup {
   grid-column: 1/-1;
   background: #d94c43;
   flex-direction: row;
   height: 46px;
   margin: 4px 0 0;
 }
-.lc-active-detached .lc-active-feedback {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-expanded .lc-active-feedback {
   position: static;
   max-width: none;
 }
-.lc-active-window-note {
+:is(#app.tenant-ui, .lc-call-window) .lc-active-window-note {
   font-size: 11px;
   color: var(--call-muted);
   text-align: center;
   margin: 0;
 }
+/* The same expanded component is used in the main portal and secondary window. */
+:is(#app.tenant-ui, .lc-call-window) .lc-active-call.lc-active-expanded {
+  position: fixed;
+  inset: 0;
+  overflow: auto;
+}
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-call-window
+  .lc-active-call.lc-active-expanded {
+  position: relative;
+  inset: auto;
+}
 @media (max-width: 650px) {
-  #app.tenant-ui.conversation-workspace
-    .conversation-shell.layout.lc-call-docked {
-    padding-bottom: 78px;
-  }
-  .lc-active-call:not(.lc-active-detached):not(.lc-active-minimized) {
-    position: fixed;
-    inset: 0;
-    overflow: auto;
-    min-height: 100dvh;
-    border-radius: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 14px;
-    padding: 20px;
-    background: light-dark(#eef2f5, #142431);
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-heading {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 12px;
-    color: var(--call-muted);
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-heading button {
-    background: transparent;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-identity {
-    flex: none;
-    flex-direction: column;
-    text-align: center;
-    margin-top: 20px;
-    gap: 18px;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-identity > .avatar {
-    width: 84px;
-    height: 84px;
-    flex-basis: 84px;
-    font-size: 26px;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-summary h2 {
-    font-size: 23px;
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-summary p {
-    white-space: normal;
-    overflow-wrap: anywhere;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-duration {
-    text-align: center;
-    font-size: 18px;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-utilities {
-    justify-content: center;
-  }
-  .lc-active-call:not(.lc-active-minimized)
-    .lc-active-utilities
-    button:last-child {
-    display: none;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-controls {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: auto;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-control {
-    width: 100%;
-    height: 66px;
-    border-radius: 14px;
-    flex-direction: column;
-    gap: 8px;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-controls span {
-    display: block;
-    font-size: 12px;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-hangup {
-    grid-column: 1/-1;
-    background: #d94c43;
-    flex-direction: row;
-    height: 46px;
-    margin: 4px 0 0;
-  }
-  .lc-active-call:not(.lc-active-minimized) .lc-active-feedback {
-    position: static;
-    max-width: none;
-  }
-  .lc-active-minimized {
+  :is(#app.tenant-ui, .lc-call-window) .lc-active-minimized {
     gap: 8px;
     padding: 10px;
     min-height: 62px;
   }
-  .lc-active-minimized .lc-active-controls,
-  .lc-active-minimized .lc-active-utilities,
-  .lc-active-minimized .lc-active-duration {
+  :is(#app.tenant-ui, .lc-call-window) .lc-active-minimized .lc-active-controls,
+  :is(#app.tenant-ui, .lc-call-window)
+    .lc-active-minimized
+    .lc-active-utilities,
+  :is(#app.tenant-ui, .lc-call-window)
+    .lc-active-minimized
+    .lc-active-duration {
     display: none;
   }
-  .lc-active-call.lc-active-minimized .lc-active-identity > .avatar {
+  :is(#app.tenant-ui, .lc-call-window)
+    .lc-active-call.lc-active-minimized
+    .lc-active-identity
+    > .avatar {
     width: 30px;
     height: 30px;
     flex-basis: 30px;
     font-size: 11px;
   }
-  .lc-active-minimized .lc-active-expand {
+  :is(#app.tenant-ui, .lc-call-window) .lc-active-minimized .lc-active-expand {
     display: flex;
     align-items: center;
     gap: 3px;
@@ -424,15 +382,70 @@ body:has(> .lc-call-window) {
     font-size: 11px;
     white-space: nowrap;
   }
-  .lc-call-window-return {
+  :is(#app.tenant-ui, .lc-call-window) .lc-call-window-return {
     gap: 6px;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
   }
-  .lc-call-window-return span {
-    width: 100%;
+  :is(#app.tenant-ui, .lc-call-window) .lc-call-window-return span {
+    width: auto;
+    min-width: 0;
   }
   #app.tenant-ui.conversation-workspace
     .conversation-shell.layout.lc-call-docked:has(> .lc-call-window-return) {
-    padding-bottom: 100px;
+    padding-bottom: 64px;
   }
+}
+:is(#app.tenant-ui, .lc-call-window) .lc-audio-picker {
+  position: relative;
+}
+:is(#app.tenant-ui, .lc-call-window) .lc-audio-menu {
+  position: absolute;
+  bottom: calc(100% + 12px);
+  right: 0;
+  width: 280px;
+  max-width: calc(100vw - 40px);
+  padding: 16px;
+  box-sizing: border-box;
+  border-radius: 14px;
+  background: light-dark(#fff, #263b48);
+  color: var(--call-ink);
+  box-shadow: 0 8px 32px #0005;
+  z-index: 5;
+  text-align: left;
+}
+:is(#app.tenant-ui, .lc-call-window) .lc-audio-menu strong {
+  font-size: 14px;
+}
+:is(#app.tenant-ui, .lc-call-window) .lc-audio-menu label {
+  display: block;
+  margin-top: 14px;
+  font-size: 12px;
+}
+:is(#app.tenant-ui, .lc-call-window) .lc-audio-menu select {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border: 1px solid var(--call-muted);
+  border-radius: 7px;
+  background: var(--call-bg);
+  color: var(--call-ink);
+  font-size: 12px;
+}
+:is(#app.tenant-ui, .lc-call-window) .lc-audio-menu p {
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 10px 0 0;
+}
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-call.lc-active-expanded
+  .lc-active-control {
+  width: 100%;
+  height: 66px;
+  border-radius: 14px;
+}
+:is(#app.tenant-ui, .lc-call-window)
+  .lc-active-call.lc-active-expanded
+  .lc-active-hangup {
+  height: 46px;
 }

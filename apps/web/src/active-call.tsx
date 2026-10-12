@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Avatar, Icon } from "./ui.js";
-import { navigate } from "./navigation.js";
+import { CallAudioPicker } from "./call-audio-picker.js";
 import { openCallWindow } from "./call-window.js";
 import type { Calling } from "./calls-ui.js";
 import "./styles/active-call.css";
@@ -28,6 +28,18 @@ export function ActiveCallPanel({
   const popup = useRef<ReturnType<typeof openCallWindow>>(null);
   const [windowError, setWindowError] = useState("");
   const [minimized, setMinimized] = useState(false);
+  const [narrow, setNarrow] = useState(
+    () =>
+      typeof window !== "undefined" &&
+      window.matchMedia("(max-width: 650px)").matches,
+  );
+  useEffect(() => {
+    const media = window.matchMedia("(max-width: 650px)");
+    const changed = () => setNarrow(media.matches);
+    changed();
+    media.addEventListener("change", changed);
+    return () => media.removeEventListener("change", changed);
+  }, []);
   const returnButton = useRef<HTMLButtonElement>(null);
   useEffect(
     () => () => {
@@ -104,7 +116,7 @@ export function ActiveCallPanel({
       if (workspace) workspace.inert = wasInert;
       if (media.matches) previous?.focus();
     };
-  }, [target, minimized]);
+  }, [target, minimized, narrow]);
   const status = !owns
     ? "On another device"
     : state.held
@@ -115,11 +127,6 @@ export function ActiveCallPanel({
           : "Connected"
         : "Connecting audio…";
   const duration = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  function audioSettings() {
-    window.focus();
-    navigate("/settings/audio-video");
-    if (!target) setMinimized(true);
-  }
   const controls = (
     <div className="lc-active-controls">
       <button
@@ -145,7 +152,7 @@ export function ActiveCallPanel({
         <span>{state.held ? "Resume" : "Hold"}</span>
       </button>
       <button
-        className="lc-active-control"
+        className="lc-active-control lc-active-pstn"
         disabled
         aria-label="Dial pad — available with PSTN calling"
         title="Dial pad — available with PSTN calling"
@@ -154,7 +161,7 @@ export function ActiveCallPanel({
         <span>Dial pad</span>
       </button>
       <button
-        className="lc-active-control"
+        className="lc-active-control lc-active-pstn"
         disabled
         aria-label="Add call — available with PSTN calling"
         title="Add call — available with PSTN calling"
@@ -163,7 +170,7 @@ export function ActiveCallPanel({
         <span>Add call</span>
       </button>
       <button
-        className="lc-active-control"
+        className="lc-active-control lc-active-pstn"
         disabled
         aria-label="Transfer call — available with PSTN calling"
         title="Transfer call — available with PSTN calling"
@@ -171,16 +178,7 @@ export function ActiveCallPanel({
         <Icon name="call-transfer" />
         <span>Transfer</span>
       </button>
-      <button
-        className="lc-active-control"
-        onClick={audioSettings}
-        disabled={!owns}
-        aria-label="Audio settings"
-        title="Audio settings"
-      >
-        <Icon name="headphones" />
-        <span>Audio</span>
-      </button>
+      <CallAudioPicker controller={controller} disabled={!owns} />
       <button
         className="lc-active-control lc-active-hangup"
         onClick={() => void controller.end()}
@@ -195,7 +193,7 @@ export function ActiveCallPanel({
   );
   const content = (
     <aside
-      className={`lc-active-call lc-call-bar${target ? " lc-active-detached" : ""}${minimized && !target ? " lc-active-minimized" : ""}`}
+      className={`lc-active-call lc-call-bar${target ? " lc-active-detached" : ""}${target || (narrow && !minimized) ? " lc-active-expanded" : ""}${minimized && !target ? " lc-active-minimized" : ""}`}
       aria-label="Active voice call"
     >
       <header className="lc-active-heading">
