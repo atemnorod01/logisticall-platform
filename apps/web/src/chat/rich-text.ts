@@ -71,14 +71,14 @@ export function cleanRich(html) {
         attrs =
           ' href="' + h(href) + '" target="_blank" rel="noopener noreferrer"';
     }
+    // Inherit theme colors in the composer and message bubbles, including older messages.
+    // Clipboard foregrounds/backgrounds can be unreadable in the opposite theme.
     const styles = [];
     for (const property of [
       "font-size",
       "font-weight",
       "font-style",
       "text-decoration",
-      "color",
-      "background-color",
     ]) {
       const value = node.style.getPropertyValue(property);
       if (!value) continue;
