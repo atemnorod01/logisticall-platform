@@ -17,7 +17,8 @@ export function CallMessage({
   const call = m.callEvent!;
   const callerLabel = callCallerLabel(call);
   const role = call.viewerRole ?? (m.own ? "caller" : "callee");
-  const outgoing = role === "caller";
+  // Bubble direction follows the selected inbox, including calls by teammates.
+  const outgoing = m.outgoing;
   const observer = role === "observer";
   const missed = role === "callee" && call.outcome === "unanswered";
   const title = observer
