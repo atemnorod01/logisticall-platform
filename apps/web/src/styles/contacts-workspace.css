@@ -116,3 +116,28 @@
 
 #app.tenant-ui .avatar.lc-company-network-avatar .presence-dot {width:16px;height:16px;right:0;bottom:0;border:2px solid var(--panel);box-sizing:border-box;}
 #app.tenant-ui :is(.lc-contact-row, .lc-platform-list, .lc-conversation-list, .lc-platform-profile-heading) .avatar.lc-company-network-avatar .presence-dot {width:12px;height:12px;}
+
+/* Teams-first company profile; keep the existing workspace frame. */
+#app.tenant-ui .lc-industry-body{grid-template-columns:minmax(260px,1fr) minmax(0,480px);}
+#app.tenant-ui .lc-industry-body .lc-contact-details{padding:24px;}
+#app.tenant-ui .lc-company-profile-heading{display:flex;align-items:center;gap:14px;margin-bottom:24px;}
+#app.tenant-ui .lc-company-profile-heading>div{min-width:0;}
+#app.tenant-ui .lc-company-profile-heading small{display:block;color:var(--muted);font-size:12px;}
+#app.tenant-ui .lc-industry-body .lc-registry-teams{border:0;padding:0;}
+#app.tenant-ui .lc-registry-team-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;}
+#app.tenant-ui .lc-registry-team-heading h3{margin:0;}
+#app.tenant-ui .lc-registry-team-heading small{color:var(--muted);}
+#app.tenant-ui .lc-public-team-row{display:flex;align-items:center;gap:10px;padding:16px 0;border-bottom:1px solid var(--line);}
+#app.tenant-ui .lc-public-team-row>.avatar{width:34px;height:34px;min-width:34px;font-size:12px;}
+#app.tenant-ui .lc-public-team-copy{flex:1;min-width:0;overflow-wrap:anywhere;}
+#app.tenant-ui .lc-public-team-copy small{display:block;color:var(--muted);font-size:12px;}
+#app.tenant-ui .lc-public-team-actions{display:flex;gap:7px;}
+#app.tenant-ui .lc-public-team-actions .button{padding:7px 10px;min-height:36px;font-size:12px;white-space:nowrap;}
+#app.tenant-ui .lc-company-information{border-top:1px solid var(--line);margin-top:24px;padding-top:20px;}
+#app.tenant-ui .lc-company-information h3{margin:0;}
+#app.tenant-ui .lc-company-information .lc-registry-facts{margin:16px 0 0;gap:14px;}
+#app.tenant-ui .lc-company-information .lc-registry-facts>div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:18px;}
+#app.tenant-ui .lc-company-information .lc-registry-facts dt,#app.tenant-ui .lc-company-information .lc-registry-facts dd{margin:0;}
+@media(max-width:1050px){#app.tenant-ui .lc-industry-body{grid-template-columns:minmax(240px,1fr) minmax(0,440px);}}
+@media(max-width:850px){#app.tenant-ui .lc-industry-body{grid-template-columns:1fr;}#app.tenant-ui .lc-industry-body .lc-contact-details{width:100%;max-width:528px;margin:0 auto;}}
+@media(max-width:480px){#app.tenant-ui .lc-industry-body .lc-contact-details{padding:18px;}#app.tenant-ui .lc-public-team-row{flex-wrap:wrap;}#app.tenant-ui .lc-public-team-copy{flex-basis:calc(100% - 44px);}#app.tenant-ui .lc-public-team-actions{margin-left:44px;}#app.tenant-ui .lc-company-information .lc-registry-facts>div{grid-template-columns:85px minmax(0,1fr);gap:12px;}}

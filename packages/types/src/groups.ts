@@ -38,7 +38,7 @@ export const groupDetail = z.object({
 });
 export const networkGroupSchema = groupSchema
   .pick({ id: true, organization_id: true, name: true, description: true })
-  .extend({ organization_name: z.string() });
+  .extend({ organization_name: z.string(), presence: z.enum(["available","away","busy","offline","unknown"]).optional() });
 export const networkGroupList = z.object({
   groups: z.array(networkGroupSchema).max(50),
   nextOffset: z.number().int().nullable(),

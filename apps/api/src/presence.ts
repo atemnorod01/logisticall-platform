@@ -3,6 +3,7 @@ export type PresenceStatus =
   "available" | "away" | "busy" | "offline" | "unknown";
 export interface PresenceStore {
   users?(ids: string[]): Promise<Record<string, PresenceStatus>>;
+  teamStatuses?(ids: string[]): Promise<Record<string, PresenceStatus>>;
   publicTeams?(organizations: string[]): Promise<Record<string, PresenceStatus>>;
   beat(
     session: string,
@@ -36,6 +37,15 @@ export function postgresPresence(pool: Pick<Pool, "query">, groupsPool?: Pick<Po
           p.seen_at desc`, [ids]);
       const states = Object.fromEntries(result.rows.map(row => [row.user_id, row.status]));
       return Object.fromEntries(ids.map(id => [id, states[id] ?? "offline"]));
+    },
+    async teamStatuses(ids) {
+      if (!groupsPool) return Object.fromEntries(ids.map(id=>[id,"unknown" as const]));
+      const {rows} = await groupsPool.query<{group_id:string;organization_id:string;user_id:string}>("select * from platform.public_team_status_members($1::uuid[])",[ids]);
+      const statuses = new Map<string,Record<string,PresenceStatus>>();
+      await Promise.all([...new Set(rows.map(m=>m.organization_id))].map(async org=>{
+        statuses.set(org,await store.read(org,[...new Set(rows.filter(m=>m.organization_id===org).map(m=>m.user_id))]));
+      }));
+      return Object.fromEntries(ids.map(id=>[id,aggregatePresence(rows.filter(m=>m.group_id===id).map(m=>statuses.get(m.organization_id)?.[m.user_id]??"offline"))]));
     },
     async publicTeams(ids) {
       if (!groupsPool) return Object.fromEntries(ids.map(id => [id, "unknown" as const]));

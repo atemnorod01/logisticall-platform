@@ -1,3 +1,4 @@
+import type { CallTarget } from "../../../packages/types/src/calls.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { useCompanyPresence } from './company-presence.js';
 import { useEffect, useState } from 'react';
@@ -8,7 +9,7 @@ import type { messagingController } from './messaging.js';
 import { Avatar, Icon } from './ui.js';
 const labels = {all:'All businesses',carrier:'Carrier',forwarder:'Freight forwarder',broker:'Broker',shipper:'Shipper',factoring:'Factoring',other:'Other'};
 function businessLabel(company:IndustryOrganization){return company.fmcsa_entity_type.includes('CARRIER')&&company.fmcsa_entity_type.includes('BROKER')?'Carrier / Broker':labels[company.organization_type];}
-export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:ReturnType<typeof messagingController>;onOpen:(c:Conversation)=>void}) {
+export function IndustryDirectory({org,messaging,onOpen,onCall,callDisabled}:{org:string;messaging:ReturnType<typeof messagingController>;onOpen:(c:Conversation)=>void;onCall:(target:CallTarget)=>void;callDisabled:boolean}) {
   const [query,setQuery]=useState(''),[search,setSearch]=useState(''),[type,setType]=useState('all'),[onPlatformOnly,setOnPlatformOnly]=useState(false);
   const [rows,setRows]=useState<IndustryOrganization[]>([]),[selected,setSelected]=useState<IndustryOrganization>(),[next,setNext]=useState<number|null>(null),[offset,setOffset]=useState(0);
   const [loading,setLoading]=useState(true),[error,setError]=useState(''),[busy,setBusy]=useState(false);
@@ -25,15 +26,30 @@ export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:R
   },[org,search,type,offset,onPlatformOnly]);
   useEffect(()=>{
     if(!selected?.on_platform||!selected.organization_id||selected.organization_id===org)return;
-    const abort=new AbortController();setNetworkLoading(true);setNetworkError('');
-    void fetch(`/v1/organizations/${org}/network-groups?${new URLSearchParams({organizationId:selected.organization_id,offset:String(networkOffset)})}`,{credentials:'same-origin',cache:'no-store',signal:abort.signal})
-      .then(async r=>{if(!r.ok)throw Error();const p=networkGroupList.parse(await r.json());if(abort.signal.aborted)return;const matches=p.groups.filter(g=>g.organization_id===selected.organization_id);setGroups(old=>networkOffset?[...old,...matches]:matches);setNetworkNext(p.nextOffset);})
-      .catch(()=>{if(!abort.signal.aborted)setNetworkError('Communication options could not be loaded.');})
-      .finally(()=>{if(!abort.signal.aborted)setNetworkLoading(false);});
-    return()=>abort.abort();
+    const abort=new AbortController();let timer:ReturnType<typeof setTimeout>;
+    setNetworkLoading(true);setNetworkError('');
+    async function refresh(){
+      try {
+        const r=await fetch(`/v1/organizations/${org}/network-groups?${new URLSearchParams({organizationId:selected!.organization_id!,offset:String(networkOffset)})}`,{credentials:'same-origin',cache:'no-store',signal:abort.signal});
+        if(!r.ok)throw Error();const p=networkGroupList.parse(await r.json());
+        if(abort.signal.aborted)return;
+        const matches=p.groups.filter(g=>g.organization_id===selected!.organization_id);
+        setGroups(old=>networkOffset?[...new Map([...old,...matches].map(g=>[g.id,g])).values()]:matches);setNetworkNext(p.nextOffset);setNetworkError('');
+      }catch{if(!abort.signal.aborted){setNetworkError('Communication options could not be loaded.');setGroups(old=>old.map(g=>({...g,presence:'unknown'})));}}
+      finally{if(!abort.signal.aborted){setNetworkLoading(false);timer=setTimeout(()=>void refresh(),5000);}}
+    }
+    void refresh();return()=>{abort.abort();clearTimeout(timer);};
   },[org,selected,networkOffset]);
+  async function contactTeam(g:ReturnType<typeof networkGroupList.parse>['groups'][number],call:boolean){
+    setBusy(true);setNetworkError('');
+    try{const c=await messaging.create({kind:'group',id:g.id,organizationId:g.organization_id});
+      if(!c){setNetworkError('Could not open this team.');return;}
+      onOpen(c);
+      if(call)onCall({kind:'group',id:g.id,organizationId:g.organization_id,name:g.name,organizationName:g.organization_name,conversationId:c.id,...(c.inbox.kind==='group'?{groupId:c.inbox.id}:{})});
+    }catch{setNetworkError('Could not open this team.');}finally{setBusy(false);}
+  }
   function choose(company:IndustryOrganization){setSelected(company);setGroups([]);setNetworkError('');setNetworkOffset(0);setNetworkNext(null);}
-  return <div className={`lc-contacts-body ${selected?'lc-industry-selected':''}`}>
+  return <div className={`lc-contacts-body lc-industry-body ${selected?'lc-industry-selected':''}`}>
     <section className="lc-contacts-list">
       <form className="lc-contact-tools" onSubmit={e=>{e.preventDefault();setSearch(query.trim());setOffset(0);setSelected(undefined);}}>
         <label className="lc-contact-search"><Icon name="search"/><input aria-label="Search industry directory" placeholder="Company name, DBA, MC or DOT number" maxLength={120} value={query} onChange={e=>{setQuery(e.target.value);if(!e.target.value){setSearch('');setOffset(0);}}}/></label><button className="button primary">Search</button>
@@ -46,7 +62,19 @@ export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:R
     <aside className="lc-contact-details" aria-label="Company details">
       {selected?<>
         <button className="button lc-contact-back" onClick={()=>setSelected(undefined)}>← Back to companies</button>
-        <div className="lc-contact-identity"><Avatar name={selected.name} large inNetwork={selected.on_platform} presence={selected.on_platform&&selected.organization_id?companyPresence[selected.organization_id]??'unknown':undefined}/><h2>{selected.name}</h2>{selected.dba&&<p>DBA {selected.dba}</p>}<div className="lc-registry-badges"><span className="tag">{businessLabel(selected)}</span>{selected.source==='synthetic'&&<span className="tag">Sample company</span>}</div></div>
+        <div className="lc-company-profile-heading"><Avatar name={selected.name} large inNetwork={selected.on_platform} presence={selected.on_platform&&selected.organization_id?companyPresence[selected.organization_id]??'unknown':undefined}/><div><h2>{selected.name}</h2><small>{[selected.city,selected.state].filter(Boolean).join(', ')}</small>{selected.dba&&<small>DBA {selected.dba}</small>}{selected.organization_type!=='other'&&<small>{businessLabel(selected)}</small>}</div></div>
+        {selected.on_platform&&<section className="lc-registry-teams" aria-label="Public teams">
+          <div className="lc-registry-team-heading"><h3>Public teams</h3><small>{groups.length}{networkNext!==null?' +':''} teams</small></div>
+          {networkLoading&&!groups.length&&<LoadingSkeleton rows={2} />}{networkError&&<p role="alert">{networkError}</p>}
+          {!networkLoading&&!networkError&&!groups.length&&<p className="quiet">This company has no public teams.</p>}
+          {groups.map(g=><div className="lc-public-team-row" key={g.id}>
+            <Avatar name={g.name} presence={g.presence??'unknown'}/>
+            <div className="lc-public-team-copy"><strong>{g.name}</strong><small>{({available:'Available',away:'Away',busy:'Busy',offline:'Offline',unknown:'Presence unavailable'})[g.presence??'unknown']}</small></div>
+            <div className="lc-public-team-actions"><button className="button" disabled={busy} aria-label={`Message ${g.name}`} onClick={()=>void contactTeam(g,false)}><Icon name="message"/>Message</button><button className={`button ${g.presence==='available'?'primary':''}`} disabled={busy||callDisabled} aria-label={`Call ${g.name}`} onClick={()=>void contactTeam(g,true)}><Icon name="phone"/>Call</button></div>
+          </div>)}
+          {networkNext!==null&&<button className="button" disabled={networkLoading} onClick={()=>setNetworkOffset(networkNext)}>Load more teams</button>}
+        </section>}
+        <section className="lc-company-information"><h3>Company information</h3>
         <dl className="lc-registry-facts">
           <div><dt>Registration status</dt><dd>{selected.status==='unknown'?'Not verified':selected.status==='active'?'Active':'Inactive'}</dd></div>
           {selected.mc&&<div><dt>MC number</dt><dd>{selected.mc}</dd></div>}{selected.dot&&<div><dt>USDOT number</dt><dd>{selected.dot}</dd></div>}{selected.ff&&<div><dt>FF number</dt><dd>{selected.ff}</dd></div>}
@@ -59,13 +87,7 @@ export function IndustryDirectory({org,messaging,onOpen}:{org:string;messaging:R
           <div><dt>Phone</dt><dd>{selected.phones.length?selected.phones.map(phone=><a key={phone} href={`tel:${phone.replace(/[^+0-9]/g,'')}`}>{phone}</a>):'Not provided'}</dd></div>
           <div><dt>{selected.email_kind==='registration'?'Registration email':'Contact email'}</dt><dd>{selected.email?<a href={`mailto:${selected.email}`}>{selected.email}</a>:'Not provided'}</dd></div>
           {selected.website&&/^https?:\/\//.test(selected.website)&&<div><dt>Website</dt><dd><a href={selected.website} target="_blank" rel="noreferrer">{new URL(selected.website).hostname}</a></dd></div>}
-        </dl>
-        {selected.on_platform&&<section className="lc-registry-teams"><h3>Public teams</h3>
-          {networkLoading&&!groups.length&&<LoadingSkeleton rows={3} />}{networkError&&<p role="alert">{networkError}</p>}
-          {!networkLoading&&!networkError&&!groups.length&&<p className="quiet">This company has no public teams.</p>}
-          {groups.map(g=><div className="lc-contact-inbox" key={g.id}><span><strong>{g.name}</strong>{g.description&&<small>{g.description}</small>}</span><button className="button" disabled={busy} onClick={async()=>{setBusy(true);setNetworkError('');try{const c=await messaging.create({kind:'group',id:g.id,organizationId:g.organization_id});if(c)onOpen(c);else setNetworkError('Could not open this team.');}finally{setBusy(false);}}}><Icon name="message"/>Message</button></div>)}
-          {networkNext!==null&&<button className="button" disabled={networkLoading} onClick={()=>setNetworkOffset(networkNext)}>Load more teams</button>}
-        </section>}
+        </dl></section>
         {selected.source==='synthetic'?<p className="note">Synthetic sample. Registration numbers and contact details are for demonstration only.</p>:selected.sources.length>0&&<details className="lc-registry-sources"><summary>Sources{selected.verified_at?` · checked ${selected.verified_at}`:''}</summary>{selected.sources.filter(url=>/^https?:\/\//.test(url)).map((url,i)=><a href={url} key={url} target="_blank" rel="noreferrer">{new URL(url).hostname} {i+1}</a>)}{selected.email_kind!=='registration'&&<p>Published business contact; registration email has not been verified.</p>}</details>}
       </>:<div className="lc-contact-empty"><Icon name="users"/><h2>Company details</h2><p>Select a company to view its registration, contact details and public teams.</p></div>}
     </aside>

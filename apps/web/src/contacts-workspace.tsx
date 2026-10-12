@@ -1,6 +1,6 @@
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { IndustryDirectory } from './industry-directory.js';
-import type { CallParty } from "../../../packages/types/src/calls.js";
+import type { CallTarget } from "../../../packages/types/src/calls.js";
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { z } from 'zod';
 import type { OrganizationContext } from '../../../packages/types/src/index.js';
@@ -13,7 +13,7 @@ import './styles/contacts-workspace.css';
 
 type Section='corporate'|'personal'|'industry';
 const blank={name:'',company:'',email:'',phone:'',note:'',mc:'',dot:''};
-export function Contacts({userId,organization,csrf,onOpen,onCall,callDisabled}:{userId:string;organization:OrganizationContext;csrf:string;onOpen:(c:Conversation)=>void;onCall:(p:CallParty)=>void;callDisabled:boolean}) {
+export function Contacts({userId,organization,csrf,onOpen,onCall,callDisabled}:{userId:string;organization:OrganizationContext;csrf:string;onOpen:(c:Conversation)=>void;onCall:(p:CallTarget)=>void;callDisabled:boolean}) {
  const directory=useMemo(()=>contactsController(organization.organization_id),[organization.organization_id]);
  const messaging=useMemo(()=>messagingController(organization.organization_id,csrf),[organization.organization_id,csrf]);
  const state=useSyncExternalStore(directory.subscribe,directory.snapshot);
@@ -45,7 +45,7 @@ export function Contacts({userId,organization,csrf,onOpen,onCall,callDisabled}:{
  const visibleContacts=personal.filter(p=>p.name!==p.company).filter(p=>[p.name,p.company,p.email,p.phone].join(' ').toLowerCase().includes(query.toLowerCase()));
  return <section className={`lc-contacts-workspace ${detailOpen?"lc-contact-detail-open":""}`}>
   <header><h1>Contacts</h1><nav aria-label="Contact directories">{([['corporate','Company directory'],['personal','Personal contacts'],['industry','Industry directory']] as const).map(([key,label])=><button key={key} aria-pressed={tab===key} onClick={()=>switchTab(key)}>{label}</button>)}</nav></header>
-  {tab==='industry'?<IndustryDirectory key={organization.organization_id} org={organization.organization_id} messaging={messaging} onOpen={onOpen}/>:<div className="lc-contacts-body"><section className="lc-contacts-list">
+  {tab==='industry'?<IndustryDirectory key={organization.organization_id} org={organization.organization_id} messaging={messaging} onOpen={onOpen} onCall={onCall} callDisabled={callDisabled}/>:<div className="lc-contacts-body"><section className="lc-contacts-list">
    {tab==='corporate'&&<div className="lc-company-sections" role="group" aria-label="Company directory sections">{(['people','groups'] as const).map(t=><button className="button" aria-pressed={companyTab===t} key={t} onClick={()=>{setCompanyTab(t);setSelected('');setQuery('');setDetailOpen(false);setGroupMode(false);setError('');}}>{t==='people'?'People':'Teams'}</button>)}</div>}
 
 

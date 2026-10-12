@@ -166,8 +166,10 @@ export function groupRoutes(
       a.actor.organizationId,
       [...new Set(rows.map((g) => g.organization_id))],
     );
+    const visible = rows.filter(g=>active.includes(g.organization_id));
+    const statuses = await options.presence?.teamStatuses?.(visible.map(g=>g.id)).catch(()=>({} as Record<string,string>));
     return {
-      groups: rows.filter((g) => active.includes(g.organization_id)),
+      groups: visible.map(g=>({...g,presence:statuses?.[g.id]??"unknown"})),
       nextOffset: next(p.offset, rows.length),
     };
   });
