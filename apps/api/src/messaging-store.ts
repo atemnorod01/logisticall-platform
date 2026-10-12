@@ -29,6 +29,11 @@ export class MessageFailure extends Error {
 }
 export const addressKey = (a: Address) =>
   [a.organizationId, a.kind, a.id, a.membershipKey ?? ""].join(":");
+// Answered incoming team calls remain in history but do not require unread attention.
+// Do not advance read cursors: unrelated unread messages must remain unread.
+const unreadCallFilter = (inbox: Address, keyParameter: string) => inbox.kind === "group"
+  ? `and (m.call_event->>'outcome' is distinct from 'completed' or concat(m.sender->>'organizationId', ':', m.sender->>'kind', ':', m.sender->>'id', ':', coalesce(m.sender->>'membershipKey','')) = ${keyParameter})`
+  : "";
 export type MessagingStore = ReturnType<typeof postgresMessaging>;
 export function postgresMessaging(
   pool: Pick<Pool, "connect">,
@@ -141,7 +146,7 @@ export function postgresMessaging(
       [row.id],
     );
     const unread = await c.query(
-      `select count(*)::int as n from platform.messages m where conversation_id=$1 and actor_id<>$2 and sequence>coalesce((select last_sequence from platform.conversation_reads where conversation_id=$1 and address_key=$3 and user_id=$2),0)`,
+      `select count(*)::int as n from platform.messages m where conversation_id=$1 and actor_id<>$2 ${unreadCallFilter(inbox, "$3")} and sequence>coalesce((select last_sequence from platform.conversation_reads where conversation_id=$1 and address_key=$3 and user_id=$2),0)`,
       [row.id, a.userId, key],
     );
     const s = state.rows[0];
@@ -517,9 +522,9 @@ export function postgresMessaging(
           select c.id,coalesce(r.last_sequence,0) as last_sequence from platform.conversations c
           left join platform.conversation_reads r on r.conversation_id=c.id and r.address_key=$1 and r.user_id=$2
           where not c.departures ? $1 and (a @> $3::jsonb or b @> $3::jsonb or participants @> jsonb_build_array($3::jsonb))
-          and exists(select 1 from platform.messages m where m.conversation_id=c.id and m.actor_id<>$2 and m.sequence>coalesce(r.last_sequence,0)))
+          and exists(select 1 from platform.messages m where m.conversation_id=c.id and m.actor_id<>$2 ${unreadCallFilter(inbox, "$1")} and m.sequence>coalesce(r.last_sequence,0)))
           select (select count(*)::int from unread) as unread,
-          array(select m.id from unread u join platform.messages m on m.conversation_id=u.id where m.actor_id<>$2 and m.deleted_at is null and m.sequence>u.last_sequence limit 100) as ids`,
+          array(select m.id from unread u join platform.messages m on m.conversation_id=u.id where m.actor_id<>$2 ${unreadCallFilter(inbox, "$1")} and m.deleted_at is null and m.sequence>u.last_sequence limit 100) as ids`,
           [addressKey(inbox),a.userId,JSON.stringify({kind:inbox.kind,id:inbox.id,organizationId:inbox.organizationId,...(inbox.membershipKey?{membershipKey:inbox.membershipKey}:{})})]);
         return result.rows[0] as {unread:number;ids:string[]};
       });
@@ -528,7 +533,7 @@ export function postgresMessaging(
       return transaction(a, inbox, async c => {
         const result = await c.query<{ id: string }>(`select m.id from platform.messages m
           join platform.conversations c on c.id=m.conversation_id
-          where not c.departures ? $1 and m.actor_id<>$2 and m.deleted_at is null
+          where not c.departures ? $1 and m.actor_id<>$2 ${unreadCallFilter(inbox, "$1")} and m.deleted_at is null
           and m.sequence>coalesce((select last_sequence from platform.conversation_reads r
             where r.conversation_id=c.id and r.address_key=$1 and r.user_id=$2),0)
           limit 100`, [addressKey(inbox), a.userId]);
@@ -540,7 +545,7 @@ export function postgresMessaging(
         const result = await c.query(
           `select count(*)::int as count from platform.conversations c
           where not c.departures ? $3 and (a @> $1::jsonb or b @> $1::jsonb or participants @> jsonb_build_array($1::jsonb)) and exists (
-            select 1 from platform.messages m where m.conversation_id=c.id and m.actor_id<>$2
+            select 1 from platform.messages m where m.conversation_id=c.id and m.actor_id<>$2 ${unreadCallFilter(inbox, "$3")}
             and m.sequence>coalesce((select last_sequence from platform.conversation_reads r
               where r.conversation_id=c.id and r.address_key=$3 and r.user_id=$2),0))`,
           [
@@ -595,7 +600,7 @@ export function postgresMessaging(
  left join platform.conversation_state s on s.conversation_id=c.id and s.address_key=$2
  left join platform.conversation_reads r on r.conversation_id=c.id and r.address_key=$2 and r.user_id=$5
  left join lateral (select body,internal,reply_to,created_at,deleted_at,actor_id,actor_name from platform.messages m where m.conversation_id=c.id order by sequence desc limit 1) last on true
- left join lateral (select count(*) filter(where m.actor_id<>$5 and m.sequence>coalesce(r.last_sequence,0))::int as unread,
+ left join lateral (select count(*) filter(where m.actor_id<>$5 ${unreadCallFilter(inbox, "$2")} and m.sequence>coalesce(r.last_sequence,0))::int as unread,
  (select sequence from platform.messages p where p.conversation_id=c.id and not p.internal order by sequence desc limit 1) as public_sequence
  from platform.messages m where m.conversation_id=c.id and m.sequence>coalesce(r.last_sequence,0)) activity on true
  where (a @> $1::jsonb or b @> $1::jsonb or participants @> jsonb_build_array($1::jsonb))
