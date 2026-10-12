@@ -13,7 +13,8 @@
 #app.tenant-ui.conversation-workspace
   .conversation-shell.layout.lc-call-docked {
   position: relative;
-  padding-bottom: 86px;
+  /* Child panels already include an 8px bottom inset: leave a 6px visible gap. */
+  padding-bottom: 76px;
   min-height: 0;
 }
 #app.tenant-ui.conversation-workspace .lc-call-docked > .workspace {
@@ -201,7 +202,7 @@
 }
 #app.tenant-ui.conversation-workspace
   .conversation-shell.layout.lc-call-docked:has(> .lc-call-window-return) {
-  padding-bottom: 64px;
+  padding-bottom: 54px;
 }
 /* Keep the dock on one row; drop future PSTN actions before the full-screen breakpoint. */
 @media (min-width: 651px) and (max-width: 1100px) {
@@ -392,7 +393,7 @@ body:has(> .lc-call-window) {
   }
   #app.tenant-ui.conversation-workspace
     .conversation-shell.layout.lc-call-docked:has(> .lc-call-window-return) {
-    padding-bottom: 64px;
+    padding-bottom: 54px;
   }
 }
 :is(#app.tenant-ui, .lc-call-window) .lc-audio-picker {
