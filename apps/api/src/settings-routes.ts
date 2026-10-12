@@ -16,6 +16,7 @@ export function settingsRoutes(
   app: FastifyInstance,
   options: {
     profileChanged?: ((id: string, name: string) => Promise<void>) | undefined;
+    organizationChanged?: ((id: string, name: string) => Promise<void>) | undefined;
     presence?:
       | ((org: string, ids: string[]) => Promise<Record<string, string>>)
       | undefined;
@@ -140,7 +141,7 @@ export function settingsRoutes(
   app.patch(prefix + "/profile", async (req) => {
     const p = params(req),
       token = await options.authorize(req, p.organizationId);
-    return z
+    const profile = z
       .object({
         organization_id: z.uuid(),
         name: z.string().max(120),
@@ -156,6 +157,8 @@ export function settingsRoutes(
           organizationEdit.parse(req.body),
         ),
       );
+    await options.organizationChanged?.(p.organizationId, profile.name);
+    return profile;
   });
   app.get(prefix + "/invitations", async (req) => {
     const p = params(req),

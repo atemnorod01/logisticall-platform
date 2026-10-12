@@ -161,8 +161,8 @@ export function messagingRoutes(
       finally { checking = false; if (!closed && pending.size && !timer) timer = setTimeout(() => void flush(), 100); }
     };
     const unsubscribe = workspaceEvents.subscribe(event => {
-      if (event && event.target !== target && event.target !== memberTarget && !(event.target === `profile:${userId}` && event.kind === 'profiles') && !(event.target === '*' && event.kind === 'profiles')) return;
-      const change = event ? { kind: event.kind, ...(event.target === `profile:${userId}` ? {selfProfile:true} : {}), ...(event.conversationId ? { conversationId: event.conversationId } : {}) } : { kind: 'resync' as const };
+      if (event && event.target !== target && event.target !== memberTarget && !([`profile:${userId}`, `organization:${initial.actor.organizationId}`].includes(event.target) && event.kind === 'profiles') && !(event.target === '*' && event.kind === 'profiles')) return;
+      const change = event ? { kind: event.kind, ...([`profile:${userId}`, `organization:${initial.actor.organizationId}`].includes(event.target) ? {selfProfile:true} : {}), ...(event.conversationId ? { conversationId: event.conversationId } : {}) } : { kind: 'resync' as const };
       pending.set(`${change.kind}:${'conversationId' in change ? change.conversationId ?? '' : ''}:${'selfProfile' in change ? 'self' : ''}`, change);
       if (!timer && !checking) timer = setTimeout(() => void flush(), 100);
     });

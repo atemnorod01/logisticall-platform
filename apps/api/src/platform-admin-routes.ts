@@ -23,6 +23,7 @@ export function platformAdminRoutes(
   app: FastifyInstance,
   options: {
     profileChanged?: ((id: string, name: string) => Promise<void>) | undefined;
+    organizationChanged?: ((id: string, name: string) => Promise<void>) | undefined;
     presence?: PresenceStore | undefined;
     authorize: (req: FastifyRequest) => Promise<string>;
     request: (
@@ -86,6 +87,7 @@ export function platformAdminRoutes(
       ),
     );
     if (p.kind === "users") await options.profileChanged?.(p.id, record.name ?? (body.kind === "user" ? body.name : ""));
+    if (p.kind === "organizations") await options.organizationChanged?.(record.organization_id ?? p.id, record.name);
     return record;
   });
   app.post("/v1/platform/companies", async (req) => {
