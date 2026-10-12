@@ -28,6 +28,7 @@ import {
 export function buildApp(
   config: { issuer: string; clientId: string; iamApi: string },
   deps: {
+    profileChanged?: (id: string, name: string) => Promise<void>;
     calls?: CallsStore;
     iceServers?: RTCIceServer[];
     iceServersFor?: (userId: string) => Promise<RTCIceServer[]>;
@@ -304,6 +305,7 @@ export function buildApp(
     },
   );
   platformAdminRoutes(app, {
+    profileChanged: deps.profileChanged,
     presence: deps.presence,
     request: deps.settings ?? iamSettings(config.iamApi),
     async authorize(req) {
@@ -318,6 +320,7 @@ export function buildApp(
     },
   });
   settingsRoutes(app, {
+    profileChanged: deps.profileChanged,
     presence: deps.presence
       ? (org, ids) => deps.presence!.read(org, ids)
       : undefined,

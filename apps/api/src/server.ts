@@ -148,6 +148,7 @@ const app = buildApp(
     ...(browser ? { browser, presence: postgresPresence(pool!, groupsPool) } : {}),
     ...(groupsPool
       ? {
+          profileChanged: async (id: string, name: string) => { await groupsPool!.query("select platform.sync_profile_name($1,$2)", [id,name]); },
           calls: postgresCalls(groupsPool),
           groups: postgresGroups(groupsPool),
           messaging: postgresMessaging(groupsPool, pool ? postgresPresence(pool) : undefined, mediaStorage),

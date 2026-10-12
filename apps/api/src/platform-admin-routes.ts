@@ -22,6 +22,7 @@ import {
 export function platformAdminRoutes(
   app: FastifyInstance,
   options: {
+    profileChanged?: ((id: string, name: string) => Promise<void>) | undefined;
     presence?: PresenceStore | undefined;
     authorize: (req: FastifyRequest) => Promise<string>;
     request: (
@@ -32,6 +33,12 @@ export function platformAdminRoutes(
     ) => Promise<unknown>;
   },
 ) {
+  app.get('/v1/platform/user-presence', async (req, reply) => {
+    await options.authorize(req);
+    const {ids} = z.object({ids: z.string().transform(s => s.split(',')).pipe(z.array(z.uuid()).min(1).max(50))}).strict().parse(req.query);
+    reply.header('Cache-Control', 'no-store');
+    return {presence: await options.presence?.users?.(ids) ?? Object.fromEntries(ids.map(id => [id, 'unknown']))};
+  });
   app.get('/v1/platform/directory-presence',async req=>{
     await options.authorize(req);
     const {ids}=z.object({ids:z.string().transform(s=>s.split(',')).pipe(z.array(z.uuid()).max(50))}).strict().parse(req.query);
@@ -70,7 +77,7 @@ export function platformAdminRoutes(
       });
     if ((p.kind === "users") !== (body.kind === "user"))
       throw Object.assign(new Error("Invalid edit"), { statusCode: 400 });
-    return platformRecord.parse(
+    const record = platformRecord.parse(
       await options.request(
         token,
         `/platform/records/${p.kind}/${p.id}`,
@@ -78,6 +85,8 @@ export function platformAdminRoutes(
         body,
       ),
     );
+    if (p.kind === "users") await options.profileChanged?.(p.id, record.name ?? (body.kind === "user" ? body.name : ""));
+    return record;
   });
   app.post("/v1/platform/companies", async (req) => {
     const token = await options.authorize(req),

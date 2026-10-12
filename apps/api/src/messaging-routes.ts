@@ -161,7 +161,7 @@ export function messagingRoutes(
       finally { checking = false; if (!closed && pending.size && !timer) timer = setTimeout(() => void flush(), 100); }
     };
     const unsubscribe = workspaceEvents.subscribe(event => {
-      if (event && event.target !== target && event.target !== memberTarget) return;
+      if (event && event.target !== target && event.target !== memberTarget && !(event.target === '*' && event.kind === 'profiles')) return;
       const change = event ? { kind: event.kind, ...(event.conversationId ? { conversationId: event.conversationId } : {}) } : { kind: 'resync' as const };
       pending.set(`${change.kind}:${'conversationId' in change ? change.conversationId ?? '' : ''}`, change);
       if (!timer && !checking) timer = setTimeout(() => void flush(), 100);

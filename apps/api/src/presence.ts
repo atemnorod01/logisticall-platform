@@ -2,6 +2,7 @@ import type { Pool } from "pg";
 export type PresenceStatus =
   "available" | "away" | "busy" | "offline" | "unknown";
 export interface PresenceStore {
+  users?(ids: string[]): Promise<Record<string, PresenceStatus>>;
   publicTeams?(organizations: string[]): Promise<Record<string, PresenceStatus>>;
   beat(
     session: string,
@@ -16,6 +17,26 @@ export interface PresenceStore {
 }
 export function postgresPresence(pool: Pick<Pool, "query">, groupsPool?: Pick<Pool, "query"> | undefined): PresenceStore {
   const store: PresenceStore = {
+    async users(ids) {
+      if (!ids.length) return {};
+      // Platform-admin-only view across organizations. Prefer a live session,
+      // then the user's most recent presence choice across their devices.
+      const result = await pool.query<{ user_id: string; status: PresenceStatus }>(
+        `select distinct on (p.user_id) p.user_id,
+          case when p.seen_at>extract(epoch from clock_timestamp())*1000-90000
+            and s.idle_expires_at>extract(epoch from clock_timestamp())*1000
+            and s.absolute_expires_at>extract(epoch from clock_timestamp())*1000
+          then p.status else 'offline' end as status
+         from platform_auth.presence p join platform_auth.sessions s on s.id_hash=p.session_hash
+         where p.user_id=any($1::uuid[])
+         order by p.user_id,
+          (p.seen_at>extract(epoch from clock_timestamp())*1000-90000
+            and s.idle_expires_at>extract(epoch from clock_timestamp())*1000
+            and s.absolute_expires_at>extract(epoch from clock_timestamp())*1000) desc,
+          p.seen_at desc`, [ids]);
+      const states = Object.fromEntries(result.rows.map(row => [row.user_id, row.status]));
+      return Object.fromEntries(ids.map(id => [id, states[id] ?? "offline"]));
+    },
     async publicTeams(ids) {
       if (!groupsPool) return Object.fromEntries(ids.map(id => [id, "unknown" as const]));
       const result = await groupsPool.query<{organization_id:string;user_id:string}>("select * from platform.public_team_presence_members($1::uuid[])",[ids]);

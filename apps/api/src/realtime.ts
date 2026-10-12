@@ -2,7 +2,7 @@ import { RealtimeClient } from '@supabase/realtime-js';
 import { z } from 'zod';
 export const changeSchema = z.object({
   target: z.string().max(300),
-  kind: z.enum(['messages', 'typing', 'calls', 'groups']),
+  kind: z.enum(['messages', 'typing', 'calls', 'groups', 'profiles']),
   conversationId: z.uuid().optional(),
 });
 export type WorkspaceChange = z.infer<typeof changeSchema>;
