@@ -65,7 +65,7 @@ export function buildApp(
     if(reply.elapsedTime>1000) console.warn(JSON.stringify({event:"slow_request",route:request.routeOptions.url,method:request.method,status:reply.statusCode,durationMs:Math.round(reply.elapsedTime)}));
     return payload;
   });
-  app.setErrorHandler((error, _request, reply) => {
+  app.setErrorHandler((error, request, reply) => {
     // Database/provider error text may contain connection or account details.
     if (error instanceof z.ZodError)
       return reply.code(400).send({ message: "Invalid request" });
@@ -75,7 +75,16 @@ export function buildApp(
         : typeof (error as { statusCode?: unknown }).statusCode === "number"
           ? (error as { statusCode: number }).statusCode
           : 500;
-    return reply.code(status >= 400 && status < 500 ? status : 503).send({
+    const safeStatus = status >= 400 && status < 500 ? status : 503;
+    if (safeStatus >= 500) console.warn(JSON.stringify({
+      event: "request_failed", route: request.routeOptions.url, method: request.method,
+      status: safeStatus, durationMs: Math.round(reply.elapsedTime),
+      category: error instanceof IamFailure ? "iam" : "internal",
+      // Only PostgreSQL SQLSTATE codes are logged, never messages, SQL or parameters.
+      code: typeof (error as {code?:unknown}).code === "string" && /^[0-9A-Z]{5}$/.test((error as {code:string}).code)
+        ? (error as {code:string}).code : undefined,
+    }));
+    return reply.code(safeStatus).send({
       message:
         status >= 400 && status < 500
           ? "Request rejected"
