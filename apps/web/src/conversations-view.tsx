@@ -142,7 +142,7 @@ export function Conversations({
         setCallTeams(data.participants.filter(p=>p.kind==="group" && p.id!==selected.inbox.id));
         const people=new Map<string,Address & {presence?:string | undefined}>();
         for(const p of data.participants) for(const person of p.kind==="group"?p.members.map(m=>({...p,kind:"user" as const,id:m.id,name:m.name,presence:m.presence})):[p])
-          if(person.id!==userId && person.presence==="available")people.set(person.organizationId+person.id,person);
+          if(person.id!==userId && ((selected.kind!=="team" && selected.peer.kind==="user" && person.id===selected.peer.id) || person.presence==="available"))people.set(person.organizationId+person.id,person);
         setCallPeople([...people.values()]);
       } catch { /* Keep menu stable during transient network errors. */ }
       finally {busy=false;}
@@ -156,8 +156,8 @@ export function Conversations({
     const selected = controller.snapshot().selected;
     if (!selected || callLoading) return;
     if (selected.kind !== "team" && selected.peer.kind === "user") {
-      if (state.groupId) onCall({...selected.peer,conversationId:selected.id,groupId:state.groupId});
-      else personAction(selected.peer, true);
+      setCallTeams([]);
+      setCallPeople([{...selected.peer,presence:selected.identity?.presence}]);
       return;
     }
     setCallLoading(true);
@@ -1054,7 +1054,7 @@ export function Conversations({
               items[e.key==="Home"?0:e.key==="End"?items.length-1:(index+(e.key==="ArrowDown"?1:-1)+items.length)%items.length]?.focus();
             }}>
               {callTeams.map(team=><div className="lc-call-team-option" key={team.id}><button role="menuitem" className="button" onClick={()=>{setCallPeople(null);onCall({...team,kind:"group",conversationId:active!.id,...(state.groupId?{groupId:state.groupId}:{})});}}><Avatar name={team.organizationName} presence={team.presence}/><span><strong>Call {team.name}</strong><small>{team.organizationName}</small></span><Icon name="phone"/></button></div>)}
-              <div className="lc-call-menu-heading">Available people</div>
+              <div className="lc-call-menu-heading">{active?.kind!=="team" && active?.peer.kind==="user"?"Call contact":"Available people"}</div>
               {!callPeople.length && <div className="lc-call-menu-heading">No members are available right now.</div>}
               <div className="lc-call-people">{callPeople.map(person=><button role="menuitem" className="button" key={person.organizationId+person.id} onClick={()=>{setCallPeople(null);if(state.groupId) onCall({...person,conversationId:active!.id,groupId:state.groupId}); else personAction(person, true);}}><Avatar name={person.name} presence={person.presence}/><span><strong>{person.name}</strong><small>{person.organizationName}</small></span><Icon name="phone"/></button>)}</div>
             </div>}
