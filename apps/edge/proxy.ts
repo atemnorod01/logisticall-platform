@@ -61,6 +61,12 @@ export async function proxyRequest(
   let body: Uint8Array<ArrayBuffer> | undefined;
   const messaging = /^\/v1\/organizations\/[^/]+\/messaging(?:\/|$)/.test(incoming.pathname);
   const upload = method === "PUT" && /^\/v1\/organizations\/[^/]+\/messaging\/[^/]+\/attachments\/[^/]+$/.test(incoming.pathname);
+  // Binary uploads use octet-stream; preserve the declared media type so the
+  // API can compare it with the reservation and validate the file signature.
+  if (upload) {
+    const fileType = request.headers.get("X-File-Type");
+    if (fileType !== null) headers.set("X-File-Type", fileType);
+  }
   const calls = /^\/v1\/organizations\/[^/]+\/calls$/.test(incoming.pathname);
   const streaming = method === "GET" && messaging && /\/(?:events|typing-events|identity-events)$/.test(incoming.pathname);
   const mediaDownload = method === "GET" && /^\/v1\/organizations\/[^/]+\/messaging\/[^/]+\/attachments\/[^/]+$/.test(incoming.pathname);
