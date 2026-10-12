@@ -380,7 +380,7 @@ export function messagingController(
           const status = (e as {status?:number}).status;
           const transient = status === 408 || status === 429 || (status !== undefined && status >= 500)
             || e instanceof TypeError || (e instanceof DOMException && ["TimeoutError","AbortError"].includes(e.name));
-          console.warn("Conversation refresh failed", {status:status ?? null, kind:transient ? "temporary" : "response"});
+          console.warn(JSON.stringify({event:"conversation_refresh_failed",status:status ?? null,kind:transient ? "temporary" : "response",name:e instanceof Error ? e.name : "unknown",issues:Array.isArray((e as {issues?:unknown}).issues) ? (e as {issues:{path:unknown[];code:string}[]}).issues.map(issue=>({path:issue.path,code:issue.code})) : undefined}));
           if (transient && recoveryAttempts < 2) {
             if (!recoveryTimer) {
               const delay = [1000,3000][recoveryAttempts++]!;
