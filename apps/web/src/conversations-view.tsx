@@ -874,7 +874,7 @@ export function Conversations({
               <span className="conversation-copy">
                 <span className="conversation-card-top">
                   <span className="lc-company-title-row">
-                    <strong>{conversationTitle(c, organizationId)}</strong>
+                    <strong>{conversationTitle(c, organizationId)}{isIndividualConversation(c) && c.peer.organizationId !== organizationId && <span className="lc-direct-company"> · {c.peer.organizationName}</span>}</strong>
                     {conversationGroup(c, organizationId) && <span className="lc-peer-group-badge" title={conversationGroup(c, organizationId)}>{conversationGroup(c, organizationId)}</span>}
                   </span>
                   <time>{inboxTime(c.updatedAt)}</time>

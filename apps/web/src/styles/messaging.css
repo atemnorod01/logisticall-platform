@@ -2404,3 +2404,6 @@
   padding:4px;
   line-height:1;
 }
+
+/* External direct chats keep company context on the name line. */
+#app.tenant-ui .conversation-card-top .lc-direct-company { font-size:calc(12px * var(--font-scale, 1)); font-weight:400; color:var(--muted); }
