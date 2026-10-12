@@ -700,6 +700,28 @@ export function Conversations({
     for (const child of el.children) observer.observe(child);
     return () => observer.disconnect();
   }, [state.messages, edit]);
+  useLayoutEffect(() => {
+    const viewport = scroll.current;
+    const editor = viewport?.querySelector<HTMLElement>(".lc-inline-edit");
+    if (!edit || !viewport || !editor) return;
+    const revealEditor = () => {
+      const bounds = viewport.getBoundingClientRect();
+      const content = editor.getBoundingClientRect();
+      const top = bounds.top + viewport.clientTop + 12;
+      const bottom = bounds.top + viewport.clientTop + viewport.clientHeight - 12;
+      // Keep Save/Cancel visible, including after the formatting toolbar expands.
+      // Scroll only the timeline, never the surrounding workspace or page.
+      if (content.bottom > bottom) viewport.scrollTop += content.bottom - bottom;
+      else if (content.top < top && content.height <= bottom - top)
+        viewport.scrollTop -= top - content.top;
+      previous.current.height = viewport.scrollHeight;
+    };
+    revealEditor();
+    const observer = new ResizeObserver(revealEditor);
+    observer.observe(editor);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, [edit?.id]);
   function chooseInbox(id: string) {
     guard(() => {
       setSearch("");
