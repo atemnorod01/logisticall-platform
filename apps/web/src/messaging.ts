@@ -63,7 +63,40 @@ export function messagingController(
     recoveryAttempts = 0;
   }
   const abort = new AbortController();
-  const cache = new Map<string, { messages: Message[]; hasMore: boolean }>();
+  const cache = new Map<string, { messages: Message[]; hasMore: boolean; at: number }>();
+  const pagesInFlight = new Map<string, Promise<ReturnType<typeof messagePage.parse>>>();
+  let warmTimer: ReturnType<typeof setTimeout> | undefined;
+  const pageKey = (row: Conversation) => `${row.inbox.kind}:${row.inbox.id}:${row.inbox.organizationId}:${row.id}`;
+  function remember(row: Conversation, messages: Message[], hasMore: boolean) {
+    cache.delete(pageKey(row));
+    cache.set(pageKey(row), {messages:messages.slice(-50),hasMore:hasMore || messages.length>50,at:Date.now()});
+    if (cache.size > 8) cache.delete(cache.keys().next().value!);
+  }
+  function latestPage(row: Conversation) {
+    const key = pageKey(row);
+    const pending = pagesInFlight.get(key);
+    if (pending) return pending;
+    const suffix = new URLSearchParams(row.inbox.kind === "group" ? {groupId:row.inbox.id} : {});
+    const page = request(`/${row.id}/messages?${suffix}`).then(messagePage.parse);
+    pagesInFlight.set(key,page);
+    void page.finally(()=>{if(pagesInFlight.get(key)===page)pagesInFlight.delete(key);}).catch(()=>{});
+    return page;
+  }
+  function warmRecent() {
+    clearTimeout(warmTimer);
+    const current = epoch;
+    // One request at a time, only two recent chats; never preload the whole inbox.
+    warmTimer = setTimeout(async () => {
+      for (const row of state.rows.slice(0,2)) {
+        if(disposed || current!==epoch) return;
+        if(row.id===state.selected?.id || cache.has(pageKey(row))) continue;
+        try {
+          const page = await latestPage(row);
+          if(!disposed && current===epoch) remember(row,page.messages,page.hasMore);
+        } catch { cache.delete(pageKey(row)); }
+      }
+    },250);
+  }
   let prefetched: {
     path: string;
     page: ReturnType<typeof messagePage.parse>;
@@ -86,6 +119,8 @@ export function messagingController(
   const emit = (patch: Partial<State>) => {
     if (disposed) return;
     state = { ...state, ...patch };
+    if (patch.messages && state.selected && !state.timelineLoading)
+      remember(state.selected,state.messages,state.hasMore);
     listeners.forEach((f) => f());
   };
   const base = `/v1/organizations/${org}/messaging`;
@@ -121,6 +156,13 @@ export function messagingController(
         });
   function fail(error: unknown) {
     const status = (error as { status?: number }).status;
+    if ([401,403,404].includes(status ?? 0)) {
+      ++epoch;
+      ++selection;
+      cache.clear();
+      pagesInFlight.clear();
+      clearTimeout(warmTimer);
+    }
     emit({
       error:
         status === 409
@@ -129,7 +171,7 @@ export function messagingController(
             ? "Your access to this conversation has changed."
             : "Unable to update messages. Please retry.",
       ...([401, 403, 404].includes(status ?? 0)
-        ? { rows: [], selected: null, messages: [] }
+        ? { rows: [], selected: null, messages: [], loading:false, timelineLoading:false }
         : {}),
     });
   }
@@ -145,6 +187,8 @@ export function messagingController(
       ++epoch;
       ++selection;
       clearTimeout(refreshRetry);
+      clearTimeout(warmTimer);
+      cache.clear();
       abort.abort();
     },
     request,
@@ -154,6 +198,7 @@ export function messagingController(
       search = state.search,
     ) {
       resetRecovery();
+      clearTimeout(warmTimer);
       const ticket = ++epoch;
       ++selection;
       emit({
@@ -175,6 +220,7 @@ export function messagingController(
         if (ticket === epoch) {
           lastListRefresh = Date.now();
           emit({ rows: p.conversations, nextOffset: p.nextOffset });
+          warmRecent();
         }
       } catch (e) {
         if (ticket === epoch) fail(e);
@@ -212,11 +258,11 @@ export function messagingController(
       }
       const ticket = ++selection,
         current = epoch;
-      const cacheKey = `${row.inbox.id}:${row.id}`;
-      const cached =
-        row.inbox.kind === "group" || row.peer.kind === "group"
-          ? undefined
-          : cache.get(cacheKey);
+      const cacheKey = pageKey(row);
+      const entry = cache.get(cacheKey);
+      const cached = entry && Date.now()-entry.at<30000 ? entry : undefined;
+      identityVersion = "";
+      changeVersion = undefined;
       emit({
         timelineLoading: true,
         selected: row,
@@ -228,9 +274,7 @@ export function messagingController(
         error: "",
       });
       try {
-        const p = messagePage.parse(
-          await request(`/${row.id}/messages${query()}`),
-        );
+        const p = await latestPage(row);
         if (current === epoch && ticket === selection) {
           identityVersion = p.identityVersion;
           changeVersion = p.changeVersion;
@@ -241,9 +285,7 @@ export function messagingController(
             typingExpiresAt: p.typingExpiresAt,
             timelineLoading: false,
           });
-          cache.delete(cacheKey);
-          cache.set(cacheKey, { messages: p.messages, hasMore: p.hasMore });
-          if (cache.size > 8) cache.delete(cache.keys().next().value!);
+          remember(row,p.messages,p.hasMore);
           prefetch(row.id, p.messages, p.hasMore);
         }
       } catch (e) {
@@ -277,6 +319,9 @@ export function messagingController(
     },
     async refresh(options: { background?: boolean; conversationIds?: string[] | undefined } = {}) {
       if (disposed) return;
+      if (options.conversationIds) for (const key of cache.keys()) {
+        if(options.conversationIds.some(id=>key.endsWith(`:${id}`))) cache.delete(key);
+      }
       if (polling) { refreshPending = true; return; }
       if (state.loading || state.busy) {
         if (!refreshRetry) refreshRetry = setTimeout(() => { refreshRetry = undefined; void api.refresh(); }, 150);
