@@ -1,3 +1,4 @@
+import {ActiveCallPanel} from "./active-call.js";
 import {callConversationPath} from "./call-conversation.js";
 import {navigate} from "./navigation.js";
 import { subscribeWorkspace } from "./realtime.js";
@@ -282,84 +283,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
         )}
       </aside>
     );
-  return (
-    <aside
-      className={`lc-call-panel ${ringing ? "ringing" : ""} ${docked ? "lc-call-bar" : ""}`}
-      aria-label="Voice call"
-      role={ringing ? "alertdialog" : "region"}
-      aria-live="polite"
-    >
-      {docked && <Avatar name={other?.name ?? "Voice call"} />}
-      <div className="lc-call-summary">
-        <h2>{other?.name ?? "Voice call"}</h2>
-        <p>{other?.organizationName}{other?.organizationName ? " · " : ""}{state.held ? "On hold" : anotherDevice ? "On another device" : state.connected ? "LogistiCall voice" : "Connecting audio…"}</p>
-      </div>
-      {docked && (
-        <span
-          className="lc-call-duration"
-          aria-label="Call duration"
-          aria-live="off"
-        >
-          {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
-        </span>
-      )}
-      {state.error && (
-        <p role="alert">
-          {state.error}{" "}
-          <button className="button" onClick={controller.clearError}>
-            Dismiss
-          </button>
-        </p>
-      )}
-      {ringing && (
-        <p className="quiet">
-          Keep this page open to receive calls. Your browser may require a click
-          before playing the ringtone.
-        </p>
-      )}
-      {conversationError && <p role="alert">{conversationError}</p>}
-      {!anotherDevice && (
-        <div className="actions">
-          {ringing && (
-            <button
-              className="button primary"
-              disabled={state.preparing}
-              onClick={() => void controller.accept()}
-            >
-              Accept
-            </button>
-          )}
-          {call?.conversationId && call.status!=="ended" && (
-            <button className="button lc-call-open" disabled={openingConversation} onClick={()=>void openConversation()} aria-busy={openingConversation}>
-              <Icon name="message" /> Open chat
-            </button>
-          )}
-          {call && controller.owns(call) && call.status !== "ringing" && <>
-            <button className="button" onClick={controller.mute} aria-label={state.muted ? "Unmute microphone" : "Mute microphone"} title={state.muted ? "Unmute" : "Mute"} aria-pressed={state.muted}><Icon name="mic" /></button>
-            <button className="button" onClick={controller.hold} aria-pressed={state.held}><Icon name={state.held ? "play" : "pause"} />{state.held ? "Resume" : "Hold"}</button>
-            <button className="button" onClick={()=>navigate('/settings/audio-video')} aria-label="Audio settings" title="Audio settings"><Icon name="headphones" /></button>
-          </>}
-          {state.audioBlocked && (
-            <button className="button" onClick={controller.play}>
-              Play call audio
-            </button>
-          )}
-          {(call || state.preparing) && (
-            <button
-              className="button lc-call-end"
-              onClick={() => void controller.end()}
-            >
-              <Icon name="phone" />{ringing
-                ? "Decline"
-                : call?.status === "ringing" || state.preparing
-                  ? "Cancel"
-                  : "Hang up"}
-            </button>
-          )}
-        </div>
-      )}
-    </aside>
-  );
+  return <ActiveCallPanel key={call!.id} calling={calling} seconds={seconds} openingConversation={openingConversation} conversationError={conversationError} openConversation={openConversation}/>;
 }
 export function Calls({ calling }: { calling: Calling }) {
   const { state, user } = calling;

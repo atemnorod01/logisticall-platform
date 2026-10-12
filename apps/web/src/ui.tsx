@@ -1,5 +1,9 @@
 import type { ReactNode } from "react";
 const paths: Record<string, ReactNode> = {
+  undock: <><path d="M14 3h7v7m0-7L10 14M10 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5"/></>,
+  dock: <><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 16h18m-9-10v7m-3-3 3 3 3-3"/></>,
+  "mic-off": <><path d="m2 2 20 20M9 9v3a3 3 0 0 0 5 2M9 5a3 3 0 0 1 6 0v5M5 10v2a7 7 0 0 0 12 5M19 10v2M12 19v3M8 22h8"/></>,
+  "call-transfer": <><path d="M14 4h7m-3-3 3 3-3 3M5 3H3v4c0 8 6 14 14 14h4v-4l-5-2-2 3a13 13 0 0 1-8-8l3-2-2-5Z"/></>,
   mic: <><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></>,
   pause: <><path d="M8 5v14M16 5v14"/></>,
   play: <path d="m8 4 12 8-12 8Z"/>,
