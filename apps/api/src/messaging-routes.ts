@@ -490,6 +490,12 @@ export function messagingRoutes(
     const ids = await mapInboxes(await accessibleInboxes(a), address => a.store.unreadMessages(a.actor, address));
     return { messages: Math.min(100, new Set(ids.flat()).size) };
   });
+  app.get(prefix + "/presence", async req => {
+    const a = await auth(req);
+    const q = query.extend({ids:z.string().max(40000)}).strict().parse(req.query);
+    const ids = z.array(z.uuid()).max(1000).parse(JSON.parse(q.ids));
+    return {statuses:await a.store.presence(a.actor,await inbox(a,q.groupId),ids)};
+  });
   app.get(prefix + "/typing", async req => {
     const a = await auth(req);
     const { watch } = z.object({ watch: z.string().max(16000) }).strict().parse(req.query);
@@ -502,13 +508,14 @@ export function messagingRoutes(
   app.get(prefix + "/inboxes", async (req) => {
     const a = await auth(req),
       addresses = await accessibleInboxes(a);
-    const inboxes = await mapInboxes(addresses, async address => ({
+    const summaries = await mapInboxes(addresses, async address => ({
       id: address.kind === "group" ? address.id : "",
       name: address.kind === "group" ? address.name : "My chats",
-      unread: await a.store.unreadCount(a.actor, address),
+      ...await a.store.unreadOverview(a.actor,address),
     }));
-    return { inboxes };
+    return {inboxes:summaries.map(({ids,...row})=>row),messages:Math.min(100,new Set(summaries.flatMap(s=>s.ids)).size)};
   });
+
   app.get(prefix + "/feed", async (req) => {
     const a = await auth(req);
     const q = z
@@ -731,11 +738,11 @@ export function messagingRoutes(
   // One fresh authorization for the selected conversation refresh. Each store
   // operation still uses its own inbox-scoped RLS transaction.
   app.get(prefix + "/:conversationId/snapshot", async req => {
-    const a = await auth(req), q = query.strict().parse(req.query);
+    const a = await auth(req), q = query.extend({after:z.coerce.number().int().min(0).optional(),oldest:z.coerce.number().int().min(0).default(0)}).strict().parse(req.query);
     const address = await inbox(a, q.groupId), id = params(req).conversationId!;
     const [conversation, messages] = await Promise.all([
       a.store.detail(a.actor, address, id),
-      a.store.messages(a.actor, address, id, Number.MAX_SAFE_INTEGER),
+      a.store.messages(a.actor, address, id, Number.MAX_SAFE_INTEGER, q.after === undefined ? undefined : {after:q.after,oldest:q.oldest}),
     ]);
     return { conversation, ...messages };
   });

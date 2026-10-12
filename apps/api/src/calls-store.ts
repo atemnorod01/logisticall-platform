@@ -23,19 +23,24 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
   const mineWhere = `(data->'caller'->>'id'=$1 and data->'caller'->>'organizationId'=$2
     or data->'callee'->>'id'=$1 and data->'callee'->>'organizationId'=$2
     or data->'recipients' @> jsonb_build_array(jsonb_build_object('id',$1::text,'organizationId',$2::text)))`;
-  async function transaction<T>(run: (rows: AudioCall[]) => T, actor?: CallActor): Promise<T> {
+  async function transaction<T>(run: (rows: AudioCall[]) => T, actor?: CallActor, admission?: AudioCall, callId?: string): Promise<T> {
     const db = await pool.connect();
     try {
       await db.query("begin");
-      // Only admission needs serialization across participants (including crossed
-      // calls). Polls and actions lock the actor's rows, never the whole table.
-      if (!actor) await db.query("lock table platform.audio_calls in exclusive mode");
+      const participants = admission ? [...new Set([admission.caller.id,admission.callee.id,...(admission.recipients ?? []).map(p=>p.id)])].sort() : [];
+      if (admission) {
+        // A stable order also protects crossed A→B / B→A admissions from deadlocks.
+        await db.query("insert into platform.call_admission_locks select unnest($1::uuid[]) order by 1 on conflict do nothing",[participants]);
+        await db.query("select user_id from platform.call_admission_locks where user_id=any($1::uuid[]) order by user_id for update",[participants]);
+      }
       const rows = (
         await db.query<{ data: AudioCall }>(
           actor ? `select data from platform.audio_calls where ${mineWhere}
-            and (data->>'status'<>'ended' or (data->>'createdAt')::bigint >= $3)
-            order by id for update` : "select data from platform.audio_calls order by id",
-          actor ? [actor.userId, actor.organizationId, Date.now() - 86400000] : [],
+            and (data->>'status'<>'ended' or id=$3::uuid)
+            order by id for update` : `select data from platform.audio_calls where id=$2 or
+            (data->>'status'<>'ended' and (data->'caller'->>'id'=any($1::text[]) or data->'callee'->>'id'=any($1::text[])
+              or exists(select 1 from unnest($1::text[]) uid where data->'recipients' @> jsonb_build_array(jsonb_build_object('id',uid))))) order by id for update`,
+          actor ? [actor.userId, actor.organizationId, callId ?? null] : [participants,admission!.id],
         )
       ).rows.map((r) => r.data);
       const original = new Map(rows.map((c) => [c.id, JSON.stringify(c)]));
@@ -56,6 +61,7 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
               : "No answer";
           c.offer = "";
           c.answer = null;
+          if(c.trickle){c.callerCandidates=[];c.calleeCandidates=[];}
         }
       }
       const result = run(rows);
@@ -74,7 +80,7 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
             await db.query("select platform.publish_call_message($1)", [c.id]);
         }
       if (!actor) await db.query(
-        "delete from platform.audio_calls where (data->>'createdAt')::bigint < $1 and data->>'status'='ended'",
+        "delete from platform.audio_calls where id in (select id from platform.audio_calls where (data->>'createdAt')::bigint < $1 and data->>'status'='ended' limit 100)",
         [Date.now() - 86400000],
       );
       await db.query("commit");
@@ -147,20 +153,21 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
       try {
         rows = (await db.query<{ data: AudioCall }>(
           `select data from platform.audio_calls where ${mineWhere}
-           and (data->>'status'<>'ended' or (data->>'createdAt')::bigint >= $3)`,
+           and (data->>'status'<>'ended' or (data->>'createdAt')::bigint >= $3) order by (data->>'status'<>'ended') desc,(data->>'createdAt')::bigint desc limit 30`,
           [actor.userId, actor.organizationId, Date.now() - 86400000],
         )).rows.map(r => r.data);
       } finally { db.release(); }
       // An idle poll is a single read. A call admitted just after this snapshot
       // is delivered by the next poll, just like one created after a commit.
       if (rows.every(c => c.status === "ended")) return project(rows);
+      const history=rows.filter(c=>c.status==='ended');
       return transaction(rows => {
         for (const c of rows) {
           if (c.status === "ended") continue;
           if (partyMatches(c.caller, actor) && c.callerClient === client) c.callerSeen = Date.now();
           if (partyMatches(c.callee, actor) && c.calleeClient === client) c.calleeSeen = Date.now();
         }
-        return project(rows);
+        return project([...rows,...history]);
       }, actor);
     },
     create(call: AudioCall) {
@@ -190,7 +197,20 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
         }
         rows.push(call);
         return call;
-      });
+      }, undefined, call);
+    },
+    async candidates(actor: CallActor, id: string, client: string, candidates: RTCIceCandidateInit[]) {
+      return transaction(rows => {
+        const call = rows.find(c=>c.id===id);
+        if (!call || call.status === "ended") throw new CallError(404,"Call has ended");
+        const caller = partyMatches(call.caller,actor) && call.callerClient===client;
+        const callee = partyMatches(call.callee,actor) && call.calleeClient===client;
+        if (!caller && !callee) throw new CallError(403,"Call is open on another device");
+        const key = caller ? "callerCandidates" : "calleeCandidates";
+        const existing = call[key] ?? [];
+        call[key] = [...new Map([...existing,...candidates].map(c=>[JSON.stringify([c.candidate,c.sdpMid??null,c.sdpMLineIndex??null,c.usernameFragment??null]),c])).values()].slice(0,64);
+        return {ok:true};
+      },actor,undefined,id);
     },
     action(
       actor: CallActor,
@@ -249,9 +269,10 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
           c.endedAt = Date.now();
           c.offer = "";
           c.answer = null;
+          if(c.trickle){c.callerCandidates=[];c.calleeCandidates=[];}
         }
         return c;
-      }, actor);
+      }, actor,undefined,id);
     },
   };
 }

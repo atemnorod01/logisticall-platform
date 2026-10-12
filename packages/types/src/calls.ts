@@ -16,6 +16,9 @@ export type AudioCall = {
   status: "ringing" | "connecting" | "active" | "ended";
   offer: string;
   answer: string | null;
+  trickle?: boolean;
+  callerCandidates?: RTCIceCandidateInit[];
+  calleeCandidates?: RTCIceCandidateInit[];
   createdAt: number;
   ringSeconds?: number;
   conversationId?: string;

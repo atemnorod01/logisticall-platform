@@ -1,3 +1,16 @@
+import { createHash } from "node:crypto";
+// Share only overlapping reads, never a cached authorization result. Every later
+// request still observes membership revocation and profile changes immediately.
+const iamPending = new WeakMap<typeof fetch,Map<string,Promise<Response>>>();
+async function iamFetch(fetcher:typeof fetch,input:URL,init:RequestInit) {
+  if (init.method && init.method !== "GET") return fetcher(input,init);
+  let pending=iamPending.get(fetcher);
+  if(!pending){pending=new Map();iamPending.set(fetcher,pending);}
+  const key=createHash("sha256").update(input.href+"\n"+new Headers(init.headers).get("Authorization")).digest("hex");
+  let request=pending.get(key);
+  if(!request){request=Promise.resolve().then(()=>fetcher(input,init));pending.set(key,request);void request.finally(()=>pending!.delete(key)).catch(()=>{});}
+  return (await request).clone();
+}
 import { industryPage, industryQuery } from '../../../packages/types/src/industry.js';
 import { addressSchema } from "../../../packages/types/src/messaging.js";
 import { z } from "zod";
@@ -24,7 +37,7 @@ export function iamOrganizations(
         offset: String(offset),
         limit: String(limit),
       }).toString();
-      const response = await fetcher(url, {
+      const response = await iamFetch(fetcher,url, {
         headers: { Authorization: `Bearer ${token}` },
         redirect: "error",
         signal: AbortSignal.timeout(5000),
@@ -51,7 +64,7 @@ export function iamGateway(baseUrl: string, fetcher: typeof fetch = fetch) {
   return async (token: string, organizationId: string) => {
     let response: Response;
     try {
-      response = await fetcher(
+      response = await iamFetch(fetcher,
         new URL(
           `/v1/integration/organizations/${encodeURIComponent(organizationId)}/context`,
           base,
@@ -81,7 +94,7 @@ export function iamIdentity(baseUrl: string, fetcher: typeof fetch = fetch) {
   const base = new URL(baseUrl);
   if (base.protocol !== "https:") throw new Error("HTTPS IAM API required");
   return async (token: string) => {
-    const response = await fetcher(new URL("/v1/integration/me", base), {
+    const response = await iamFetch(fetcher,new URL("/v1/integration/me", base), {
       headers: { Authorization: `Bearer ${token}` },
       redirect: "error",
       signal: AbortSignal.timeout(5000),
@@ -130,7 +143,7 @@ export function iamDirectory(baseUrl: string, fetcher: typeof fetch = fetch) {
         limit: String(limit),
         search,
       }).toString();
-      const response = await fetcher(url, {
+      const response = await iamFetch(fetcher,url, {
         headers: { Authorization: `Bearer ${token}` },
         redirect: "error",
         signal: AbortSignal.timeout(5000),
@@ -162,7 +175,7 @@ export function iamGroupEligibility(
   if (base.protocol !== "https:") throw Error("HTTPS IAM API required");
   async function request(token: string, path: string, body?: unknown) {
     try {
-      const response = await fetcher(new URL(path, base), {
+      const response = await iamFetch(fetcher,new URL(path, base), {
         method: body === undefined ? "GET" : "POST",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -235,7 +248,7 @@ export function iamSettings(baseUrl: string, fetcher: typeof fetch = fetch) {
     body?: unknown,
   ): Promise<unknown> => {
     try {
-      const response = await fetcher(new URL("/v1/integration" + path, base), {
+      const response = await iamFetch(fetcher,new URL("/v1/integration" + path, base), {
         method,
         headers: {
           Authorization: `Bearer ${token}`,
@@ -271,7 +284,7 @@ export function iamMessaging(baseUrl: string, fetcher: typeof fetch = fetch) {
       base,
     );
     url.search = new URLSearchParams(query).toString();
-    const response = await fetcher(url, {
+    const response = await iamFetch(fetcher,url, {
       headers: { Authorization: `Bearer ${token}` },
       redirect: "error",
       signal: AbortSignal.timeout(5000),
@@ -323,7 +336,7 @@ export function iamIndustry(baseUrl: string, fetcher: typeof fetch = fetch) {
     try {
       const url = new URL(`/v1/integration/organizations/${encodeURIComponent(org)}/industry-directory`, base);
       url.search = new URLSearchParams({search: input.search, type: input.type, offset: String(input.offset),...(input.onPlatformOnly?{onPlatformOnly:'true'}:{})}).toString();
-      const response = await fetcher(url, {headers:{Authorization:`Bearer ${token}`},redirect:'error',signal:AbortSignal.timeout(5000)});
+      const response = await iamFetch(fetcher,url, {headers:{Authorization:`Bearer ${token}`},redirect:'error',signal:AbortSignal.timeout(5000)});
       if (!response.ok) throw new IamFailure([401,403].includes(response.status)?response.status:503);
       return industryPage.parse(await response.json());
     } catch(error) { throw error instanceof IamFailure ? error : new IamFailure(503); }

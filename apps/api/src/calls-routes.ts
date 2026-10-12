@@ -47,6 +47,7 @@ export function callsRoutes(
     .object({ conversationId: z.uuid(), groupId: z.uuid().optional() })
     .optional();
   const input = z.discriminatedUnion("action", [
+    z.object({action:z.literal("candidates"),client:z.uuid(),id:z.uuid(),candidates:z.array(z.object({candidate:z.string().max(2048),sdpMid:z.string().max(100).nullable().optional(),sdpMLineIndex:z.number().int().min(0).max(20).nullable().optional(),usernameFragment:z.string().max(256).nullable().optional()})).min(1).max(32)}),
     z.object({ action: z.literal("preferences"), client: z.uuid() }),
     z.object({
       action: z.literal("savePreferences"),
@@ -67,6 +68,7 @@ export function callsRoutes(
       id: z.uuid(),
       target: z.object({ id: z.uuid(), organizationId: z.uuid(), kind: z.enum(["user","group"]).optional() }),
       offer: description,
+      trickle:z.boolean().optional(),
       source: z
         .object({ conversationId: z.uuid(), groupId: z.uuid().optional() })
         .optional(),
@@ -136,7 +138,9 @@ export function callsRoutes(
       if (data.action === "review") { await deps.store.review(actor, data.before); return { unread: await deps.store.unread(actor) }; }
       if (data.action === "sync") {
         const calls = await deps.store.sync(actor, data.client);
-        const allowed = await Promise.all(calls.map(async c => !c.team || c.caller.id === actor.userId || await deps.canReceiveTeam?.(token,actor,c.team) === true));
+        const teams = new Map(calls.filter(c=>c.team && c.caller.id!==actor.userId).map(c=>[`${c.team!.organizationId}:${c.team!.id}`,c.team!]));
+        const permissions = new Map(await Promise.all([...teams].map(async ([key,team])=>[key,await deps.canReceiveTeam?.(token,actor,team)===true] as const)));
+        const allowed = calls.map(c=>!c.team || c.caller.id===actor.userId || permissions.get(`${c.team.organizationId}:${c.team.id}`));
         return {
           calls: calls.filter((_,index)=>allowed[index]),
           unread: await deps.store.unread(actor),
@@ -197,6 +201,7 @@ export function callsRoutes(
             : {}),
           offer: unavailable ? "" : data.offer,
           answer: null,
+          ...(data.trickle ? {trickle:true} : {}),
           createdAt: now,
           ringSeconds: preferences.ringSeconds,
           acceptedAt: null,
@@ -216,6 +221,7 @@ export function callsRoutes(
       const existing = (await deps.store.sync(actor,data.client)).find(c=>c.id===data.id);
       if (existing?.team && existing.caller.id !== actor.userId && !(await deps.canReceiveTeam?.(token,actor,existing.team)))
         throw new CallError(403,"You are no longer a member of this team.");
+      if (data.action === "candidates") return deps.store.candidates(actor,data.id,data.client,data.candidates.map(c=>({candidate:c.candidate,sdpMid:c.sdpMid ?? null,sdpMLineIndex:c.sdpMLineIndex ?? null,usernameFragment:c.usernameFragment ?? null})));
       return {
         call: await deps.store.action(
           actor,

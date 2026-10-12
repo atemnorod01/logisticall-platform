@@ -60,6 +60,11 @@ export function buildApp(
       .header("Referrer-Policy", "no-referrer")
       .header("X-Frame-Options", "DENY");
   });
+  app.addHook("onSend", async (request, reply, payload) => {
+    reply.header("Server-Timing", `app;dur=${reply.elapsedTime.toFixed(1)}`);
+    if(reply.elapsedTime>1000) console.warn(JSON.stringify({event:"slow_request",route:request.routeOptions.url,method:request.method,status:reply.statusCode,durationMs:Math.round(reply.elapsedTime)}));
+    return payload;
+  });
   app.setErrorHandler((error, _request, reply) => {
     // Database/provider error text may contain connection or account details.
     if (error instanceof z.ZodError)

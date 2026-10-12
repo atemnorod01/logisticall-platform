@@ -102,6 +102,9 @@ export const conversationPage = z.object({
   nextOffset: z.number().nullable(),
 });
 export const messagePage = z.object({
+  changeVersion:z.number().optional(),
+  moreChanges:z.boolean().default(false),
+  receiptState:z.array(z.object({name:z.string(),sequence:z.number(),internal:z.boolean()})).optional(),
   identityVersion: z.string().default(""),
   typing: z.boolean().default(false),
   typingExpiresAt: z.string().nullable().default(null),

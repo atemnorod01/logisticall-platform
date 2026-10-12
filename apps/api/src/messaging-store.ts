@@ -35,38 +35,37 @@ export function postgresMessaging(
   presence?: Pick<PresenceStore, "read">,
   storage?: MediaStorage,
 ) {
-  async function enrich(
-    c: PoolClient,
-    row: Conversation,
-    endpoint: Address,
-  ): Promise<Conversation> {
+  async function enrichMany(c: PoolClient, rows: Conversation[], endpoints: Address[]): Promise<Conversation[]> {
+    if (!rows.length) return [];
+    // One round trip for the whole page; peer visibility is still checked by SQL.
     const result = await c.query(
-      "select platform.messaging_peer_profile($1,$2::jsonb) as profile",
-      [row.id, JSON.stringify(endpoint)],
+      `select item->>'id' as id, platform.messaging_peer_profile((item->>'id')::uuid,item->'endpoint') as profile
+       from jsonb_array_elements($1::jsonb) item`,
+      [JSON.stringify(rows.map((row, i) => ({id: row.id, endpoint: endpoints[i]})))],
     );
-    const profile = result.rows[0]?.profile;
-    if (!profile) return row;
-    let status: PresenceStatus = "unknown";
-    if (presence) {
-      try {
-        const ids: string[] = profile.userIds ?? [];
-        const values = await presence.read(endpoint.organizationId, ids);
-        status = aggregatePresence(ids.map((id) => values[id] ?? "offline"));
-      } catch {
-        /* An unavailable presence service is not evidence of offline members. */
-      }
-    }
-    return {
-      ...row,
-      peer: { ...row.peer, name: profile.name },
-      identity: {
-        contactName: profile.contactName,
-        presence: status,
-        dot: profile.dot,
-        mc: profile.mc,
-        inNetwork: profile.inNetwork,
-      },
-    };
+    const profiles = new Map(result.rows.map(r => [r.id, r.profile]));
+    const organizations = new Map<string, Set<string>>();
+    rows.forEach((row, i) => {
+      const org = endpoints[i]!.organizationId;
+      if (!organizations.has(org)) organizations.set(org, new Set());
+      for (const id of profiles.get(row.id)?.userIds ?? []) organizations.get(org)!.add(id);
+    });
+    const statuses = new Map<string, Record<string, PresenceStatus>>();
+    if (presence) await Promise.all([...organizations].map(async ([org, ids]) => {
+      try { statuses.set(org, await presence.read(org, [...ids])); } catch { /* Unknown is not offline. */ }
+    }));
+    return rows.map((row, i) => {
+      const profile = profiles.get(row.id);
+      if (!profile) return row;
+      const values = statuses.get(endpoints[i]!.organizationId);
+      return {...row, peer: {...row.peer, name: profile.name}, identity: {
+        contactName: profile.contactName, dot: profile.dot, mc: profile.mc, inNetwork: profile.inNetwork,
+        presence: values ? aggregatePresence((profile.userIds ?? []).map((id: string) => values[id] ?? "offline")) : "unknown",
+      }};
+    });
+  }
+  async function enrich(c: PoolClient, row: Conversation, endpoint: Address) {
+    return (await enrichMany(c, [row], [endpoint]))[0]!;
   }
 
   async function transaction<T>(
@@ -512,6 +511,19 @@ export function postgresMessaging(
       }
       return file;
     },
+    unreadOverview(a:MessageActor,inbox:Address) {
+      return transaction(a,inbox,async c=>{
+        const result=await c.query(`with unread as materialized (
+          select c.id,coalesce(r.last_sequence,0) as last_sequence from platform.conversations c
+          left join platform.conversation_reads r on r.conversation_id=c.id and r.address_key=$1 and r.user_id=$2
+          where not c.departures ? $1 and (a @> $3::jsonb or b @> $3::jsonb or participants @> jsonb_build_array($3::jsonb))
+          and exists(select 1 from platform.messages m where m.conversation_id=c.id and m.actor_id<>$2 and m.sequence>coalesce(r.last_sequence,0)))
+          select (select count(*)::int from unread) as unread,
+          array(select m.id from unread u join platform.messages m on m.conversation_id=u.id where m.actor_id<>$2 and m.deleted_at is null and m.sequence>u.last_sequence limit 100) as ids`,
+          [addressKey(inbox),a.userId,JSON.stringify({kind:inbox.kind,id:inbox.id,organizationId:inbox.organizationId,...(inbox.membershipKey?{membershipKey:inbox.membershipKey}:{})})]);
+        return result.rows[0] as {unread:number;ids:string[]};
+      });
+    },
     unreadMessages(a: MessageActor, inbox: Address) {
       return transaction(a, inbox, async c => {
         const result = await c.query<{ id: string }>(`select m.id from platform.messages m
@@ -584,7 +596,8 @@ export function postgresMessaging(
  left join platform.conversation_reads r on r.conversation_id=c.id and r.address_key=$2 and r.user_id=$5
  left join lateral (select body,internal,reply_to,created_at,deleted_at,actor_id,actor_name from platform.messages m where m.conversation_id=c.id order by sequence desc limit 1) last on true
  left join lateral (select count(*) filter(where m.actor_id<>$5 and m.sequence>coalesce(r.last_sequence,0))::int as unread,
- max(m.sequence) filter(where not m.internal) as public_sequence from platform.messages m where m.conversation_id=c.id) activity on true
+ (select sequence from platform.messages p where p.conversation_id=c.id and not p.internal order by sequence desc limit 1) as public_sequence
+ from platform.messages m where m.conversation_id=c.id and m.sequence>coalesce(r.last_sequence,0)) activity on true
  where (a @> $1::jsonb or b @> $1::jsonb or participants @> jsonb_build_array($1::jsonb))
  and (last.created_at is not null or c.history_limits ? $2)
  and ($3='' or strpos(lower(concat_ws(' ',a->>'name',b->>'name',a->>'organizationName',b->>'organizationName')),lower($3))>0)
@@ -633,21 +646,18 @@ export function postgresMessaging(
           };
         });
         return {
-          conversations: await Promise.all(
-            rows
-              .slice(0, 30)
-              .map((item, i) =>
-                item.kind === "team"
-                  ? Promise.resolve(item)
-                  : enrich(
-                      c,
-                      item,
-                      conversationShape(r.rows[i],inbox).peer,
-                    ),
-              ),
-          ),
+          conversations: await enrichMany(c, rows.slice(0, 30), r.rows.slice(0, 30).map(row => conversationShape(row,inbox).peer)),
           nextOffset: rows.length > 30 ? offset + 30 : null,
         };
+      });
+    },
+    presence(a: MessageActor, inbox: Address, ids: string[]) {
+      return transaction(a, inbox, async c => {
+        const result = await c.query(`select * from platform.conversations where id=any($1::uuid[])
+          and platform.messaging_selected_access(a,b,participants)`, [ids]);
+        const endpoints = result.rows.map(row => conversationShape(row,inbox).peer);
+        const rows = result.rows.map((row,i) => ({id:row.id,peer:publicAddress(endpoints[i]!)} as Conversation));
+        return (await enrichMany(c, rows, endpoints)).map(row => ({id:row.id,identity:row.identity}));
       });
     },
     detail(a: MessageActor, inbox: Address, id: string) {
@@ -655,7 +665,7 @@ export function postgresMessaging(
         summary(c, a, await get(c, id, inbox,false,true), inbox),
       );
     },
-    messages(a: MessageActor, inbox: Address, id: string, before: number) {
+    messages(a: MessageActor, inbox: Address, id: string, before: number, changes?: {after: number; oldest: number}) {
       return transaction(a, inbox, async (c) => {
         const conversation = await get(c, id, inbox,false,true);
         const identities = await c.query(
@@ -666,7 +676,12 @@ export function postgresMessaging(
           addressKey(sender) === addressKey(conversation.a)
             ? identities.rows[0].a
             : identities.rows[0].b;
-        const r = await c.query(
+        const changeVersion = Number((conversation as unknown as {change_revision:number}).change_revision ?? 0);
+        const r = changes ? await c.query(
+          `select * from platform.messages where conversation_id=$1 and not (internal and reply_to is not null)
+           and change_revision>$2 and change_revision<=$3 and sequence>=$4 order by change_revision limit 51`,
+          [id,changes.after,changeVersion,changes.oldest],
+        ) : await c.query(
           "select * from platform.messages where conversation_id=$1 and not (internal and reply_to is not null) and sequence<$2 order by sequence desc limit 51",
           [id, before],
         );
@@ -710,7 +725,13 @@ export function postgresMessaging(
             } catch { /* Omit unavailable individual presence. */ }
           }));
         }
+        const receiptState = conversation.a.kind === "user" && conversation.b.kind === "user"
+          ? (conversation.participants.length ? conversation.participants : [conversation.a,conversation.b]).filter(p=>p.id!==a.userId).map(p=>({name:p.name,sequence:Math.max(0,...reads.rows.filter(v=>v.user_id===p.id).map(v=>Number(v.last_sequence))),internal:true}))
+          : reads.rows.filter(v=>v.user_id!==a.userId).map((v,i)=>({name:`Participant ${i+1}`,sequence:Number(v.last_sequence),internal:v.address_key===addressKey(inbox)}));
         return {
+          changeVersion: changes && r.rows.length>50 ? Number(r.rows[49]!.change_revision) : changeVersion,
+          moreChanges: !!changes && r.rows.length>50,
+          receiptState,
           typing: !conversation.departures?.[addressKey(inbox)] && typing.rows.length > 0,
           typingExpiresAt: typing.rows[0]?.expires_at.toISOString() ?? null,
           identityVersion: JSON.stringify([identities.rows[0],conversation.participants,conversation.history_limits,conversation.departures,conversation.group_owner]),
