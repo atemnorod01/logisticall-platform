@@ -2407,3 +2407,10 @@
 
 /* External direct chats keep company context on the name line. */
 #app.tenant-ui .conversation-card-top .lc-direct-company { font-size:calc(12px * var(--font-scale, 1)); font-weight:400; color:var(--muted); }
+
+#app.tenant-ui .lc-call-dropdown .lc-call-people {max-height:256px;overflow-y:auto;}
+#app.tenant-ui .lc-call-team-option {border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:6px;}
+#app.tenant-ui .lc-call-team-option > button {display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:transparent;border:0;}
+#app.tenant-ui .lc-call-team-option > button > span:nth-child(2) {flex:1;min-width:0;}
+#app.tenant-ui .lc-call-team-option strong,#app.tenant-ui .lc-call-team-option small {display:block;}
+#app.tenant-ui .lc-call-team-option small {color:var(--muted);}

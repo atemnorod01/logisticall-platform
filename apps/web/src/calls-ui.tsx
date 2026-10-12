@@ -232,7 +232,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
                 : state.preparing
                   ? ({ microphone: "Connecting microphone…", network: "Preparing audio connection…", signaling: "Starting call…" }[state.preparation])
                   : ringing
-                    ? "Calling you…"
+                    ? (call?.team ? `Calling ${call.team.name}…` : "Calling you…")
                     : call
                       ? "Ringing…"
                       : "Audio call"}

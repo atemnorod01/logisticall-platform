@@ -234,7 +234,7 @@ export function callController(
       const result = await request({
         action: "create",
         id,
-        target: { id: target.id, organizationId: target.organizationId },
+        target: { id: target.id, organizationId: target.organizationId, ...(target.kind ? {kind:target.kind} : {}) },
         offer,
         ...(target.conversationId
           ? {
@@ -260,7 +260,8 @@ export function callController(
         "code" in e &&
         e.code === "recipient_unavailable"
       )
-        beginVoicemail(target, id);
+        if (target.kind !== "group") beginVoicemail(target, id);
+        else await failed(e, version);
       else await failed(e, version);
     }
   }
@@ -316,7 +317,7 @@ export function callController(
         owns(previous) &&
         !incoming(previous) &&
         !previous.acceptedAt &&
-        outgoingTarget &&
+        outgoingTarget && outgoingTarget.kind !== "group" &&
         ended &&
         ["No answer", "Declined"].includes(ended.reason ?? "")
       ) {

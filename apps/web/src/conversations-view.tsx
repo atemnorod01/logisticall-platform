@@ -112,8 +112,8 @@ export function Conversations({
     if(!names.length)return "";
     return `${names.join(", ")} ${names.length===1?"is":"are"} typing…`;
   }
-  const [callPeople,setCallPeople] = useState<Address[] | null>(null);
-  const [callTarget,setCallTarget] = useState<{person:Address;direct:boolean} | null>(null);
+  const [callPeople,setCallPeople] = useState<(Address & {presence?:string | undefined})[] | null>(null);
+  const [callTeams,setCallTeams] = useState<(Address & {presence?:string | undefined})[]>([]);
   const [callLoading,setCallLoading] = useState(false);
   const callMenu = useRef<HTMLDivElement>(null);
   useEffect(()=>{
@@ -123,24 +123,51 @@ export function Conversations({
     const escape=(e:KeyboardEvent)=>{if(e.key==="Escape"){setCallPeople(null);callMenu.current?.querySelector<HTMLButtonElement>('[aria-haspopup="menu"]')?.focus();}};
     document.addEventListener("pointerdown",outside);document.addEventListener("keydown",escape);
     return()=>{document.removeEventListener("pointerdown",outside);document.removeEventListener("keydown",escape);};
-  },[callPeople]);
+  },[Boolean(callPeople)]);
   useEffect(()=>setCallPeople(null),[state.selected?.id]);
+  useEffect(()=>{
+    if (!callPeople) return;
+    let live=true, busy=false;
+    const refresh=async()=>{
+      if(busy || document.visibilityState!=="visible")return;
+      busy=true;
+      try {
+        const selected=controller.snapshot().selected;
+        if(!selected)return;
+        const data=participantDetailsSchema.parse(await controller.request(controller.path("/participants")));
+        if(!live || controller.snapshot().selected?.id!==selected.id)return;
+        setCallTeams(data.participants.filter(p=>p.kind==="group" && p.id!==selected.inbox.id));
+        const people=new Map<string,Address & {presence?:string | undefined}>();
+        for(const p of data.participants) for(const person of p.kind==="group"?p.members.map(m=>({...p,kind:"user" as const,id:m.id,name:m.name,presence:m.presence})):[p])
+          if(person.id!==userId && person.presence==="available")people.set(person.organizationId+person.id,person);
+        setCallPeople([...people.values()]);
+      } catch { /* Keep menu stable during transient network errors. */ }
+      finally {busy=false;}
+    };
+    const timer=setInterval(()=>void refresh(),5000);
+    return()=>{live=false;clearInterval(timer);};
+  },[Boolean(callPeople),controller,userId]);
+
   async function chooseCallPerson() {
     if(callPeople){setCallPeople(null);return;}
     const selected = controller.snapshot().selected;
     if (!selected || callLoading) return;
+    if (isIndividualConversation(selected)) {
+      onCall({...selected.peer,conversationId:selected.id,...(state.groupId?{groupId:state.groupId}:{})});
+      return;
+    }
     setCallLoading(true);
     try {
       const data=participantDetailsSchema.parse(await controller.request(controller.path("/participants")));
       if(controller.snapshot().selected?.id !== selected.id)return;
-      const unique = new Map<string,Address>();
+      setCallTeams(data.participants.filter(p=>p.kind==="group" && p.id!==selected.inbox.id));
+      const unique = new Map<string,Address & {presence?:string | undefined}>();
       for(const p of data.participants) {
-        const people=p.kind==="group"?p.members.map(m=>({...p,kind:"user" as const,id:m.id,name:m.name})):[p];
+        const people=p.kind==="group"?p.members.map(m=>({...p,kind:"user" as const,id:m.id,name:m.name,presence:m.presence})):[p];
         for(const person of people) if(!(person.id===userId && person.organizationId===organizationId)) unique.set(person.organizationId+person.id,person);
       }
-      const people=[...unique.values()];
-      if(people.length)setCallPeople(people);
-      else setNotice("There are no other participants to call.");
+      const people=[...unique.values()].filter(p=>p.presence==="available");
+      setCallPeople(people);
     } catch {setNotice("Could not load people to call. Please try again.");}
     finally {setCallLoading(false);}
   }
@@ -148,7 +175,7 @@ export function Conversations({
     guard(()=>{void controller.directParticipant({id:person.id,organizationId:person.organizationId}).then(conversation=>{
       if(!conversation)return;
       setDetail(false);setNarrow(true);setSearchOpen(false);setSearchHit(null);
-      if(call)setCallTarget({person,direct:true});
+      if(call)onCall({...person,conversationId:conversation.id});
     });});
   }
   const searchOrigin = useRef<Conversation | null>(null), searchSelection = useRef(0);
@@ -1018,8 +1045,10 @@ export function Conversations({
               e.preventDefault();const items=Array.from(e.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]'));const index=items.indexOf(document.activeElement as HTMLButtonElement);
               items[e.key==="Home"?0:e.key==="End"?items.length-1:(index+(e.key==="ArrowDown"?1:-1)+items.length)%items.length]?.focus();
             }}>
-              <div className="lc-call-menu-heading">Call in this conversation</div>
-              <div className="lc-call-people">{callPeople.map(person=><button role="menuitem" className="button" key={person.organizationId+person.id} onClick={()=>{setCallPeople(null);setCallTarget({person,direct:false});}}><Avatar name={person.name}/><span><strong>{person.name}</strong><small>{person.organizationName}</small></span><Icon name="phone"/></button>)}</div>
+              {callTeams.map(team=><div className="lc-call-team-option" key={team.id}><button role="menuitem" className="button" onClick={()=>{setCallPeople(null);onCall({...team,kind:"group",conversationId:active!.id,...(state.groupId?{groupId:state.groupId}:{})});}}><Avatar name={team.organizationName} presence={team.presence}/><span><strong>Call {team.name}</strong><small>{team.organizationName}</small></span><Icon name="phone"/></button></div>)}
+              <div className="lc-call-menu-heading">Available people</div>
+              {!callPeople.length && <div className="lc-call-menu-heading">No members are available right now.</div>}
+              <div className="lc-call-people">{callPeople.map(person=><button role="menuitem" className="button" key={person.organizationId+person.id} onClick={()=>{setCallPeople(null);onCall({...person,conversationId:active!.id,...(state.groupId?{groupId:state.groupId}:{})});}}><Avatar name={person.name} presence={person.presence}/><span><strong>{person.name}</strong><small>{person.organizationName}</small></span><Icon name="phone"/></button>)}</div>
             </div>}
             </div>
             <button
@@ -1265,15 +1294,7 @@ export function Conversations({
 
         </aside>
       )}
-      {callTarget && <Modal className="lc-compact-call" title={<><Icon name="phone" />{callTarget.direct ? "Direct call" : "Conversation call"}</>} onClose={()=>setCallTarget(null)}>
-        <div className="lc-compact-call-identity">
-          <Avatar name={callTarget.person.name}/>
-          <div><h3>{callTarget.person.name}</h3><p className="lc-compact-call-company">{callTarget.person.organizationName}</p><p className="lc-compact-call-status">Ready to call</p></div>
-        </div>
-        <div className="lc-compact-call-actions">
-          <button className="button primary" disabled={callDisabled || !active} onClick={()=>{if(active)onCall({...callTarget.person,conversationId:active.id,...(state.groupId?{groupId:state.groupId}:{})});setCallTarget(null);}}><Icon name="phone"/>Start audio call</button>
-        </div>
-      </Modal>}
+
       {confirm && (
         <Modal title={confirm.title} onClose={() => setConfirm(null)}>
           <p>
