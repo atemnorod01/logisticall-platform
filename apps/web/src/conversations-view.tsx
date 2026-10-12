@@ -152,7 +152,7 @@ export function Conversations({
     if(callPeople){setCallPeople(null);return;}
     const selected = controller.snapshot().selected;
     if (!selected || callLoading) return;
-    if (isIndividualConversation(selected)) {
+    if (selected.kind !== "team" && selected.peer.kind === "user") {
       onCall({...selected.peer,conversationId:selected.id,...(state.groupId?{groupId:state.groupId}:{})});
       return;
     }
