@@ -20,6 +20,8 @@ import {
 } from "../../../packages/types/src/messaging.js";
 import {
   conversationTitle,
+  conversationOrganization,
+  isIndividualConversation,
   conversationGroup,
   companyIdentifiers,
 } from "./conversation-identity.js";
@@ -854,9 +856,9 @@ export function Conversations({
               aria-pressed={active?.id === c.id}
             >
               <span
-                className={`conversation-avatar ${c.peer.organizationId !== organizationId && c.identity?.inNetwork ? "lc-network-avatar" : ""}`}
+                className={`conversation-avatar ${!isIndividualConversation(c) && c.peer.organizationId !== organizationId && c.identity?.inNetwork ? "lc-network-avatar" : ""}`}
                 title={
-                  c.peer.organizationId !== organizationId &&
+                  !isIndividualConversation(c) && c.peer.organizationId !== organizationId &&
                   c.identity?.inNetwork
                     ? "Company in your network"
                     : undefined
@@ -877,6 +879,7 @@ export function Conversations({
                   </span>
                   <time>{inboxTime(c.updatedAt)}</time>
                 </span>
+                {conversationOrganization(c) && <small>{conversationOrganization(c)}</small>}
                 <span className="conversation-card-bottom">
                   <small>
                     {typingLabel(c.id) ? <span className="lc-typing-label">{typingLabel(c.id)}</span> : drafts.current.read(scope, c.id).text.trim() ? (
@@ -937,9 +940,9 @@ export function Conversations({
             </button>
             {active && (
               <span
-                className={`conversation-avatar ${active.peer.organizationId !== organizationId && active.identity?.inNetwork ? "lc-network-avatar" : ""}`}
+                className={`conversation-avatar ${!isIndividualConversation(active) && active.peer.organizationId !== organizationId && active.identity?.inNetwork ? "lc-network-avatar" : ""}`}
                 title={
-                  active.peer.organizationId !== organizationId &&
+                  !isIndividualConversation(active) && active.peer.organizationId !== organizationId &&
                   active.identity?.inNetwork
                     ? "Company in your network"
                     : undefined
@@ -959,7 +962,8 @@ export function Conversations({
               {active && conversationGroup(active, organizationId) && <span className="lc-peer-group-badge" title={conversationGroup(active, organizationId)}>{conversationGroup(active, organizationId)}</span>}
               </div>
               {active?.kind === "team" && <small>Group conversation</small>}
-              {active && active.peer.organizationId !== organizationId && (
+              {active && conversationOrganization(active) && <small>{conversationOrganization(active)}</small>}
+              {active && !isIndividualConversation(active) && active.peer.organizationId !== organizationId && (
                 <>
                   {companyIdentifiers(active) && (
                     <small className="lc-company-identifiers">
@@ -1651,7 +1655,8 @@ function ChatAvatar({
   userId: string;
 }) {
   const external = c.peer.organizationId !== organizationId;
-  const network = external && Boolean(c.identity?.inNetwork);
+  const individual = isIndividualConversation(c);
+  const network = external && !individual && Boolean(c.identity?.inNetwork);
   if (c.kind === "team") {
     const peers = c.participants?.filter(p => p.id !== userId).slice(0, 4) ?? [];
     return <span className={`lc-group-avatars lc-group-segments-${peers.length}`} role="img" aria-label={`Group conversation: ${peers.map(p => p.name).join(", ")}`}>
@@ -1662,7 +1667,7 @@ function ChatAvatar({
     <Avatar
       name={conversationTitle(c, organizationId)}
       inNetwork={network}
-      presence={external ? (network ? companyPresence[c.peer.organizationId] ?? "unknown" : undefined) : c.identity?.presence ?? "unknown"}
+      presence={external && !individual ? (network ? companyPresence[c.peer.organizationId] ?? "unknown" : undefined) : c.identity?.presence ?? "unknown"}
     />
   );
 }
