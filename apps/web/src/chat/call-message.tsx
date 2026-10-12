@@ -2,9 +2,6 @@ import type { Message } from "../../../../packages/types/src/messaging.js";
 import { Icon } from "../ui.js";
 import { AudioPlayer } from "./audio-player.js";
 import "../styles/call-messages.css";
-export function callCallerLabel(call: NonNullable<Message["callEvent"]>) {
-  return call.sourceTeamName ? `${call.callerName} · ${call.sourceTeamName}` : call.callerName;
-}
 export function CallMessage({
   message: m,
   urls,
@@ -15,7 +12,7 @@ export function CallMessage({
   onPerson: () => void;
 }) {
   const call = m.callEvent!;
-  const callerLabel = callCallerLabel(call);
+  const callerLabel = call.callerName;
   const role = call.viewerRole ?? (m.own ? "caller" : "callee");
   // Bubble direction follows the selected inbox, including calls by teammates.
   const outgoing = m.outgoing;
@@ -50,7 +47,7 @@ export function CallMessage({
       <div className="lc-message-heading">
         {observer ? (
           <span className="sender-name">
-            {`${callerLabel} → ${call.calleeName}`}
+            {callerLabel}
           </span>
         ) : !outgoing ? (
           <button type="button" className="sender-name" onClick={onPerson}>
@@ -78,7 +75,7 @@ export function CallMessage({
                 ? duration
                 : (reason[call.reason] ?? "Not connected")}
           </span>
-          {outgoing && <p>To {call.calleeName}</p>}
+          {(outgoing || observer) && <p>To {call.calleeName}</p>}
         </div>
         {call.voicemailId &&
           m.attachments
