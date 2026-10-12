@@ -642,15 +642,27 @@ body[data-tenant-theme="dark"] .logisticall-logo .brand-dark { display:block; }
  font-weight:700; border:2px solid var(--panel, #fff); pointer-events:none;
 }
 
-/* Static, cached wallpaper: only the message area, never the inbox or controls. */
-#app.tenant-ui.conversation-workspace .thread .messages {
+/* One static wallpaper behind the timeline and translucent conversation chrome. */
+#app.tenant-ui.conversation-workspace .lc-messaging > .thread {
   background-color: var(--panel);
   background-image: linear-gradient(#0b0d0ebb, #0b0d0ebb), url('/backgrounds/freight-doodles-v2.jpg');
   background-size: auto, 600px auto;
   background-repeat: repeat;
   background-blend-mode: normal, normal;
 }
-body[data-tenant-theme="light"] #app.tenant-ui.conversation-workspace .thread .messages {
+body[data-tenant-theme="light"] #app.tenant-ui.conversation-workspace .lc-messaging > .thread {
   background-image: linear-gradient(#edf0f3c4, #edf0f3c4), url('/backgrounds/freight-doodles-v2.jpg');
   background-blend-mode: normal, difference;
+}
+
+#app.tenant-ui.conversation-workspace .lc-messaging > .thread .messages {
+  background: transparent;
+}
+#app.tenant-ui.conversation-workspace .lc-messaging > .thread > .thread-head,
+#app.tenant-ui.conversation-workspace .lc-messaging > .thread > .composer {
+  background: color-mix(in srgb, var(--panel) 65%, transparent);
+}
+#app.tenant-ui.conversation-workspace .lc-messaging > .thread > .composer {
+  margin-bottom: 0;
+  padding-bottom: 14px;
 }
