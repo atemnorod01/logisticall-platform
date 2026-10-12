@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { RemoveMembership } from './remove-membership.js';
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
@@ -251,7 +252,7 @@ export function MemberEditor({
             <p role="status">{notice}</p>
           ) : null}
         </div>
-        {!member && !error && <p role="status">Loading member…</p>}
+        {!member && !error && <LoadingSkeleton variant="details" rows={4} />}
         {member && tab === "details" && (
           <form
             className="lc-form lc-member-details-form"
@@ -350,7 +351,7 @@ export function MemberEditor({
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            {!groupsReady && !error && <p role="status">Loading teams…</p>}
+            {!groupsReady && !error && <LoadingSkeleton variant="details" rows={4} />}
             {groups
               .filter((g) =>
                 g.name.toLowerCase().includes(search.toLowerCase()),

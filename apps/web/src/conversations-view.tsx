@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { subscribeWorkspace } from "./realtime.js";
 import type { CallTarget } from "../../../packages/types/src/calls.js";
 import { GlobalSearch } from "./chat/global-search.js";
@@ -933,9 +934,9 @@ export function Conversations({
             </button>
           ))}
           {!state.rows.length && (
-            <div className="empty">
+            <div className={state.loading ? "" : "empty"}>
               {state.loading
-                ? "Loading conversations…"
+                ? <LoadingSkeleton />
                 : state.error
                   ? "Conversations unavailable."
                   : "No conversations here yet."}
@@ -1104,9 +1105,9 @@ export function Conversations({
               </button>
             </div>
           ) : !state.messages.length ? (
-            <div className="empty">
+            <div className={state.timelineLoading ? "" : "empty"}>
               {state.timelineLoading
-                ? "Loading messages…"
+                ? <LoadingSkeleton variant="messages" rows={4} />
                 : `Start the conversation with ${active.peer.name}.`}
             </div>
           ) : (
@@ -1365,9 +1366,9 @@ export function Conversations({
                 </button>
               ))}
           </div>
-          <div role="status" className="lc-messaging-status">
+          <div role="status" className={forwardLoading && !forwardTargets.length ? "" : "lc-messaging-status"}>
             {forwardLoading
-              ? "Loading conversations…"
+              ? !forwardTargets.length ? <LoadingSkeleton rows={4} /> : null
               : !forwardTargets.length
                 ? "No other conversations yet."
                 : notice}
@@ -1590,9 +1591,9 @@ function NewConversation({
               </button>
             ))}
           {!rows.length && (
-            <p className="empty">
-              {loading ? "Loading…" : failure || "No matching contacts."}
-            </p>
+            <div className={loading ? "" : "empty"}>
+              {loading ? <LoadingSkeleton rows={4} /> : failure || "No matching contacts."}
+            </div>
           )}
         </div>
         {tab === "team" && (

@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import type { OrganizationContext } from "../../../packages/types/src/index.js";
 import { contactIds, contactsController } from "./contacts.js";
@@ -223,9 +224,9 @@ export function Contacts({
             </div>
           ))}
           {!rows.length && (
-            <div className="empty" role="status">
+            <div className={loading ? "" : "empty"} role="status">
               {loading
-                ? "Loading contacts…"
+                ? <LoadingSkeleton />
                 : state.error
                   ? "Directory unavailable."
                   : filter === "personal"

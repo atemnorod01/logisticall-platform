@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { useEffect, useState } from "react";
 import {
   voicemailSettings,
@@ -127,7 +128,7 @@ export function VoicemailSettingsEditor({
             </button>
           </div>
         ) : (
-          <p role="status">Loading…</p>
+          <LoadingSkeleton variant="details" rows={3} />
         )
       ) : (
         <>

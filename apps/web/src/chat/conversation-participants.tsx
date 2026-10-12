@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../loading-skeleton.js";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import {
@@ -223,7 +224,7 @@ export function ConversationParticipants({
               ＋ Add people
             </button>
           </div>
-          {!data && !error && <p className="sub">Loading participants…</p>}
+          {!data && !error && <LoadingSkeleton variant="details" rows={4} />}
           {data &&
             [...new Set(data.participants.map((p) => p.organizationId))].map(
               (org) => (
@@ -436,9 +437,9 @@ export function ConversationParticipants({
                 ))}
               </div>
               {!people.some(p => !existing(p)) && (
-                <p className="sub">
-                  {loading ? "Loading…" : "No matching contacts."}
-                </p>
+                <div>
+                  {loading ? <LoadingSkeleton rows={3} /> : "No matching contacts."}
+                </div>
               )}
               <div className="row-actions">
                 {offset > 0 && (

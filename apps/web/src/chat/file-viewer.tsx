@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../loading-skeleton.js";
 import { createPortal } from "react-dom";
 import { useEffect, useRef, useState } from "react";
 import type { Attachment } from "../../../../packages/types/src/messaging.js";
@@ -198,7 +199,7 @@ function OfficeDocument({
     };
   }, [url, mime]);
   if (error) return <p role="status">{error}</p>;
-  if (!data) return <p role="status">Loading document…</p>;
+  if (!data) return <LoadingSkeleton variant="details" rows={5} label="Loading document" />;
   if (data.kind === "docx")
     return (
       <article

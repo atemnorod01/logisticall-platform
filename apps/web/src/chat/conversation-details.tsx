@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "../loading-skeleton.js";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
@@ -363,7 +364,7 @@ function SharedMedia({
           </button>
         ))}
       </div>
-      {loading && <p className="sub">Loading shared media…</p>}
+      {loading && !files.length && <LoadingSkeleton variant="details" rows={4} />}
       {!loading && !files.length && !error && (
         <p className="sub">No media shared in this conversation yet.</p>
       )}

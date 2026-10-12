@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { VoicemailSettingsEditor } from "./voicemail-settings.js";
 import { MemberEditor } from "./member-editor.js";
 import {
@@ -562,9 +563,7 @@ export function OrganizationOverview({
         description="Your organization’s identity in LogistiCall."
       />
       {loading ? (
-        <p className="sr-only" role="status">
-          Loading organization details…
-        </p>
+        <LoadingSkeleton variant="details" rows={4} />
       ) : !saved ? (
         <div role="alert">
           <p>{error}</p>
@@ -799,6 +798,7 @@ export function OrganizationMembers({
         )}
         <div className={`lc-members-split ${editing ? "is-editing" : ""}`}>
           <div className="lc-members-list">
+            {busy && !rows.length && <LoadingSkeleton />}
             {rows.map((p) => (
               <div
                 className={`lc-member-row ${editing === p.user_id ? "is-selected" : ""}`}

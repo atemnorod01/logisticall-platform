@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
 import { useEffect, useState, type ReactNode } from "react";
@@ -234,7 +235,7 @@ export function PlatformEditor({
         )}
         {record && organizationAccess}
         {error && <p role="alert">{error}</p>}
-        {!record && !error && <p>Loading details…</p>}
+        {!record && !error && <LoadingSkeleton variant="details" rows={4} />}
         {record &&
           sections.map((section) => (
             <section

@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
@@ -270,11 +271,7 @@ function AddGroupMembers({
                 </label>
               );
             })}
-            {loading && (
-              <p className="sr-only" role="status">
-                Loading members…
-              </p>
-            )}
+            {loading && !options.length && <LoadingSkeleton rows={4} />}
             {loadError && (
               <div role="alert">
                 <p>{loadError}</p>
@@ -764,7 +761,7 @@ export function OrganizationGroups({
                   <small>
                     {memberProfiles[m.user_id]?.email ??
                       (api.busy
-                        ? "Loading contact details…"
+                        ? <span className="lc-skeleton-inline" aria-label="Loading contact details" />
                         : "Contact details unavailable")}
                   </small>
                 </div>
@@ -990,11 +987,7 @@ export function NetworkGroups({
         </button>
       </form>
       {api.error && <p role="alert">{api.error}</p>}
-      {api.busy && (
-        <p className="sr-only" role="status">
-          Loading public teams…
-        </p>
-      )}
+      {api.busy && !rows.length && <LoadingSkeleton />}
       {rows.map((g) => (
         <section key={`${g.organization_id}:${g.id}`} className="panel padded">
           <div className="eyebrow">{g.organization_name}</div>

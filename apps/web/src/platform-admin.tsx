@@ -1,3 +1,4 @@
+import { LoadingSkeleton } from "./loading-skeleton.js";
 import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
 import { PlatformAddUser } from "./platform-add-user.js";
@@ -201,11 +202,13 @@ function PlatformAdminData({
     );
     return () => clearTimeout(timer);
   }, [section, search, query]);
+  const loadedSection = useRef(section);
   useEffect(() => {
     const abort = new AbortController();
     setLoading(true);
     setError("");
-    setRows([]);
+    if (loadedSection.current !== section) setRows([]);
+    loadedSection.current = section;
     fetch(
       `/v1/platform/${section}?${new URLSearchParams({ search: query, offset: String(offset), limit: String(pageSize) })}`,
       { credentials: "same-origin", signal: abort.signal },
@@ -549,8 +552,8 @@ function PlatformAdminData({
                 </span>
                 <span>{section === "audit" ? "" : "Status"}</span>
               </div>
-              {loading ? (
-                <p role="status">Loading…</p>
+              {loading && !rows.length ? (
+                <LoadingSkeleton rows={6} />
               ) : rows.length === 0 && !error ? (
                 <p>No results found.</p>
               ) : (
