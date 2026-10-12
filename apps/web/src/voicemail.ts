@@ -214,12 +214,8 @@ export function voicemailController(
         t.enabled = false;
       });
       const person = { id: target.id, organizationId: target.organizationId };
-      if (target.conversationId && target.groupId) {
+      if (target.conversationId) {
         conversationId = target.conversationId;
-      } else if (target.conversationId) {
-        const result = await request(`/${target.conversationId}/direct${target.groupId ? `?groupId=${target.groupId}` : ""}`, "POST", person);
-        if (!valid(v)) return;
-        conversationId = result.conversation.id;
       } else {
         const result = await request("", "POST", {
           target: { kind: "user", ...person },
