@@ -154,7 +154,8 @@ export function Conversations({
     const selected = controller.snapshot().selected;
     if (!selected || callLoading) return;
     if (selected.kind !== "team" && selected.peer.kind === "user") {
-      onCall({...selected.peer,conversationId:selected.id,...(state.groupId?{groupId:state.groupId}:{})});
+      if (state.groupId) onCall({...selected.peer,conversationId:selected.id,groupId:state.groupId});
+      else personAction(selected.peer, true);
       return;
     }
     setCallLoading(true);
@@ -1027,7 +1028,7 @@ export function Conversations({
               {callTeams.map(team=><div className="lc-call-team-option" key={team.id}><button role="menuitem" className="button" onClick={()=>{setCallPeople(null);onCall({...team,kind:"group",conversationId:active!.id,...(state.groupId?{groupId:state.groupId}:{})});}}><Avatar name={team.organizationName} presence={team.presence}/><span><strong>Call {team.name}</strong><small>{team.organizationName}</small></span><Icon name="phone"/></button></div>)}
               <div className="lc-call-menu-heading">Available people</div>
               {!callPeople.length && <div className="lc-call-menu-heading">No members are available right now.</div>}
-              <div className="lc-call-people">{callPeople.map(person=><button role="menuitem" className="button" key={person.organizationId+person.id} onClick={()=>{setCallPeople(null);onCall({...person,conversationId:active!.id,...(state.groupId?{groupId:state.groupId}:{})});}}><Avatar name={person.name} presence={person.presence}/><span><strong>{person.name}</strong><small>{person.organizationName}</small></span><Icon name="phone"/></button>)}</div>
+              <div className="lc-call-people">{callPeople.map(person=><button role="menuitem" className="button" key={person.organizationId+person.id} onClick={()=>{setCallPeople(null);if(state.groupId) onCall({...person,conversationId:active!.id,groupId:state.groupId}); else personAction(person, true);}}><Avatar name={person.name} presence={person.presence}/><span><strong>{person.name}</strong><small>{person.organizationName}</small></span><Icon name="phone"/></button>)}</div>
             </div>}
             </div>
             <button

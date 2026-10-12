@@ -169,7 +169,7 @@ export function callsRoutes(
           statuses[callee.id] ?? "",
         );
         const conversationId =
-          data.source?.conversationId ??
+          team || data.source?.groupId ? data.source!.conversationId :
           (await deps.prepareConversation?.(token, actor, caller, callee));
         const preferences = team ? {ringSeconds:45} : await deps.store.preferences(callee.id);
         const now = Date.now();

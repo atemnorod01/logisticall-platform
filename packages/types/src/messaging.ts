@@ -59,6 +59,7 @@ export const replyPreviewSchema = z.object({
   body: z.string(), deleted: z.boolean(), attachments: z.array(attachmentSchema),
 });
 export const callEventSchema = z.object({
+  sourceTeamName: z.string().optional(),
   voicemailId:z.uuid().optional(),
   viewerRole:z.enum(["caller","callee","observer"]).optional(),
   id:z.uuid(), callerId:z.uuid(), calleeId:z.uuid(), callerName:z.string(), calleeName:z.string(),

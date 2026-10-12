@@ -727,7 +727,7 @@ export function postgresMessaging(
               const groupName = policy?.name ?? m.sender.name;
               return {
                 id: m.id,
-                callEvent: m.call_event ? {...m.call_event,viewerRole: m.call_event.callerId===a.userId ? "caller" : m.call_event.calleeId===a.userId ? "callee" : "observer"} : null,
+                callEvent: m.call_event ? {...m.call_event,...(group ? {sourceTeamName:groupName} : {}),viewerRole: m.call_event.callerId===a.userId ? "caller" : m.call_event.calleeId===a.userId ? "callee" : "observer"} : null,
                 internalComments: comments.rows.filter(v => v.reply_to === m.id).map(v => ({
                   id: v.id, sequence: Number(v.sequence), body: v.deleted_at ? "" : v.body,
                   author: v.actor_name, senderKey: v.actor_id, own: v.actor_id === a.userId,

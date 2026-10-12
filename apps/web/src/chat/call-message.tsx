@@ -2,6 +2,9 @@ import type { Message } from "../../../../packages/types/src/messaging.js";
 import { Icon } from "../ui.js";
 import { AudioPlayer } from "./audio-player.js";
 import "../styles/call-messages.css";
+export function callCallerLabel(call: NonNullable<Message["callEvent"]>) {
+  return call.sourceTeamName ? `${call.callerName} · ${call.sourceTeamName}` : call.callerName;
+}
 export function CallMessage({
   message: m,
   urls,
@@ -12,6 +15,7 @@ export function CallMessage({
   onPerson: () => void;
 }) {
   const call = m.callEvent!;
+  const callerLabel = callCallerLabel(call);
   const role = call.viewerRole ?? (m.own ? "caller" : "callee");
   const outgoing = role === "caller";
   const observer = role === "observer";
@@ -45,13 +49,13 @@ export function CallMessage({
       <div className="lc-message-heading">
         {observer ? (
           <span className="sender-name">
-            {`${call.callerName} → ${call.calleeName}`}
+            {`${callerLabel} → ${call.calleeName}`}
           </span>
         ) : !outgoing ? (
           <button type="button" className="sender-name" onClick={onPerson}>
-            {m.actorName || m.senderName || call.callerName}
+            {callerLabel}
           </button>
-        ) : null}
+        ) : call.sourceTeamName ? <span className="sender-name">{callerLabel}</span> : null}
         <time dateTime={m.createdAt}>
           {new Date(m.createdAt).toLocaleTimeString([], {
             hour: "numeric",

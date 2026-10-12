@@ -1,6 +1,6 @@
 import type { Conversation } from "../../../packages/types/src/messaging.js";
 export function isIndividualConversation(c: Conversation) {
-  return c.kind !== "team" && c.peer.kind === "user" && c.inbox?.kind === "user";
+  return c.kind !== "team" && c.peer.kind === "user";
 }
 export function conversationOrganization(c: Conversation) {
   return isIndividualConversation(c) ? c.peer.organizationName : "";
