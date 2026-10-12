@@ -143,7 +143,7 @@ export function callController(
   async function peer(version: number) {
     if (!navigator.mediaDevices?.getUserMedia || !window.RTCPeerConnection)
       throw Error(
-        "Audio calling requires a supported browser with microphone access on HTTPS.",
+        "Voice calling requires a supported browser with microphone access on HTTPS.",
       );
     const media = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true },

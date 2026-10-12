@@ -99,7 +99,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
       .catch(() => {});
     const timer = setInterval(ring, 2200);
     const title = document.title;
-    document.title = "Incoming audio call · LogistiCall";
+    document.title = "Incoming voice call · LogistiCall";
     return () => {
       clearInterval(timer);
       void context.close();
@@ -218,19 +218,19 @@ export function CallPanel({ calling }: { calling: Calling }) {
     return (
       <aside
         className={`lc-call-panel lc-compact-call ${ringing ? "lc-compact-incoming" : ""}`}
-        aria-label={ringing ? "Incoming audio call" : "Outgoing audio call"}
+        aria-label={ringing ? "Incoming voice call" : "Outgoing voice call"}
         role={ringing ? "alertdialog" : "region"}
         aria-live="polite"
       >
         <header className="lc-compact-call-heading">
           <h2>
             <Icon name="phone" />
-            {ringing ? "Incoming call" : "Audio call"}
+            {ringing ? "Incoming call" : "Voice call"}
           </h2>
           <span>Audio</span>
         </header>
         <div className="lc-compact-call-identity">
-          <Avatar name={other?.name ?? "Audio call"} />
+          <Avatar name={other?.name ?? "Voice call"} />
           <div>
             <h3>{other?.name ?? "Preparing audio…"}</h3>
             {other?.organizationName && (
@@ -247,7 +247,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
                     ? (call?.team ? `Calling ${call.team.name}…` : "Calling you…")
                     : call
                       ? "Ringing…"
-                      : "Audio call"}
+                      : "Voice call"}
             </p>
           </div>
         </div>
@@ -285,14 +285,14 @@ export function CallPanel({ calling }: { calling: Calling }) {
   return (
     <aside
       className={`lc-call-panel ${ringing ? "ringing" : ""} ${docked ? "lc-call-bar" : ""}`}
-      aria-label="Audio call"
+      aria-label="Voice call"
       role={ringing ? "alertdialog" : "region"}
       aria-live="polite"
     >
-      {docked && <Avatar name={other?.name ?? "Audio call"} />}
+      {docked && <Avatar name={other?.name ?? "Voice call"} />}
       <div className="lc-call-summary">
-        <h2>{other?.name ?? "Audio call"}</h2>
-        <p>{other?.organizationName}{other?.organizationName ? " · " : ""}{state.held ? "On hold" : anotherDevice ? "On another device" : state.connected ? "LogistiCall audio" : "Connecting audio…"}</p>
+        <h2>{other?.name ?? "Voice call"}</h2>
+        <p>{other?.organizationName}{other?.organizationName ? " · " : ""}{state.held ? "On hold" : anotherDevice ? "On another device" : state.connected ? "LogistiCall voice" : "Connecting audio…"}</p>
       </div>
       {docked && (
         <span
@@ -448,7 +448,7 @@ export function Calls({ calling }: { calling: Calling }) {
                     {c.caller.id === user ? c.callee.name : c.caller.name}
                   </td>
                   <td>{c.caller.id === user ? "Outgoing" : "Incoming"}</td>
-                  <td className="extra-col">Audio call</td>
+                  <td className="extra-col">Voice call</td>
                   <td>
                     {new Date(c.createdAt).toLocaleString([], {
                       month: "short",

@@ -20,7 +20,7 @@ export function CallMessage({
   const missed = role === "callee" && call.outcome === "unanswered";
   const title = observer
     ? call.outcome === "completed"
-      ? "Audio call"
+      ? "Voice call"
       : "Unanswered call"
     : missed
       ? "Missed call"
