@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 const paths: Record<string, ReactNode> = {
+  mic: <><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3M8 22h8"/></>,
+  pause: <><path d="M8 5v14M16 5v14"/></>,
+  play: <path d="m8 4 12 8-12 8Z"/>,
   edit: <><path d="m15 5 4 4M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15z"/></>,
   history: <><path d="M3 11a9 9 0 1 1 2.7 7M3 4v7h7M12 7v5l3 2"/></>,
   devices: <><rect x="2" y="3" width="14" height="11" rx="2"/><path d="M5 18h8M9 14v4"/><rect x="17" y="9" width="5" height="12" rx="1"/></>,

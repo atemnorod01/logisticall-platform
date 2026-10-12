@@ -1,3 +1,5 @@
+import {callConversationPath} from "./call-conversation.js";
+import {navigate} from "./navigation.js";
 import { subscribeWorkspace } from "./realtime.js";
 import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
 import { Avatar, Icon } from "./ui.js";
@@ -44,12 +46,22 @@ export function useCalls(
       : undefined;
     return () => { clearInterval(heartbeat); clearTimeout(deadline); };
   }, [controller, state.current?.id, state.current?.status]);
-  return { controller, state, user };
+  return { controller, state, user, org };
 }
 export type Calling = ReturnType<typeof useCalls>;
 export function CallPanel({ calling }: { calling: Calling }) {
   const { controller, state, user } = calling;
   const [now, setNow] = useState(Date.now());
+  const [openingConversation,setOpeningConversation]=useState(false);
+  const [conversationError,setConversationError]=useState("");
+  useEffect(()=>setConversationError(""),[state.current?.id]);
+  async function openConversation() {
+    if(!state.current || !calling.org || !user || openingConversation)return;
+    setOpeningConversation(true);setConversationError("");
+    try { navigate(await callConversationPath(state.current,calling.org,user)); }
+    catch(error) {setConversationError(error instanceof Error?error.message:"Could not open the conversation.");}
+    finally {setOpeningConversation(false);}
+  }
   useEffect(() => {
     if (!state.current?.acceptedAt) return;
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -279,25 +291,8 @@ export function CallPanel({ calling }: { calling: Calling }) {
     >
       {docked && <Avatar name={other?.name ?? "Audio call"} />}
       <div className="lc-call-summary">
-        <span className="lc-call-label">
-          <Icon name="phone" /> Audio call
-        </span>
-        <h2>{other?.name ?? "Preparing audio…"}</h2>
-        <p>
-          {anotherDevice
-            ? "Call open on another device"
-            : state.preparing
-              ? ({ microphone: "Connecting microphone…", network: "Preparing audio connection…", signaling: "Starting call…" }[state.preparation])
-              : ringing
-                ? "Incoming call"
-                : call?.status === "ringing"
-                  ? "Ringing…"
-                  : state.connected
-                    ? "Connected"
-                    : call
-                      ? "Connecting audio…"
-                      : ""}
-        </p>
+        <h2>{other?.name ?? "Audio call"}</h2>
+        <p>{other?.organizationName}{other?.organizationName ? " · " : ""}{state.held ? "On hold" : anotherDevice ? "On another device" : state.connected ? "LogistiCall audio" : "Connecting audio…"}</p>
       </div>
       {docked && (
         <span
@@ -322,6 +317,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
           before playing the ringtone.
         </p>
       )}
+      {conversationError && <p role="alert">{conversationError}</p>}
       {!anotherDevice && (
         <div className="actions">
           {ringing && (
@@ -333,15 +329,16 @@ export function CallPanel({ calling }: { calling: Calling }) {
               Accept
             </button>
           )}
-          {call && controller.owns(call) && call.status !== "ringing" && (
-            <button
-              className="button"
-              onClick={controller.mute}
-              aria-pressed={state.muted}
-            >
-              {state.muted ? "Unmute" : "Mute"}
+          {call?.conversationId && call.status!=="ended" && (
+            <button className="button lc-call-open" disabled={openingConversation} onClick={()=>void openConversation()} aria-busy={openingConversation}>
+              <Icon name="message" /> Open chat
             </button>
           )}
+          {call && controller.owns(call) && call.status !== "ringing" && <>
+            <button className="button" onClick={controller.mute} aria-label={state.muted ? "Unmute microphone" : "Mute microphone"} title={state.muted ? "Unmute" : "Mute"} aria-pressed={state.muted}><Icon name="mic" /></button>
+            <button className="button" onClick={controller.hold} aria-pressed={state.held}><Icon name={state.held ? "play" : "pause"} />{state.held ? "Resume" : "Hold"}</button>
+            <button className="button" onClick={()=>navigate('/settings/audio-video')} aria-label="Audio settings" title="Audio settings"><Icon name="headphones" /></button>
+          </>}
           {state.audioBlocked && (
             <button className="button" onClick={controller.play}>
               Play call audio
@@ -352,7 +349,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
               className="button lc-call-end"
               onClick={() => void controller.end()}
             >
-              {ringing
+              <Icon name="phone" />{ringing
                 ? "Decline"
                 : call?.status === "ringing" || state.preparing
                   ? "Cancel"

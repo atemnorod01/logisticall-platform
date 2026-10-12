@@ -336,3 +336,20 @@
   margin-left: auto;
   color: var(--muted);
 }
+
+/* Compact accepted-call bar, matching the approved controls preview. */
+#app .lc-call-bar .lc-call-summary {display:block;flex:1;}
+#app .lc-call-bar .lc-call-summary h2 {font-size:14px;max-width:260px;}
+#app .lc-call-bar .lc-call-summary p {color:var(--muted);font-size:12px;margin:3px 0 0;white-space:normal;}
+#app .lc-call-bar .actions .button {display:inline-flex;align-items:center;justify-content:center;gap:7px;}
+#app .lc-call-bar .actions .lc-call-end {min-width:100px;min-height:40px;padding:9px 15px;}
+#app .lc-call-bar .actions .lc-call-open {color:var(--accent);}
+#app .lc-call-bar .actions .button[aria-pressed="true"] {background:var(--hover);border-color:var(--accent);}
+#app .lc-call-bar .actions svg {width:16px;height:16px;}
+@media(max-width:850px){
+ #app.tenant-ui.conversation-workspace .conversation-shell.layout.lc-call-docked {padding-bottom:122px;}
+ #app.tenant-ui.conversation-workspace .lc-call-docked > .lc-call-bar {height:112px;flex-wrap:wrap;gap:6px 10px;}
+ #app .lc-call-bar .actions {width:100%;margin:0;justify-content:flex-end;}
+ #app .lc-call-bar .actions .button {padding:7px 8px;}
+ #app .lc-call-bar .actions .lc-call-end {min-width:90px;}
+}

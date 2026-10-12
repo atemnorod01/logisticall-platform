@@ -12,6 +12,7 @@ export type CallState = {
   preparation: "microphone" | "network" | "signaling";
   connected: boolean;
   muted: boolean;
+  held: boolean;
   error: string;
   audioBlocked: boolean;
   ready: boolean;
@@ -31,6 +32,7 @@ export function callController(
     preparation: "microphone",
     connected: false,
     muted: false,
+    held: false,
     error: "",
     audioBlocked: false,
     ready: false,
@@ -109,6 +111,7 @@ export function callController(
       preparing: false,
       connected: false,
       muted: false,
+    held: false,
       audioBlocked: false,
     });
   }
@@ -391,9 +394,16 @@ export function callController(
       if (!stream) return;
       const muted = !state.muted;
       stream.getAudioTracks().forEach((t) => {
-        t.enabled = !muted;
+        t.enabled = !muted && !state.held;
       });
       publish({ muted });
+    },
+    hold() {
+      if (!stream || !state.current || !owns(state.current)) return;
+      const held = !state.held;
+      stream.getAudioTracks().forEach(t => { t.enabled = !held && !state.muted; });
+      if (audio) audio.muted = held;
+      publish({ held });
     },
     play() {
       void audio
