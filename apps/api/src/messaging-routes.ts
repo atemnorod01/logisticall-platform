@@ -146,7 +146,7 @@ export function messagingRoutes(
     reply.hijack();
     reply.raw.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-store", "X-Accel-Buffering": "no" });
     reply.raw.write('retry: 2000\n\nevent: change\ndata: {"kind":"resync"}\n\n');
-    const pending = new Map<string, { kind: WorkspaceChange['kind'] | 'resync'; conversationId?: string }>();
+    const pending = new Map<string, { kind: WorkspaceChange['kind'] | 'resync'; conversationId?: string; selfProfile?: boolean }>();
     let timer: ReturnType<typeof setTimeout> | undefined, checking = false, closed = false;
     const flush = async () => {
       timer = undefined;
@@ -161,9 +161,9 @@ export function messagingRoutes(
       finally { checking = false; if (!closed && pending.size && !timer) timer = setTimeout(() => void flush(), 100); }
     };
     const unsubscribe = workspaceEvents.subscribe(event => {
-      if (event && event.target !== target && event.target !== memberTarget && !(event.target === '*' && event.kind === 'profiles')) return;
-      const change = event ? { kind: event.kind, ...(event.conversationId ? { conversationId: event.conversationId } : {}) } : { kind: 'resync' as const };
-      pending.set(`${change.kind}:${'conversationId' in change ? change.conversationId ?? '' : ''}`, change);
+      if (event && event.target !== target && event.target !== memberTarget && !(event.target === `profile:${userId}` && event.kind === 'profiles') && !(event.target === '*' && event.kind === 'profiles')) return;
+      const change = event ? { kind: event.kind, ...(event.target === `profile:${userId}` ? {selfProfile:true} : {}), ...(event.conversationId ? { conversationId: event.conversationId } : {}) } : { kind: 'resync' as const };
+      pending.set(`${change.kind}:${'conversationId' in change ? change.conversationId ?? '' : ''}:${'selfProfile' in change ? 'self' : ''}`, change);
       if (!timer && !checking) timer = setTimeout(() => void flush(), 100);
     });
     // Stay below the API's 10-second idle socket timeout without reading data.
