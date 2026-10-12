@@ -353,3 +353,8 @@
  #app .lc-call-bar .actions .button {padding:7px 8px;}
  #app .lc-call-bar .actions .lc-call-end {min-width:90px;}
 }
+@media(max-width:480px){
+ #app.tenant-ui.conversation-workspace .conversation-shell.layout.lc-call-docked {padding-bottom:166px;}
+ #app.tenant-ui.conversation-workspace .lc-call-docked > .lc-call-bar {height:156px;}
+ #app .lc-call-bar .actions {flex-wrap:wrap;}
+}
