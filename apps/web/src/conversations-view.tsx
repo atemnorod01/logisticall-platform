@@ -879,7 +879,6 @@ export function Conversations({
                   </span>
                   <time>{inboxTime(c.updatedAt)}</time>
                 </span>
-                {conversationOrganization(c) && <small>{conversationOrganization(c)}</small>}
                 <span className="conversation-card-bottom">
                   <small>
                     {typingLabel(c.id) ? <span className="lc-typing-label">{typingLabel(c.id)}</span> : drafts.current.read(scope, c.id).text.trim() ? (
