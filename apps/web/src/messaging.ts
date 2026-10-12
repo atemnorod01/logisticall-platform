@@ -54,6 +54,14 @@ export function messagingController(
     lastListRefresh = 0;
   let changeVersion: number | undefined;
   let refreshRetry: ReturnType<typeof setTimeout> | undefined;
+  let recoveryTimer: ReturnType<typeof setTimeout> | undefined;
+  let recoveryAttempts = 0;
+  const refreshFailure = "Conversation updates are delayed. Use Refresh conversations to retry.";
+  function resetRecovery() {
+    clearTimeout(recoveryTimer);
+    recoveryTimer = undefined;
+    recoveryAttempts = 0;
+  }
   const abort = new AbortController();
   const cache = new Map<string, { messages: Message[]; hasMore: boolean }>();
   let prefetched: {
@@ -132,6 +140,7 @@ export function messagingController(
     },
     snapshot: () => state,
     dispose() {
+      resetRecovery();
       disposed = true;
       ++epoch;
       ++selection;
@@ -144,6 +153,7 @@ export function messagingController(
       filter = state.filter,
       search = state.search,
     ) {
+      resetRecovery();
       const ticket = ++epoch;
       ++selection;
       emit({
@@ -190,6 +200,7 @@ export function messagingController(
       });
     },
     async select(row: Conversation) {
+      resetRecovery();
       const inboxScope = row.inbox.kind === "group" ? row.inbox.id : "";
       // Links, search results and personal chats opened from a team must select
       // the inbox that owns the conversation, so new messages use its identity.
@@ -289,12 +300,19 @@ export function messagingController(
             offset = p.nextOffset;
           }
           lastListRefresh = Date.now();
-          emit({ rows, nextOffset: offset, error: "" });
+          emit({ rows, nextOffset: offset });
         };
-        const [, snapshot] = await Promise.all([
+        const [listResult, snapshotResult] = await Promise.allSettled([
           refreshList(),
           id && (!options.conversationIds || options.conversationIds.includes(id)) ? request(`/${id}/snapshot${selectedQuery}`) : Promise.resolve(null),
         ]);
+        if (current !== epoch || ticket !== selection) return;
+        // A failed list refresh must not discard a successfully refreshed timeline.
+        // Authorization denials still clear the entire stale view immediately.
+        for (const result of [listResult, snapshotResult]) {
+          if (result.status === "rejected" && [401,403,404].includes(result.reason?.status)) throw result.reason;
+        }
+        const snapshot = snapshotResult.status === "fulfilled" ? snapshotResult.value : null;
         if (id && snapshot) {
           const detail = conversationSchema.parse((snapshot as { conversation: unknown }).conversation);
           let messages = messagePage.parse(snapshot);
@@ -353,8 +371,29 @@ export function messagingController(
                 : messages.hasMore,
           });
         }
+        if (snapshotResult.status === "rejected") throw snapshotResult.reason;
+        if (listResult.status === "rejected") throw listResult.reason;
+        resetRecovery();
+        if (state.error === refreshFailure) emit({error:""});
       } catch (e) {
-        if (current === epoch && ticket === selection) fail(e);
+        if (current === epoch && ticket === selection && !disposed) {
+          const status = (e as {status?:number}).status;
+          const transient = status === 408 || status === 429 || (status !== undefined && status >= 500)
+            || e instanceof TypeError || (e instanceof DOMException && ["TimeoutError","AbortError"].includes(e.name));
+          console.warn("Conversation refresh failed", {status:status ?? null, kind:transient ? "temporary" : "response"});
+          if (transient && recoveryAttempts < 2) {
+            if (!recoveryTimer) {
+              const delay = [1000,3000][recoveryAttempts++]!;
+              recoveryTimer = setTimeout(() => {
+                recoveryTimer = undefined;
+                if (!disposed && current === epoch && ticket === selection) void api.refresh();
+              },delay);
+            }
+          } else if ([401,403,404].includes(status ?? 0)) {
+            resetRecovery();
+            fail(e);
+          } else emit({error:refreshFailure});
+        }
       } finally {
         polling = false;
         if (refreshPending && !disposed) { refreshPending = false; void api.refresh(); }
