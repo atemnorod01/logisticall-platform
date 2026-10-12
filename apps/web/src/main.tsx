@@ -1,3 +1,4 @@
+import {useAppPath,parseAppPath,navigate,settingsPaths,platformPaths,contactPaths,conversationPath,type AppPage} from "./navigation.js";
 import { subscribeWorkspace } from "./realtime.js";
 import { PlatformAdmin, PlatformAdminNavigation, type PlatformAdminPage } from "./platform-admin.js";
 import { useUnreadMessages } from "./unread.js";
@@ -38,15 +39,6 @@ import {
   GroupInboxes,
   NetworkGroups,
 } from "./groups-view.js";
-type Page =
-  | "Platform administration"
-  | "Conversations"
-  | "Calls"
-  | "Contacts"
-  | "Settings"
-  | "Organization administration"
-  | "Group inboxes"
-  | "Network directory";
 const controller = workspaceController();
 const refreshPresenceSession = () => controller.refreshSession();
 function Wordmark() {
@@ -93,22 +85,22 @@ function App() {
     document.getElementById("app")!.style.setProperty("--font-scale", String({ small: 0.875, medium: 1, large: 1.125 }[fontSize]));
     try { localStorage.setItem("logisticall.workspace.fontSize", fontSize); } catch { /* Storage is optional. */ }
   }, [fontSize]);
-  const [page, setPage] = useState<Page>("Conversations");
-  const [platformPage,setPlatformPage] = useState<PlatformAdminPage>("organizations");
+  const route = parseAppPath(useAppPath());
+  const {page,platformPage,setting} = route;
+  const setPlatformPage = (p:PlatformAdminPage) => navigate(platformPaths[p]);
+  const setPage = (p:AppPage) => navigate(p==='Settings'?settingsPaths[setting]:p==='Platform administration'?platformPaths[platformPage]:p==='Contacts'?contactPaths.corporate:p==='Calls'?'/calls':conversationPath());
   const [contactConversation,setContactConversation]=useState<Conversation | null>(null);
   const [messageTarget, setMessageTarget] = useState<{
     id: string;
     organizationId: string;
   } | null>(null);
-  const [setting, setSetting] = useState<SettingPage>("Profile");
   const admin = Boolean(
     state.context && state.permissions.includes("groups.manage"),
   );
   const currentSetting =
     organizationSetting(setting) && !admin ? "Profile" : setting;
   const openSettings = (p: SettingPage) => {
-    setSetting(p);
-    setPage("Settings");
+    navigate(settingsPaths[p]);
   };
   useEffect(() => {
     void controller.load();
@@ -333,7 +325,7 @@ function App() {
       )}
       {page === "Platform administration" && state.session?.platformAdmin && <PlatformAdminNavigation page={platformPage} onPage={setPlatformPage}/>}
       <main className="workspace" id="main-content">
-        {page === "Platform administration" ? (state.session?.platformAdmin ? <PlatformAdmin csrf={state.session.csrfToken} page={platformPage} onPage={setPlatformPage} /> : <section className="admin"><h1>Access unavailable</h1><p>Platform administrator access is required.</p></section>) : page === "Settings" || !state.context ? (
+        {page === "Not found" ? <section className="admin"><h1>Page not found</h1><button className="button" onClick={()=>setPage("Conversations")}>Go to My chats</button></section> : page === "Platform administration" ? (state.session?.platformAdmin ? <PlatformAdmin csrf={state.session.csrfToken} page={platformPage} onPage={setPlatformPage} /> : <section className="admin"><h1>Access unavailable</h1><p>Platform administrator access is required.</p></section>) : page === "Settings" || !state.context ? (
           currentSetting === "Teams" && admin ? (
             <OrganizationGroups
               key={state.context!.organization_id}
@@ -397,12 +389,14 @@ function App() {
         ) : page === "Contacts" ? (
           <Contacts
             key={`${state.session!.userId}:${state.context.organization_id}`}
+            tab={route.contactTab}
+            onTab={tab=>navigate(contactPaths[tab])}
             userId={state.session!.userId}
             organization={state.context}
             csrf={state.session!.csrfToken}
             onCall={target=>void calling.controller.start(target)}
             callDisabled={!calling.state.ready || !!calling.state.current || !!calling.state.voicemail || calling.state.preparing}
-            onOpen={conversation=>{setContactConversation(conversation);setMessageTarget(null);setPage("Conversations");}}
+            onOpen={conversation=>{setContactConversation(conversation);setMessageTarget(null);navigate(conversationPath(conversation.inbox.kind==="group"?conversation.inbox.id:"",conversation.id));}}
           />
         ) : page === "Calls" ? (
           <Calls calling={calling} />

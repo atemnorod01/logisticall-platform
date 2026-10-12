@@ -1,3 +1,4 @@
+import {parseAppPath,currentPath,conversationPath,navigate} from "./navigation.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { subscribeWorkspace } from "./realtime.js";
 import type { CallTarget } from "../../../packages/types/src/calls.js";
@@ -38,6 +39,7 @@ import {
   addressSchema,
   participantDetailsSchema,
   conversationPage,
+  conversationSchema,
   type Address,
   type Conversation,
 } from "../../../packages/types/src/messaging.js";
@@ -514,20 +516,46 @@ export function Conversations({
   const active = state.selected,
     detailsVisible = detail && Boolean(active),
     group = groups.find((g) => g.id === state.groupId);
+  const restoringRoute = useRef(true);
+  const [routeReady,setRouteReady] = useState(false);
   useEffect(() => {
-    void controller.load(initialConversation?.inbox.kind === "group" ? initialConversation.inbox.id : "").then(async () => {
-      if(initialConversation){await controller.select(initialConversation);setNarrow(true);}
-      else if (initialTarget) {
-        const c = await controller.create({
-          kind: "user",
-          id: initialTarget,
-          organizationId,
-        });
-        if (c) setNarrow(true);
-      }
-    });
-    return () => controller.dispose();
-  }, [controller]);
+    let live=true, revision=0;
+    async function restore(initial=false) {
+      const ticket=++revision;
+      restoringRoute.current=true;
+      const route=parseAppPath(currentPath());
+      if(route.page!=="Conversations")return;
+      await controller.load(route.inbox,route.filter,"");
+      if(!live||ticket!==revision)return;
+      try {
+        if(route.conversationId) {
+          const result=await controller.request(`/${route.conversationId}${route.inbox?'?groupId='+encodeURIComponent(route.inbox):''}`) as {conversation:unknown};
+          if(!live||ticket!==revision)return;
+          await controller.select(conversationSchema.parse(result.conversation));
+          setNarrow(true);
+        } else if(initial && initialTarget) {
+          const c=await controller.create({kind:"user",id:initialTarget,organizationId});
+          if(c)setNarrow(true);
+        } else setNarrow(false);
+      } catch { if(live)setNotice("This conversation is unavailable or you no longer have access."); }
+      finally { if(live&&ticket===revision){restoringRoute.current=false;setRouteReady(true);} }
+    }
+    void restore(true);
+    const back=()=>{
+      const route=parseAppPath(currentPath()), current=controller.snapshot();
+      if(route.page!=="Conversations"||(route.inbox===current.scope&&route.conversationId===(current.selected?.id??'')&&route.filter===current.filter))return;
+      setRouteReady(false);void restore();
+    };
+    window.addEventListener('popstate',back);
+    window.addEventListener('logisticall:navigation',back);
+    return()=>{live=false;++revision;window.removeEventListener('popstate',back);window.removeEventListener('logisticall:navigation',back);controller.dispose();};
+  },[controller]);
+  useEffect(()=>{
+    if(!routeReady||restoringRoute.current||state.loading)return;
+    const route=parseAppPath(currentPath());
+    if(route.page!=="Conversations")return;
+    navigate(conversationPath(state.scope,state.selected?.id??'',state.filter),currentPath()==='/'||currentPath()==='/conversations');
+  },[routeReady,state.scope,state.selected?.id,state.filter,state.loading]);
   useEffect(() => {
     let live = true;
     const ac = new AbortController();

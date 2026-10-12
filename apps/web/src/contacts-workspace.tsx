@@ -13,11 +13,11 @@ import './styles/contacts-workspace.css';
 
 type Section='corporate'|'personal'|'industry';
 const blank={name:'',company:'',email:'',phone:'',note:'',mc:'',dot:''};
-export function Contacts({userId,organization,csrf,onOpen,onCall,callDisabled}:{userId:string;organization:OrganizationContext;csrf:string;onOpen:(c:Conversation)=>void;onCall:(p:CallTarget)=>void;callDisabled:boolean}) {
+export function Contacts({userId,organization,csrf,onOpen,onCall,callDisabled,tab,onTab}:{tab:Section;onTab:(tab:Section)=>void;userId:string;organization:OrganizationContext;csrf:string;onOpen:(c:Conversation)=>void;onCall:(p:CallTarget)=>void;callDisabled:boolean}) {
  const directory=useMemo(()=>contactsController(organization.organization_id),[organization.organization_id]);
  const messaging=useMemo(()=>messagingController(organization.organization_id,csrf),[organization.organization_id,csrf]);
  const state=useSyncExternalStore(directory.subscribe,directory.snapshot);
- const [tab,setTab]=useState<Section>('corporate'),[query,setQuery]=useState('');
+ const [query,setQuery]=useState('');
  const [selected,setSelected]=useState(''),[personal,setPersonal]=useState<PersonalContact[]>([]),[loading,setLoading]=useState(false),[error,setError]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);
  const [groupMode,setGroupMode]=useState(false),[chosen,setChosen]=useState<string[]>([]),[title,setTitle]=useState('');
  const [companyTab,setCompanyTab]=useState<'people'|'groups'>('people');
@@ -35,7 +35,7 @@ export function Contacts({userId,organization,csrf,onOpen,onCall,callDisabled}:{
  useEffect(()=>{const update=()=>void directory.load();window.addEventListener('logisticall:profile-changed',update);return()=>window.removeEventListener('logisticall:profile-changed',update);},[directory]);
  useEffect(()=>{const timer=setInterval(()=>{if(tab==='corporate'&&document.visibilityState==='visible')void directory.load();},60000);return()=>clearInterval(timer);},[directory,tab]);
  useEffect(()=>{let live=true;setLoading(true);void messaging.request('/phonebook').then(v=>{const p=z.object({contacts:z.array(personalContact)}).parse(v);if(live)setPersonal(p.contacts);}).catch(()=>{if(live)setError('Could not load personal contacts.');}).finally(()=>{if(live)setLoading(false);});return()=>{live=false;};},[messaging,profileRevision]);
- function switchTab(next:Section){setTab(next);setQuery('');setSelected('');setDetailOpen(false);setEditing(false);setGroupMode(false);setChosen([]);setError('');setNotice('');}
+ function switchTab(next:Section){onTab(next);setQuery('');setSelected('');setDetailOpen(false);setEditing(false);setGroupMode(false);setChosen([]);setError('');setNotice('');}
  async function openPerson(id:string){setBusy(true);setError('');try{const c=await messaging.create({kind:'user',id,organizationId:organization.organization_id});if(!c)throw Error();onOpen(c);}catch{setError('Could not open this conversation. Please try again.');}finally{setBusy(false);}}
  async function openContact(){if(!contact)return; if(contact.sourceConversationId&&contact.sourcePersonId&&contact.sourceOrganizationId){setBusy(true);setError('');try{const c=conversationSchema.parse((await messaging.request(`/${contact.sourceConversationId}/direct${contact.sourceGroupId?"?groupId="+contact.sourceGroupId:""}`,'POST',{id:contact.sourcePersonId,organizationId:contact.sourceOrganizationId}) as {conversation:unknown}).conversation);onOpen(c);}catch{setError('This original conversation is no longer accessible. Add an email to connect directly.');}finally{setBusy(false);}return;}if(!contact.email)return;setBusy(true);setError('');try{const data=z.object({people:z.array(addressSchema)}).parse(await messaging.request(`/people?search=${encodeURIComponent(contact.email)}`));if(data.people.length!==1){setNotice('No unique LogistiCall contact was found for this email. Check the saved email address.');return;}const target=data.people[0]!;const c=await messaging.create({kind:'user',id:target.id,organizationId:target.organizationId,email:contact.email});if(!c)throw Error();onOpen(c);}catch{setError('Could not open a conversation with this contact.');}finally{setBusy(false);}}
  async function groupChat(){setBusy(true);setError('');try{const c=await messaging.createTeam(chosen,title.trim());if(!c)throw Error();onOpen(c);}catch{setError('Could not create the group conversation.');}finally{setBusy(false);}}
