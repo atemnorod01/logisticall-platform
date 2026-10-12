@@ -1,4 +1,3 @@
-import { useCompanyPresence } from "./company-presence.js";
 import { subscribeWorkspace } from "./realtime.js";
 import type { CallTarget } from "../../../packages/types/src/calls.js";
 import { GlobalSearch } from "./chat/global-search.js";
@@ -75,7 +74,6 @@ export function Conversations({
     [organizationId, csrf],
   );
   const state = useSyncExternalStore(controller.subscribe, controller.snapshot);
-  const companyPresence = useCompanyPresence(state.rows.filter(c => c.peer.organizationId !== organizationId && c.identity?.inNetwork).map(c => c.peer.organizationId), organizationId);
   const [groups, setGroups] = useState<Group[]>([]),
     [inboxCounts, setInboxCounts] = useState<Record<string, number>>({}),
     [inboxOrder, setInboxOrder] = useState<string[]>([]),
@@ -592,6 +590,13 @@ export function Conversations({
     return () => { clearInterval(timer); unsubscribe(); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('online', refresh); };
   }, [controller, organizationId, userId]);
   useEffect(() => {
+    const refresh = () => { if (document.visibilityState === 'visible') void controller.refreshPresence(); };
+    const timer = setInterval(refresh, 5000);
+    document.addEventListener('visibilitychange', refresh);
+    window.addEventListener('focus', refresh);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); window.removeEventListener('focus', refresh); };
+  }, [controller]);
+  useEffect(() => {
     stopTyping();
     setDraft(
       active?.hasMessages !== false
@@ -866,7 +871,6 @@ export function Conversations({
               >
                 <ChatAvatar
                   conversation={c}
-                  companyPresence={companyPresence}
                   organizationId={organizationId}
                   userId={userId}
                 />
@@ -949,7 +953,6 @@ export function Conversations({
               >
                 <ChatAvatar
                   conversation={active}
-                  companyPresence={companyPresence}
                   organizationId={organizationId}
                   userId={userId}
                 />
@@ -1644,12 +1647,10 @@ function GroupNameHeading({controller, title, displayName}: {controller: ReturnT
 
 function ChatAvatar({
   conversation: c,
-  companyPresence,
   organizationId,
   userId,
 }: {
   conversation: Conversation;
-  companyPresence: Record<string, string>;
   organizationId: string;
   userId: string;
 }) {
@@ -1666,7 +1667,7 @@ function ChatAvatar({
     <Avatar
       name={conversationTitle(c, organizationId)}
       inNetwork={network}
-      presence={external && !individual ? (network ? companyPresence[c.peer.organizationId] ?? "unknown" : undefined) : c.identity?.presence ?? "unknown"}
+      presence={c.identity?.presence ?? "unknown"}
     />
   );
 }

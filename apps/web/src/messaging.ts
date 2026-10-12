@@ -48,6 +48,7 @@ export function messagingController(
     selection = 0,
     disposed = false,
     polling = false,
+    presencePolling = false,
     refreshPending = false,
     identityVersion = "",
     lastListRefresh = 0;
@@ -229,6 +230,30 @@ export function messagingController(
           fail(e);
         }
       }
+    },
+    async refreshPresence() {
+      if (disposed || presencePolling || state.loading || !state.rows.length) return;
+      presencePolling = true;
+      const current = epoch;
+      try {
+        const identities = new Map<string, Conversation["identity"]>();
+        let offset: number | null = 0;
+        const wanted = state.rows.length;
+        let loaded = 0;
+        while (offset !== null && loaded < wanted) {
+          const page = conversationPage.parse(await request(listQuery({filter: state.filter, search: state.search, offset: String(offset)})));
+          if (current !== epoch || disposed) return;
+          for (const row of page.conversations) identities.set(`${row.inbox.id}:${row.id}`, row.identity);
+          loaded += page.conversations.length;
+          offset = page.nextOffset;
+        }
+        const update = (row: Conversation) => {
+          const identity = identities.get(`${row.inbox.id}:${row.id}`);
+          return identity && row.identity ? {...row, identity: {...row.identity, presence: identity.presence}} : row;
+        };
+        emit({rows: state.rows.map(update), selected: state.selected ? update(state.selected) : null});
+      } catch { /* A transient outage does not prove members are offline. */ }
+      finally { presencePolling = false; }
     },
     async refresh(options: { background?: boolean } = {}) {
       if (disposed) return;
