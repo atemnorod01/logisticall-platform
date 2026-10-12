@@ -411,6 +411,24 @@ export function buildApp(
       const inbox = group ? {kind:"group" as const,id:group.id,organizationId:group.organization_id,name:group.name,organizationName:""} : {kind:"user" as const,id:actor.userId,organizationId:actor.organizationId,name:member.name,organizationName:"",membershipKey:member.membership_key};
       return deps.messaging.directTarget(messageActor,inbox,source.conversationId,target.organizationId,target.id);
     },
+    async resolveTeam(token, actor, target, source) {
+      if (!deps.messaging || !deps.groups) throw new IamFailure(503);
+      const member = await (deps.groupEligibility ?? iamGroupEligibility(config.iamApi)).member(token,actor.organizationId,actor.userId);
+      const group = source.groupId ? await deps.groups.inbox({...actor,organizationName:""},source.groupId,member.membership_key) : null;
+      const inbox = group ? {kind:"group" as const,id:group.id,organizationId:group.organization_id,name:group.name,organizationName:""} : {kind:"user" as const,id:actor.userId,organizationId:actor.organizationId,name:member.name,organizationName:"",membershipKey:member.membership_key};
+      const detail = await deps.messaging.participants({...actor,name:member.name,membershipKey:member.membership_key},inbox,source.conversationId);
+      const team = detail.participants.find(p=>p.kind==="group" && p.id===target.id && p.organizationId===target.organizationId);
+      if (!team || detail.readOnly) throw new IamFailure(403);
+      return {team, members:team.members.map((m:{id:string;name:string})=>({kind:"user" as const,id:m.id,name:m.name,organizationId:team.organizationId,organizationName:team.organizationName}))};
+    },
+    async canReceiveTeam(token, actor, team) {
+      if (!deps.groups || team.organizationId !== actor.organizationId) return false;
+      try {
+        const member = await (deps.groupEligibility ?? iamGroupEligibility(config.iamApi)).member(token,actor.organizationId,actor.userId);
+        await deps.groups.inbox({...actor,organizationName:""},team.id,member.membership_key);
+        return true;
+      } catch { return false; }
+    },
     store: deps.calls,
     presence: deps.presence,
     iceServers: deps.iceServers,

@@ -21,7 +21,8 @@ export const partyMatches = (p: CallParty, a: CallActor) =>
   p.id === a.userId && p.organizationId === a.organizationId;
 export function postgresCalls(pool: Pick<Pool, "connect">) {
   const mineWhere = `(data->'caller'->>'id'=$1 and data->'caller'->>'organizationId'=$2
-    or data->'callee'->>'id'=$1 and data->'callee'->>'organizationId'=$2)`;
+    or data->'callee'->>'id'=$1 and data->'callee'->>'organizationId'=$2
+    or data->'recipients' @> jsonb_build_array(jsonb_build_object('id',$1::text,'organizationId',$2::text)))`;
   async function transaction<T>(run: (rows: AudioCall[]) => T, actor?: CallActor): Promise<T> {
     const db = await pool.connect();
     try {
@@ -90,7 +91,9 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
       const db = await pool.connect();
       try {
         const result = await db.query<{ count: number }>(`select count(*)::int as count from platform.audio_calls
-          where data->'callee'->>'id'=$1 and data->'callee'->>'organizationId'=$2
+          where ${mineWhere}
+          and data->'caller'->>'id'<>$1
+          and not coalesce(data->'declined','[]'::jsonb) ? $1
           and data->>'status'='ended' and data->>'acceptedAt' is null
           and (data->>'createdAt')::bigint >= $3
           and (data->>'endedAt')::bigint > coalesce((select reviewed_at from platform.call_reviews where user_id=$1::uuid and organization_id=$2::uuid),0)`, [actor.userId, actor.organizationId, Date.now() - 86400000]);
@@ -132,9 +135,11 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
     },
     async sync(actor: CallActor, client: string) {
       const project = (rows: AudioCall[]) => rows
+        .filter(c => !c.team || partyMatches(c.caller,actor) || (c.acceptedAt ? partyMatches(c.callee,actor) : !c.declined?.includes(actor.userId)))
         .sort((a, b) => b.createdAt - a.createdAt).slice(0, 30)
         .map(c => ({ ...c,
-          offer: partyMatches(c.callee, actor) && (!c.calleeClient || c.calleeClient === client) ? c.offer : "",
+          callee: c.team && !c.acceptedAt && !partyMatches(c.caller,actor) ? c.recipients!.find(p=>partyMatches(p,actor))! : c.callee,
+          offer: (partyMatches(c.callee, actor) || (c.status === "ringing" && c.recipients?.some(p=>partyMatches(p,actor)))) && (!c.calleeClient || c.calleeClient === client) ? c.offer : "",
           answer: partyMatches(c.caller, actor) && c.callerClient === client ? c.answer : null,
         }));
       const db = await pool.connect();
@@ -176,7 +181,8 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
           );
         if (busy(call.caller.id))
           throw new CallError(409, "You are already on a call.");
-        if (busy(call.callee.id)) {
+        if (call.team) call.recipients = (call.recipients ?? []).filter(p => !busy(p.id));
+        if (!call.team && busy(call.callee.id)) {
           call.status = "ended";
           call.reason = "Busy";
           call.endedAt = Date.now();
@@ -197,10 +203,12 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
         const c = rows.find(
           (c) =>
             c.id === id &&
-            (partyMatches(c.caller, actor) || partyMatches(c.callee, actor)),
+            (partyMatches(c.caller, actor) || partyMatches(c.callee, actor) || c.recipients?.some(p=>partyMatches(p,actor))),
         );
         if (!c) throw new CallError(404, "Call not found");
         const caller = partyMatches(c.caller, actor);
+        if (c.team && !caller && (c.declined?.includes(actor.userId) || (c.acceptedAt && !partyMatches(c.callee,actor))))
+          throw new CallError(409, "Call was already answered or dismissed");
         if (action === "end" && c.status === "ended") return c;
         if (c.status === "ended") throw new CallError(409, "Call has ended");
         if (
@@ -212,6 +220,10 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
         if (action === "accept") {
           if (caller || c.status !== "ringing")
             throw new CallError(409, "Call was already answered");
+          if (rows.some(other => other.id !== c.id && other.status !== "ended" &&
+            (partyMatches(other.caller,actor) || (other.acceptedAt && partyMatches(other.callee,actor)))))
+            throw new CallError(409, "You are already on a call.");
+          if (c.team) c.callee = c.recipients!.find(p=>partyMatches(p,actor))!;
           c.calleeClient = client;
           c.calleeSeen = Date.now();
           c.acceptedAt = Date.now();
@@ -223,6 +235,10 @@ export function postgresCalls(pool: Pick<Pool, "connect">) {
           c.status = "active";
           c.connectedAt = Date.now();
         } else {
+          if (c.team && !caller && c.status === "ringing") {
+            c.declined = [...(c.declined ?? []), actor.userId];
+            if (c.recipients?.some(p=>!c.declined!.includes(p.id))) return {...c,status:"ended" as const,offer:"",answer:null,reason:"Dismissed"};
+          }
           c.reason =
             c.status === "ringing"
               ? caller

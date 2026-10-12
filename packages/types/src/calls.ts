@@ -8,6 +8,9 @@ export type AudioCall = {
   id: string;
   caller: CallParty;
   callee: CallParty;
+  team?: CallParty;
+  recipients?: CallParty[];
+  declined?: string[];
   callerClient: string;
   calleeClient: string | null;
   status: "ringing" | "connecting" | "active" | "ended";
@@ -27,6 +30,7 @@ export type AudioCall = {
 export const liveCall = (c: AudioCall) => c.status !== "ended";
 
 export type CallTarget = CallParty & {
+  kind?: "user" | "group";
   conversationId?: string;
   groupId?: string;
 };

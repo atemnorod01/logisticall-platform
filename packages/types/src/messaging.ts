@@ -187,7 +187,7 @@ export const addParticipantsInput = z.object({
 export const participantDetailsSchema=z.object({
  ownerId:z.string().nullable().default(null), creatorId:z.string().nullable().default(null), internalGroup:z.boolean().default(false), readOnly:z.boolean().default(false),
  external:z.boolean(),
- participants:z.array(publicAddress.extend({history:z.enum(["all","future"]),members:z.array(z.object({id:z.uuid(),name:z.string()}))})),
+ participants:z.array(publicAddress.extend({presence:conversationIdentity.shape.presence.optional(),history:z.enum(["all","future"]),members:z.array(z.object({id:z.uuid(),name:z.string(),presence:conversationIdentity.shape.presence.optional()}))})),
  requests:z.array(z.object({id:z.uuid(),target:publicAddress,history:z.enum(["all","future"]),requestedBy:z.string(),createdAt:z.string(),canApprove:z.boolean(),awaiting:z.array(z.string())})),
  events:z.array(z.object({id:z.uuid(),text:z.string(),createdAt:z.string()}))
 });

@@ -231,7 +231,16 @@ export function postgresMessaging(
       });
     },
     participants(a:MessageActor,inbox:Address,id:string){
-      return transaction(a,inbox,async c=>participantDetails(c,await get(c,id,inbox,false,true),inbox,a));
+      return transaction(a,inbox,async c=>{
+        const detail = await participantDetails(c,await get(c,id,inbox,false,true),inbox,a);
+        return {...detail, participants: await Promise.all(detail.participants.map(async p => {
+          const ids = p.kind === "group" ? p.members.map((m:{id:string;name:string})=>m.id) : [p.id];
+          let states: Record<string, PresenceStatus> = {}, readSucceeded=false;
+          try { states = await presence?.read(p.organizationId, ids) ?? {}; readSucceeded=Boolean(presence); } catch { /* Preserve unknown availability. */ }
+          const status = (id:string) => states[id] ?? (readSucceeded ? "offline" : "unknown");
+          return {...p, presence: aggregatePresence(ids.map(status)), members:p.members.map((m:{id:string;name:string})=>({...m,presence:status(m.id)}))};
+        }))};
+      });
     },
     addParticipants(a:MessageActor,inbox:Address,id:string,targets:Address[],history:"all"|"future",convertExternal:boolean){
       return transaction(a,inbox,async c=>{const row=await get(c,id,inbox,true);await addParticipants(c,row,inbox,a,targets,history,convertExternal);await audit(c,a,id,"participants.added_or_requested");return {ok:true};});

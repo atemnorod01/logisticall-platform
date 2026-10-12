@@ -23,6 +23,8 @@ export function callsRoutes(
       target: { id: string; organizationId: string },
       source: { conversationId: string; groupId?: string | undefined },
     ) => Promise<Address>;
+    resolveTeam?: (token: string, actor: CallActor, target: {id:string;organizationId:string}, source: {conversationId:string;groupId?:string | undefined}) => Promise<{team:Address;members:Address[]}>;
+    canReceiveTeam?: (token:string, actor:CallActor, team:{id:string;organizationId:string}) => Promise<boolean>;
     iceServers?: RTCIceServer[] | undefined;
     iceServersFor?: (userId: string) => Promise<RTCIceServer[]>;
     authorize(
@@ -63,7 +65,7 @@ export function callsRoutes(
       action: z.literal("create"),
       client: z.uuid(),
       id: z.uuid(),
-      target: z.object({ id: z.uuid(), organizationId: z.uuid() }),
+      target: z.object({ id: z.uuid(), organizationId: z.uuid(), kind: z.enum(["user","group"]).optional() }),
       offer: description,
       source: z
         .object({ conversationId: z.uuid(), groupId: z.uuid().optional() })
@@ -132,19 +134,25 @@ export function callsRoutes(
         return { settings: await deps.store.preferences(callee.id) };
       }
       if (data.action === "review") { await deps.store.review(actor, data.before); return { unread: await deps.store.unread(actor) }; }
-      if (data.action === "sync")
+      if (data.action === "sync") {
+        const calls = await deps.store.sync(actor, data.client);
+        const allowed = await Promise.all(calls.map(async c => !c.team || c.caller.id === actor.userId || await deps.canReceiveTeam?.(token,actor,c.team) === true));
         return {
-          calls: await deps.store.sync(actor, data.client),
+          calls: calls.filter((_,index)=>allowed[index]),
           unread: await deps.store.unread(actor),
           iceServers: deps.iceServersFor ? await deps.iceServersFor(actor.userId) : deps.iceServers ?? [],
         };
+      }
       if (data.action === "create") {
         if (data.source && !deps.resolveTarget)
           throw new CallError(503, "Conversation calling is unavailable.");
         if (data.target.id === actor.userId)
           throw new CallError(400, "Choose another user");
+        const teamTarget = data.target.kind === "group";
+        if (teamTarget && (!data.source || !deps.resolveTeam)) throw new CallError(400,"Choose a team in this conversation.");
+        const team = teamTarget ? await deps.resolveTeam!(token,actor,data.target,data.source!) : null;
         const [callee, caller] = await Promise.all([
-          data.source && deps.resolveTarget
+          team ? Promise.resolve(team.team) : data.source && deps.resolveTarget
             ? deps.resolveTarget(token, actor, data.target, data.source)
             : deps.directory.resolve(token, org, data.target),
           deps.directory.resolve(token, org, {
@@ -153,17 +161,17 @@ export function callsRoutes(
           }),
         ]);
         const statuses = await deps.presence?.read(callee.organizationId, [
-          callee.id,
+          ...(team ? team.members.map(p=>p.id) : [callee.id]),
         ]);
         if (!statuses)
           throw new CallError(503, "Presence service is unavailable.");
-        const unavailable = !["available", "away"].includes(
+        const unavailable = !team && !["available", "away"].includes(
           statuses[callee.id] ?? "",
         );
         const conversationId =
           data.source?.conversationId ??
           (await deps.prepareConversation?.(token, actor, caller, callee));
-        const preferences = await deps.store.preferences(callee.id);
+        const preferences = team ? {ringSeconds:45} : await deps.store.preferences(callee.id);
         const now = Date.now();
         const call = await deps.store.create({
           id: data.id,
@@ -179,6 +187,7 @@ export function callsRoutes(
             name: callee.name,
             organizationName: callee.organizationName,
           },
+          ...(team ? {team: {id:callee.id,organizationId:callee.organizationId,name:callee.name,organizationName:callee.organizationName}, recipients:team.members.filter(p=>p.id!==actor.userId && ["available","away","busy"].includes(statuses[p.id] ?? ""))} : {}),
           callerClient: data.client,
           calleeClient: null,
           status: unavailable ? "ended" : "ringing",
@@ -204,6 +213,9 @@ export function callsRoutes(
           );
         return { call };
       }
+      const existing = (await deps.store.sync(actor,data.client)).find(c=>c.id===data.id);
+      if (existing?.team && existing.caller.id !== actor.userId && !(await deps.canReceiveTeam?.(token,actor,existing.team)))
+        throw new CallError(403,"You are no longer a member of this team.");
       return {
         call: await deps.store.action(
           actor,
