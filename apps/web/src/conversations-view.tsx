@@ -514,7 +514,7 @@ export function Conversations({
     detailsVisible = detail && Boolean(active),
     group = groups.find((g) => g.id === state.groupId);
   useEffect(() => {
-    void controller.load(initialTarget ? "" : "all").then(async () => {
+    void controller.load(initialConversation?.inbox.kind === "group" ? initialConversation.inbox.id : "").then(async () => {
       if(initialConversation){await controller.select(initialConversation);setNarrow(true);}
       else if (initialTarget) {
         const c = await controller.create({
@@ -749,29 +749,6 @@ export function Conversations({
             </div>
           </div>
           <nav className="lc-inbox-tabs" aria-label="Conversation inboxes">
-            {[
-              {
-                id: "all",
-                name: "All chats",
-                count: Object.values(inboxCounts).reduce((a, b) => a + b, 0),
-              },
-            ].map((i) => (
-              <button
-                key={i.id}
-                className="lc-inbox-tab"
-                aria-pressed={state.scope === i.id}
-                onClick={() => chooseInbox(i.id)}
-              >
-                {i.name}
-                <span
-                  className="lc-inbox-count"
-                  style={{ visibility: i.count ? "visible" : "hidden" }}
-                >
-                  {i.count > 99 ? "99+" : i.count}
-                </span>
-              </button>
-            ))}
-            <div className="lc-shared-tabs" ref={inboxTabs}>
               <button
                 className="lc-inbox-tab"
                 aria-pressed={state.scope === ""}
@@ -785,6 +762,7 @@ export function Conversations({
                   {(inboxCounts[""] ?? 0) > 99 ? "99+" : (inboxCounts[""] ?? 0)}
                 </span>
               </button>
+            <div className="lc-shared-tabs" ref={inboxTabs}>
               {[...groups]
                 .sort(
                   (a, b) =>

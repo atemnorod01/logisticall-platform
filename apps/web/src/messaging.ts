@@ -189,6 +189,15 @@ export function messagingController(
       });
     },
     async select(row: Conversation) {
+      const inboxScope = row.inbox.kind === "group" ? row.inbox.id : "";
+      // Links, search results and personal chats opened from a team must select
+      // the inbox that owns the conversation, so new messages use its identity.
+      if (state.scope !== "all" && state.scope !== inboxScope) {
+        const loading = api.load(inboxScope, "all", "");
+        const inboxEpoch = epoch;
+        await loading;
+        if (disposed || epoch !== inboxEpoch || state.scope !== inboxScope) return;
+      }
       const ticket = ++selection,
         current = epoch;
       const cacheKey = `${row.inbox.id}:${row.id}`;
