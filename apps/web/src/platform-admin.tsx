@@ -1,3 +1,4 @@
+import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
 import { PlatformAddUser } from "./platform-add-user.js";
 import { useEffect, useState, useRef } from "react";
@@ -174,7 +175,13 @@ function PlatformAdminData({
       url: string;
       expires_at: string | null;
     } | null>(null);
+  const userPresence = usePlatformUserPresence(section === 'users' ? rows.map(row => row.id) : []);
   const companyPresence=useCompanyPresence(section==='organizations'?rows.map(r=>r.id):section==='directory'?rows.flatMap(r=>r.organization_id?[r.organization_id]:[]):[]);
+  useEffect(() => {
+    const refresh = () => setRevision(value => value + 1);
+    window.addEventListener('logisticall:profile-changed', refresh);
+    return () => window.removeEventListener('logisticall:profile-changed', refresh);
+  }, []);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   useEffect(() => {
     panel.current?.scrollTo(0, 0);
@@ -553,7 +560,7 @@ function PlatformAdminData({
                     className={`lc-platform-row${editing?.id === row.id ? " selected" : ""}${section === "audit" ? " lc-platform-audit-row" : ""}`}
                   >
                     {section !== "audit" && (
-                      <Avatar name={row.name || row.email || "Company"} inNetwork={section==='organizations'||section==='directory'&&Boolean(row.organization_id)} presence={section==='organizations'?companyPresence[row.id]??'unknown':section==='directory'&&row.organization_id?companyPresence[row.organization_id]??'unknown':undefined} />
+                      <Avatar name={row.name || row.email || "Company"} inNetwork={section==='organizations'||section==='directory'&&Boolean(row.organization_id)} presence={section==='organizations'?companyPresence[row.id]??'unknown':section==='directory'&&row.organization_id?companyPresence[row.organization_id]??'unknown':section==='users'?userPresence[row.id]??'unknown':undefined} />
                     )}
                     <div
                       className="lc-platform-row-copy"

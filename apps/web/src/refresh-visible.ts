@@ -4,10 +4,12 @@ export function refreshWhileVisible(refresh: () => void) {
     if (document.visibilityState === "visible") refresh();
   };
   window.addEventListener("focus", update);
+  window.addEventListener("logisticall:profile-changed", update);
   document.addEventListener("visibilitychange", update);
   const timer = window.setInterval(update, 30_000);
   return () => {
     window.removeEventListener("focus", update);
+    window.removeEventListener("logisticall:profile-changed", update);
     document.removeEventListener("visibilitychange", update);
     window.clearInterval(timer);
   };

@@ -20,7 +20,7 @@ export function useCalls(
     // Idle clients catch up once a minute; call transitions arrive via Realtime.
     const timer = setInterval(() => void controller.sync(), 60000);
     const unsubscribe = subscribeWorkspace(org, user, event => {
-      if (event.kind === 'calls' || event.kind === 'resync') void controller.sync();
+      if (event.kind === 'calls' || event.kind === 'profiles' || event.kind === 'resync') void controller.sync();
     });
     const refresh = () => void controller.sync();
     const leave = () => controller.leave();

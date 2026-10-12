@@ -1,3 +1,4 @@
+import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
 import { useEffect, useState, type ReactNode } from "react";
 import {
@@ -96,8 +97,15 @@ export function PlatformEditor({
     [busy, setBusy] = useState(false);
   const readOnly = kind === "directory",
     sections = kind === "users" ? userSections : companySections;
+  const userPresence = usePlatformUserPresence(kind === 'users' ? [id] : []);
   const companyPresence=useCompanyPresence(kind==='organizations'?[id]:readOnly&&record?.organization_id?[record.organization_id]:[]);
   const dirty = JSON.stringify(draft) !== JSON.stringify(initial);
+  const [profileRevision, setProfileRevision] = useState(0);
+  useEffect(() => {
+    const refresh = () => { if (!dirty && !editing) setProfileRevision(n => n + 1); };
+    window.addEventListener('logisticall:profile-changed', refresh);
+    return () => window.removeEventListener('logisticall:profile-changed', refresh);
+  }, [dirty, editing]);
   useEffect(() => {
     const abort = new AbortController();
     fetch(`/v1/platform/records/${kind}/${encodeURIComponent(id)}`, {
@@ -130,7 +138,7 @@ export function PlatformEditor({
         if (!abort.signal.aborted) setError(e.message);
       });
     return () => abort.abort();
-  }, [kind, id]);
+  }, [kind, id, profileRevision]);
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!record || readOnly || !dirty) return;
@@ -194,7 +202,7 @@ export function PlatformEditor({
       <div className="lc-platform-editor-body">
         {record && (
           <div className="lc-platform-profile-heading">
-            <Avatar name={draft.name || record.name} inNetwork={kind==='organizations'||readOnly&&Boolean(record.organization_id)} presence={kind==='organizations'?companyPresence[id]??'unknown':readOnly&&record.organization_id?companyPresence[record.organization_id]??'unknown':undefined} />
+            <Avatar name={draft.name || record.name} inNetwork={kind==='organizations'||readOnly&&Boolean(record.organization_id)} presence={kind==='organizations'?companyPresence[id]??'unknown':readOnly&&record.organization_id?companyPresence[record.organization_id]??'unknown':kind==='users'?userPresence[id]??'unknown':undefined} />
             <div>
               <strong>{draft.name || record.name}</strong>
               {kind !== "users" && (

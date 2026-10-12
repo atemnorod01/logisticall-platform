@@ -1,4 +1,4 @@
-export type Change = { kind: 'messages' | 'calls' | 'typing' | 'groups' | 'resync'; conversationId?: string };
+export type Change = { kind: 'messages' | 'calls' | 'typing' | 'groups' | 'profiles' | 'resync'; conversationId?: string };
 type Connection = { source: EventSource; listeners: Set<(event: Change) => void> };
 const connections = new Map<string, Connection>();
 /** One same-origin event stream per signed-in identity, shared by all views. */
@@ -13,7 +13,8 @@ export function subscribeWorkspace(org: string, user: string, listener: (event: 
     source.addEventListener('change', event => {
       try {
         const value = JSON.parse((event as MessageEvent).data) as Change;
-        if (!['messages','calls','typing','groups','resync'].includes(value.kind)) return;
+        if (!['messages','calls','typing','groups','profiles','resync'].includes(value.kind)) return;
+        if (value.kind === "profiles") window.dispatchEvent(new Event("logisticall:profile-changed"));
         for (const receive of current.listeners) receive(value);
       } catch { /* Invalid event cannot mutate workspace state. */ }
     });

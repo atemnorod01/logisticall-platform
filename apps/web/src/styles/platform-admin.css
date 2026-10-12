@@ -348,3 +348,5 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .lc-platform-add-user p {margin:0;overflow-wrap:anywhere;}
 #app.tenant-ui.conversation-workspace .lc-platform-add-user h3 small {display:inline;font-weight:400;}
 #app.tenant-ui.conversation-workspace .lc-platform-add-user > header > .button {padding:6px 10px;font-size:12px;}
+
+#app.tenant-ui :is(.lc-platform-list, .lc-platform-profile-heading) .avatar .presence-dot {width:12px;height:12px;box-sizing:border-box;border:2px solid var(--panel);}

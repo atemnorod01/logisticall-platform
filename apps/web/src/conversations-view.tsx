@@ -525,7 +525,7 @@ export function Conversations({
     const timer = setInterval(() => {
       if (document.visibilityState === "visible") void load();
     }, 60000);
-    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'groups' || event.kind === 'resync') void load(); });
+    const unsubscribe = subscribeWorkspace(organizationId, userId, event => { if (event.kind === 'groups' || event.kind === 'profiles' || event.kind === 'resync') void load(); });
     return () => {
       unsubscribe();
       live = false;

@@ -1,3 +1,4 @@
+import { subscribeWorkspace } from "./realtime.js";
 import { PlatformAdmin, PlatformAdminNavigation, type PlatformAdminPage } from "./platform-admin.js";
 import { useUnreadMessages } from "./unread.js";
 import { preventPortalPinch } from "./portal-zoom.js";
@@ -59,6 +60,12 @@ function Wordmark() {
 function App() {
   useEffect(() => preventPortalPinch(), []);
   const state = useSyncExternalStore(controller.subscribe, controller.snapshot);
+  useEffect(() => {
+    if (!state.context || !state.session) return;
+    return subscribeWorkspace(state.context.organization_id, state.session.userId, event => {
+      if (event.kind === 'profiles') void controller.refreshSession();
+    });
+  }, [state.context?.organization_id, state.session?.userId]);
   const calling = useCalls(state.context?.organization_id, state.session?.userId, state.session?.csrfToken);
   const unreadMessages = useUnreadMessages(state.context?.organization_id, state.session?.userId);
   const presence = usePresence(
