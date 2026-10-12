@@ -9,6 +9,7 @@ export type CallState = {
   calls: AudioCall[];
   current: AudioCall | null;
   preparing: boolean;
+  preparation: "microphone" | "network" | "signaling";
   connected: boolean;
   muted: boolean;
   error: string;
@@ -27,6 +28,7 @@ export function callController(
     calls: [],
     current: null,
     preparing: false,
+    preparation: "microphone",
     connected: false,
     muted: false,
     error: "",
@@ -149,6 +151,7 @@ export function callController(
       ensureLive(version);
     }
     stream = media;
+    publish({ preparation: "network" });
     const connection = new RTCPeerConnection({ iceServers });
     pc = connection;
     audio = new Audio();
@@ -220,13 +223,14 @@ export function callController(
     )
       return;
     outgoingTarget = target;
-    publish({ preparing: true, error: "" });
+    publish({ preparing: true, preparation: "microphone", error: "" });
     const version = ++generation;
     const id = crypto.randomUUID();
     pendingId = id;
     try {
       const connection = await peer(version);
       const offer = await description(connection, "offer", version);
+      publish({ preparation: "signaling" });
       const result = await request({
         action: "create",
         id,
@@ -269,7 +273,7 @@ export function callController(
       state.preparing
     )
       return;
-    publish({ preparing: true, error: "" });
+    publish({ preparing: true, preparation: "microphone", error: "" });
     const version = ++generation;
     try {
       const result = await request({ action: "accept", id: call.id });
@@ -278,6 +282,7 @@ export function callController(
       const connection = await peer(version);
       await connection.setRemoteDescription({ type: "offer", sdp: call.offer });
       const answer = await description(connection, "answer", version);
+      publish({ preparation: "signaling" });
       const accepted = await request({ action: "answer", id: call.id, answer });
       ensureLive(version);
       revision++;

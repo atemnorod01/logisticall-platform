@@ -230,7 +230,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
               {anotherDevice
                 ? "Call open on another device"
                 : state.preparing
-                  ? "Connecting microphone…"
+                  ? ({ microphone: "Connecting microphone…", network: "Preparing audio connection…", signaling: "Starting call…" }[state.preparation])
                   : ringing
                     ? "Calling you…"
                     : call
@@ -287,7 +287,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
           {anotherDevice
             ? "Call open on another device"
             : state.preparing
-              ? "Connecting microphone…"
+              ? ({ microphone: "Connecting microphone…", network: "Preparing audio connection…", signaling: "Starting call…" }[state.preparation])
               : ringing
                 ? "Incoming call"
                 : call?.status === "ringing"
