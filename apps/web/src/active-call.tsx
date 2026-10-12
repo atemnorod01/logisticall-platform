@@ -21,9 +21,11 @@ export function ActiveCallPanel({
   openConversation,
 }: Props) {
   const { state, controller, user } = calling;
-  const call = state.current!;
-  const other = call.caller.id === user ? call.callee : call.caller;
-  const owns = controller.owns(call);
+  const call = state.current;
+  const other = call ? (call.caller.id === user ? call.callee : call.caller) : state.outgoingTarget;
+  const owns = call ? controller.owns(call) : state.preparing;
+  const pending = !call?.acceptedAt;
+  const pendingStatus = state.preparing ? "Calling…" : "Ringing…";
   const [target, setTarget] = useState<HTMLElement | null>(null);
   const popup = useRef<ReturnType<typeof openCallWindow>>(null);
   const [windowError, setWindowError] = useState("");
@@ -119,7 +121,9 @@ export function ActiveCallPanel({
   }, [target, minimized, narrow]);
   const status = !owns
     ? "On another device"
-    : state.held
+    : pending
+      ? pendingStatus
+      : state.held
       ? "On hold"
       : state.connected
         ? state.muted
@@ -132,7 +136,7 @@ export function ActiveCallPanel({
       <button
         className="lc-active-control"
         onClick={controller.mute}
-        disabled={!owns}
+        disabled={!owns || pending}
         aria-pressed={state.muted}
         aria-label={state.muted ? "Unmute microphone" : "Mute microphone"}
         title={state.muted ? "Unmute" : "Mute"}
@@ -143,7 +147,7 @@ export function ActiveCallPanel({
       <button
         className="lc-active-control"
         onClick={controller.hold}
-        disabled={!owns}
+        disabled={!owns || pending}
         aria-pressed={state.held}
         aria-label={state.held ? "Resume call" : "Hold call"}
         title={state.held ? "Resume" : "Hold"}
@@ -178,23 +182,23 @@ export function ActiveCallPanel({
         <Icon name="call-transfer" />
         <span>Transfer</span>
       </button>
-      <CallAudioPicker controller={controller} disabled={!owns} />
+      <CallAudioPicker controller={controller} disabled={!owns || pending} />
       <button
         className="lc-active-control lc-active-hangup"
         onClick={() => void controller.end()}
         disabled={!owns}
-        aria-label="Hang up"
-        title="Hang up"
+        aria-label={pending ? "Cancel call" : "Hang up"}
+        title={pending ? "Cancel call" : "Hang up"}
       >
         <Icon name="phone" />
-        <span>Hang up</span>
+        <span>{pending ? "Cancel call" : "Hang up"}</span>
       </button>
     </div>
   );
   const content = (
     <aside
       className={`lc-active-call lc-call-bar${target ? " lc-active-detached" : ""}${target || (narrow && !minimized) ? " lc-active-expanded" : ""}${minimized && !target ? " lc-active-minimized" : ""}`}
-      aria-label="Active voice call"
+      aria-label={pending ? "Outgoing voice call" : "Active voice call"}
     >
       <header className="lc-active-heading">
         <button
@@ -204,7 +208,7 @@ export function ActiveCallPanel({
         >
           <Icon name="arrow-left" />
         </button>
-        <span>Active call</span>
+        <span>{pending ? "Outgoing call" : "Active call"}</span>
         <button
           onClick={target ? dock : undock}
           aria-label={target ? "Dock call" : "Undock call"}
@@ -214,28 +218,28 @@ export function ActiveCallPanel({
         </button>
       </header>
       <div className="lc-active-identity">
-        <Avatar name={other.name} />
+        <Avatar name={other?.name ?? "Voice call"} />
         <div className="lc-active-summary">
-          <h2>{other.name}</h2>
+          <h2>{other?.name ?? "Voice call"}</h2>
           <p
-            title={[other.organizationName, call.team?.name, status]
+            title={[other?.organizationName, call?.team?.name, status]
               .filter(Boolean)
               .join(" · ")}
           >
-            {other.organizationName && <>{other.organizationName} · </>}
+            {other?.organizationName && <>{other?.organizationName} · </>}
             <span role="status">{status}</span>
           </p>
         </div>
       </div>
       <span
         className="lc-active-duration"
-        aria-label="Call duration"
+        aria-label={pending ? "Call status" : "Call duration"}
         aria-live="off"
       >
-        {duration}
+        {pending ? pendingStatus : duration}
       </span>
       <div className="lc-active-utilities">
-        {call.conversationId && (
+        {call?.conversationId && (
           <button
             onClick={() => {
               window.focus();
@@ -283,7 +287,7 @@ export function ActiveCallPanel({
     <>
       <aside className="lc-call-window-return">
         <span>
-          Call with {other.name} · {duration}
+          Call with {other?.name ?? "Voice call"} · {pending ? pendingStatus : duration}
         </span>
         <button onClick={() => popup.current?.focus()}>Show call window</button>
         <button onClick={dock}>Dock call</button>

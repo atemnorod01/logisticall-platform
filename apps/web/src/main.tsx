@@ -232,7 +232,7 @@ function App() {
     );
   return (
     <div
-      className={`layout conversation-shell${calling.state.current?.acceptedAt ? " lc-call-docked" : ""}${page === "Settings" || page === "Platform administration" || !state.context ? " lc-settings-open" : ""}${page === "Platform administration" ? " lc-platform-open" : ""}`}
+      className={`layout conversation-shell${(calling.state.current?.acceptedAt || (calling.state.current && !calling.controller.incoming(calling.state.current)) || (!calling.state.current && calling.state.preparing)) && !calling.state.voicemail ? " lc-call-docked" : ""}${page === "Settings" || page === "Platform administration" || !state.context ? " lc-settings-open" : ""}${page === "Platform administration" ? " lc-platform-open" : ""}`}
     >
       <aside className="sidebar">
         <div className="rail-brand logisticall-logo" aria-label="LogistiCall">

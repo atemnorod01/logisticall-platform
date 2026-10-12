@@ -9,6 +9,7 @@ export type CallState = {
   calls: AudioCall[];
   current: AudioCall | null;
   preparing: boolean;
+  outgoingTarget?: CallTarget | null;
   preparation: "microphone" | "network" | "signaling";
   connected: boolean;
   muted: boolean;
@@ -142,6 +143,7 @@ export function callController(
     pendingId = null;
     publish({
       preparing: false,
+      outgoingTarget: null,
       connected: false,
       muted: false,
     held: false,
@@ -267,7 +269,7 @@ export function callController(
       return;
     trickle=true;
     outgoingTarget = target;
-    publish({ preparing: true, preparation: "microphone", error: "" });
+    publish({ preparing: true, outgoingTarget: target, preparation: "microphone", error: "" });
     const version = ++generation;
     const id = crypto.randomUUID();
     pendingId = id;

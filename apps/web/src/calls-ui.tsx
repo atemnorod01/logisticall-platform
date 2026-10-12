@@ -211,7 +211,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
     : null;
   const anotherDevice =
     call && !controller.owns(call) && !(incoming && call.status === "ringing");
-  const docked = Boolean(call?.acceptedAt);
+  const docked = Boolean(call?.acceptedAt || (call && !incoming) || (!call && state.preparing));
   const seconds = call?.acceptedAt
     ? Math.max(0, Math.floor((now - call.acceptedAt) / 1000))
     : 0;
@@ -283,7 +283,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
         )}
       </aside>
     );
-  return <ActiveCallPanel key={call!.id} calling={calling} seconds={seconds} openingConversation={openingConversation} conversationError={conversationError} openConversation={openConversation}/>;
+  return <ActiveCallPanel key={call?.id ?? "outgoing"} calling={calling} seconds={seconds} openingConversation={openingConversation} conversationError={conversationError} openConversation={openConversation}/>;
 }
 export function Calls({ calling }: { calling: Calling }) {
   const { state, user } = calling;
