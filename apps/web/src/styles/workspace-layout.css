@@ -6,6 +6,7 @@
   /* The panel outlines provide separation; omit the extra page-edge rules. */
   border-top: 0;
   border-bottom: 0;
+  border-right: 0;
   --workspace-pad-x: 12px;
   --workspace-pad-y: 16px;
   --workspace-heading-height: calc(29px * var(--font-scale, 1));
