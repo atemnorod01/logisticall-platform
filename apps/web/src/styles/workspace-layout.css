@@ -2,7 +2,10 @@
    not change the frame inset or the primary heading's position. */
 #app.tenant-ui.conversation-workspace {
   /* Keep a narrow visible frame around the existing 1px panel borders. */
-  --workspace-inset: 2px;
+  --workspace-inset: 4px;
+  /* The panel outlines provide separation; omit the extra page-edge rules. */
+  border-top: 0;
+  border-bottom: 0;
   --workspace-pad-x: 12px;
   --workspace-pad-y: 16px;
   --workspace-heading-height: calc(29px * var(--font-scale, 1));
