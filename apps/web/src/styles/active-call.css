@@ -450,3 +450,10 @@ body:has(> .lc-call-window) {
   .lc-active-hangup {
   height: 46px;
 }
+
+/* Keep the title centered without a redundant back action in detached calls. */
+.lc-call-window .lc-active-detached .lc-active-heading::before {
+  content: "";
+  width: 36px;
+  flex-shrink: 0;
+}

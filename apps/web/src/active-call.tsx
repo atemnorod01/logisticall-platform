@@ -7,7 +7,7 @@ import type { Calling } from "./calls-ui.js";
 import "./styles/active-call.css";
 
 type Props = {
-  detached?: {target:HTMLElement|null;dock:()=>void;focus:()=>void};
+  detached?: {target:HTMLElement|null;dock:()=>void;focus:()=>void;open?:(()=>void)|undefined};
   calling: Calling;
   seconds: number;
   openingConversation: boolean;
@@ -62,6 +62,7 @@ export function ActiveCallPanel({
     setWindowError("");
   }
   function undock() {
+    if(detached?.open){detached.open();return;}
     if(detached?.target){detached.focus();return;}
     if (popup.current) {
       popup.current.focus();
@@ -207,13 +208,13 @@ export function ActiveCallPanel({
       aria-label={pending ? "Outgoing voice call" : "Active voice call"}
     >
       <header className="lc-active-heading">
-        <button
+        {!target && <button
           ref={returnButton}
-          onClick={() => (target ? dock() : setMinimized(true))}
-          aria-label={target ? "Dock call" : "Return to conversation"}
+          onClick={() => setMinimized(true)}
+          aria-label="Return to conversation"
         >
           <Icon name="arrow-left" />
-        </button>
+        </button>}
         <span>{pending ? "Outgoing call" : "Active call"}</span>
         <button
           onClick={target ? dock : undock}

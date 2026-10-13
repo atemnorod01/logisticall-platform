@@ -1,5 +1,5 @@
 /** A controls-only window. The original tab retains the single audio connection. */
-export function openCallWindow(onClosed: () => void) {
+export function openCallWindow(onClosed: () => void, focus = true) {
   const popup = window.open("", "_blank", "popup=yes,width=390,height=700");
   if (!popup) return null;
   try {
@@ -67,7 +67,7 @@ export function openCallWindow(onClosed: () => void) {
     }, 500);
     popup.addEventListener("pagehide", closed);
     window.addEventListener("pagehide", parentClosed);
-    popup.focus();
+    if(focus)popup.focus();
     return {
       root,
       focus: () => popup.focus(),
