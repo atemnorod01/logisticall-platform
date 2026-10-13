@@ -133,7 +133,7 @@ export function callsRoutes(
           data.source && deps.resolveTarget
             ? await deps.resolveTarget(token, actor, data.target, data.source)
             : await deps.directory.resolve(token, org, data.target);
-        return { settings: await deps.store.preferences(callee.id) };
+        return { settings: await deps.store.preferences(callee.id), recipientName: callee.name };
       }
       if (data.action === "review") { await deps.store.review(actor, data.before); return { unread: await deps.store.unread(actor) }; }
       if (data.action === "sync") {
