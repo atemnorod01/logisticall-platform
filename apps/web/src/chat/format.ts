@@ -52,3 +52,16 @@ export function commentTime(value: string, now = new Date()) {
   });
   return `${day}, ${time}`;
 }
+
+export function conversationDay(value: string, now = new Date()) {
+  const date = new Date(value);
+  if (date.toDateString() === now.toDateString()) return "Today";
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return "Yesterday";
+  return date.toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    ...(date.getFullYear() !== now.getFullYear() ? { year: "numeric" as const } : {}),
+  });
+}

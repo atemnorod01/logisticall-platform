@@ -14,7 +14,7 @@ import { RichEditor, emptyDraft, type Draft } from "./chat/rich-editor.js";
 import { MessageItem } from "./chat/message-item.js";
 import { mountMessageMenus } from "./chat/message-menu.js";
 import { conversationDrafts } from "./chat/conversation-drafts.js";
-import { continuesMessageGroup, inboxTime } from "./chat/format.js";
+import { continuesMessageGroup, inboxTime, conversationDay } from "./chat/format.js";
 import {
   attachmentInput,
   type Message,
@@ -1109,10 +1109,7 @@ export function Conversations({
                   new Date(state.messages[i - 1]!.createdAt).toDateString() !==
                     new Date(m.createdAt).toDateString()) && (
                   <div className="timeline-day">
-                    {new Date(m.createdAt).toLocaleDateString([], {
-                      month: "short",
-                      day: "numeric",
-                    })}
+                    {conversationDay(m.createdAt)}
                   </div>
                 )}
                 <MessageItem
