@@ -1,3 +1,4 @@
+import { VoicemailVoicePicker } from "./voicemail-voice-picker.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { useEffect, useState } from "react";
 import {
@@ -12,9 +13,11 @@ import { greetingUrl } from "./voicemail-audio.js";
 export function VoicemailSettingsEditor({
   org,
   csrf,
+  name,
 }: {
   org: string;
   csrf: string;
+  name: string;
 }) {
   const [settings, setSettings] = useState<VoicemailSettings>(
     defaultVoicemailSettings,
@@ -116,7 +119,9 @@ export function VoicemailSettingsEditor({
   const dirty =
     saved &&
     (settings.ringSeconds !== saved.ringSeconds ||
-      settings.greeting !== saved.greeting);
+      settings.greeting !== saved.greeting ||
+      JSON.stringify(settings.standardVoice) !==
+        JSON.stringify(saved.standardVoice));
   return (
     <section className="lc-voicemail-settings" aria-label="Voicemail settings">
       {!saved ? (
@@ -145,8 +150,21 @@ export function VoicemailSettingsEditor({
                     : "Standard greeting"}
                 </p>
               </div>
-              <span className="lc-voicemail-limit">60 sec max</span>
+              {settings.greeting && (
+                <span className="lc-voicemail-limit">60 sec max</span>
+              )}
             </div>
+            {!settings.greeting && (
+              <VoicemailVoicePicker
+                name={name}
+                value={settings.standardVoice}
+                disabled={busy}
+                onChange={(voice) => {
+                  setSettings({ ...settings, standardVoice: voice });
+                  setNotice("");
+                }}
+              />
+            )}
             {preview && (
               <audio
                 key={preview}

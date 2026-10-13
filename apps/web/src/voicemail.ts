@@ -2,8 +2,7 @@ import { voicemailSettings } from "../../../packages/types/src/voicemail.js";
 import { greetingUrl } from "./voicemail-audio.js";
 import type { CallTarget } from "../../../packages/types/src/calls.js";
 
-export const voicemailGreeting =
-  "Sorry, but this user is unavailable. Please leave your message, and the user will call you right back.";
+import { standardGreeting, configureGreetingVoice, loadGreetingVoices } from "./voicemail-voices.js";
 export type VoicemailState = {
   target: CallTarget;
   phase: "preparing" | "greeting" | "recording" | "sending" | "sent" | "error";
@@ -249,9 +248,8 @@ export function voicemailController(
         throw Error(
           "Could not load this person's voicemail greeting. Please try again.",
         );
-      const preferences = voicemailSettings.parse(
-        (await preferencesResponse.json()).settings,
-      );
+      const preferencesResult = await preferencesResponse.json();
+      const preferences = voicemailSettings.parse(preferencesResult.settings);
       if (!valid(v)) return;
       context = new AudioContext();
       await playback(context.resume(), 3000);
@@ -287,11 +285,12 @@ export function voicemailController(
           throw Error(
             "This browser cannot play the standard greeting. Try a supported browser.",
           );
+        const voices = await loadGreetingVoices();
+        if (!valid(v)) return;
         await playback(
           new Promise<void>((resolve, reject) => {
-            utterance = new SpeechSynthesisUtterance(voicemailGreeting);
-            utterance.lang = "en-US";
-            utterance.rate = 0.95;
+            utterance = new SpeechSynthesisUtterance(standardGreeting(preferencesResult.recipientName || target.name));
+            configureGreetingVoice(utterance, preferences.standardVoice, voices);
             utterance.onend = () => resolve();
             utterance.onerror = () =>
               reject(

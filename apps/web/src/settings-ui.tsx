@@ -376,7 +376,7 @@ export function PersonalSettings({
       {state.error && <p role="alert">{state.error}</p>}
       {(page === "Notifications" || page === "Audio & video") && <RingtoneSettings user={state.session?.userId || ""} />}
       {page === "Install Apps" ? <InstallApps /> : page === "Voicemail" ? (
-        state.context && state.session && <VoicemailSettingsEditor key={`${state.session.userId}:${state.context.organization_id}`} org={state.context.organization_id} csrf={state.session.csrfToken}/>
+        state.context && state.session && <VoicemailSettingsEditor key={`${state.session.userId}:${state.context.organization_id}`} org={state.context.organization_id} csrf={state.session.csrfToken} name={state.session.displayName || ""}/>
       ) : page === "Profile" ? (
         <>
           <div className="lc-profile-identity">
