@@ -1,7 +1,8 @@
 /* Shared shell geometry. Responsive rules may change panel contents, but must
    not change the frame inset or the primary heading's position. */
 #app.tenant-ui.conversation-workspace {
-  --workspace-inset: 8px;
+  /* Panels already draw a 1px border; an outer gutter makes it look thicker. */
+  --workspace-inset: 0px;
   --workspace-pad-x: 12px;
   --workspace-pad-y: 16px;
   --workspace-heading-height: calc(29px * var(--font-scale, 1));
