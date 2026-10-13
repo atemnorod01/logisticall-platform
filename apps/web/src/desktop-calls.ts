@@ -1,3 +1,4 @@
+import {useRingtone} from "./ringtones.js";
 import {useEffect, useRef, useState} from 'react';
 import {openCallWindow} from './call-window.js';
 import type {Calling} from './calls-ui.js';
@@ -6,7 +7,7 @@ declare global {
   interface Window {
     logisticallDesktop?: {
       nativeRinging?:boolean;
-      incoming(value:{id:string;name:string;detail:string;expiresAt:number}|null):void;
+      incoming(value:{id:string;name:string;detail:string;expiresAt:number;ringtone?:string;volume?:number}|null):void;
       onAction(callback:(action:CallAction)=>void):()=>void;
       showWorkspace():void;
     };
@@ -34,11 +35,12 @@ export function useDesktopCall(calling:Calling) {
     });
     return ()=>{unsubscribe();bridge.incoming(null);popup.current?.close();};
   },[bridge]);
+  const ringtone=useRingtone(calling.user);
   const call=calling.state.current;
   const ringing=call && calling.controller.incoming(call) && call.status==='ringing';
   useEffect(()=>{
-    bridge?.incoming(ringing && call ? {id:call.id,name:call.caller.name,detail:[call.caller.organizationName,call.team?.name].filter(Boolean).join(' · '),expiresAt:call.createdAt+(call.ringSeconds??45)*1000}:null);
-  },[bridge,ringing,call?.id,call?.caller.name,call?.caller.organizationName,call?.team?.name]);
+    bridge?.incoming(ringing && call ? {ringtone:ringtone.id,volume:ringtone.volume,id:call.id,name:call.caller.name,detail:[call.caller.organizationName,call.team?.name].filter(Boolean).join(' · '),expiresAt:call.createdAt+(call.ringSeconds??45)*1000}:null);
+  },[bridge,ringing,ringtone.id,ringtone.volume,call?.id,call?.caller.name,call?.caller.organizationName,call?.team?.name]);
   useEffect(()=>{
     if(!call || call.status==='ended' || (!ringing&&!calling.controller.owns(call)))close();
   },[call?.id,call?.status,ringing,calling.controller]);

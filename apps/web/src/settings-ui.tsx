@@ -1,3 +1,4 @@
+import { RingtoneSettings } from "./ringtone-settings.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { VoicemailSettingsEditor } from "./voicemail-settings.js";
 import { MemberEditor } from "./member-editor.js";
@@ -370,6 +371,7 @@ export function PersonalSettings({
         }
       />
       {state.error && <p role="alert">{state.error}</p>}
+      {(page === "Notifications" || page === "Audio & video") && <RingtoneSettings user={state.session?.userId || ""} />}
       {page === "Voicemail" ? (
         state.context && state.session && <VoicemailSettingsEditor key={`${state.session.userId}:${state.context.organization_id}`} org={state.context.organization_id} csrf={state.session.csrfToken}/>
       ) : page === "Profile" ? (
@@ -426,8 +428,7 @@ export function PersonalSettings({
       ) : page === "Notifications" ? (
         <>
           <p>
-            Preferences for this browser. Delivery becomes available when
-            messaging and calling are connected.
+            Notification preferences for this device.
           </p>
           {["Messages", "Incoming calls", "Mentions"].map((n) => (
             <label key={n} className="lc-setting-row">
@@ -457,8 +458,7 @@ export function PersonalSettings({
       ) : (
         <div className="lc-form">
           <p>
-            Available devices reported by your browser. Calling is not connected
-            yet.
+            Available devices reported by your browser.
           </p>
           {(["audioinput", "audiooutput", "videoinput"] as const).map(
             (kind) => (

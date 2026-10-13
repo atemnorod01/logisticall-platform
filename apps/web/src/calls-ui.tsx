@@ -1,3 +1,4 @@
+import {useRingtone,ringtoneUrl} from "./ringtones.js";
 import {createPortal} from "react-dom";
 import {useDesktopCall} from "./desktop-calls.js";
 import {ActiveCallPanel} from "./active-call.js";
@@ -55,6 +56,7 @@ export type Calling = ReturnType<typeof useCalls>;
 export function CallPanel({ calling }: { calling: Calling }) {
   const { controller, state, user } = calling;
   const desktopCall=useDesktopCall(calling);
+  const ringtone=useRingtone(user);
   const [now, setNow] = useState(Date.now());
   const [openingConversation,setOpeningConversation]=useState(false);
   const [conversationError,setConversationError]=useState("");
@@ -76,42 +78,14 @@ export function CallPanel({ calling }: { calling: Calling }) {
     ringing = incoming && call.status === "ringing";
   useEffect(() => {
     if (!ringing || window.logisticallDesktop?.nativeRinging) return;
-    const context = new AudioContext();
-    const unlock = () => void context.resume();
-    window.addEventListener("pointerdown", unlock);
-    window.addEventListener("keydown", unlock);
-    const ring = () => {
-      if (context.state !== "running") return;
-      for (const offset of [0, 0.3]) {
-        const oscillator = context.createOscillator(),
-          gain = context.createGain();
-        oscillator.frequency.value = 440;
-        gain.gain.setValueAtTime(0.08, context.currentTime + offset);
-        gain.gain.exponentialRampToValueAtTime(
-          0.001,
-          context.currentTime + offset + 0.2,
-        );
-        oscillator.connect(gain);
-        gain.connect(context.destination);
-        oscillator.start(context.currentTime + offset);
-        oscillator.stop(context.currentTime + offset + 0.22);
-      }
-    };
-    void context
-      .resume()
-      .then(ring)
-      .catch(() => {});
-    const timer = setInterval(ring, 2200);
-    const title = document.title;
-    document.title = "Incoming voice call · LogistiCall";
-    return () => {
-      clearInterval(timer);
-      void context.close();
-      window.removeEventListener("pointerdown", unlock);
-      window.removeEventListener("keydown", unlock);
-      document.title = title;
-    };
-  }, [ringing]);
+    const audio = ringtone.id==='silent'?null:new Audio(ringtoneUrl(ringtone.id));
+    if(audio){audio.volume=ringtone.volume;audio.loop=true;}
+    const play=()=>{if(audio?.paused)void audio.play().catch(()=>{});};
+    play();
+    window.addEventListener('pointerdown',play);window.addEventListener('keydown',play);
+    const title=document.title;document.title='Incoming voice call · LogistiCall';
+    return()=>{audio?.pause();window.removeEventListener('pointerdown',play);window.removeEventListener('keydown',play);document.title=title;};
+  }, [ringing,ringtone.id,ringtone.volume]);
   useEffect(() => {
     if (!state.voicemail || state.voicemail.phase === "sent") return;
     const warn = (event: BeforeUnloadEvent) => {
