@@ -75,7 +75,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
     incoming = call && controller.incoming(call),
     ringing = incoming && call.status === "ringing";
   useEffect(() => {
-    if (!ringing) return;
+    if (!ringing || window.logisticallDesktop?.nativeRinging) return;
     const context = new AudioContext();
     const unlock = () => void context.resume();
     window.addEventListener("pointerdown", unlock);

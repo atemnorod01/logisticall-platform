@@ -1,10 +1,11 @@
 import {useEffect, useRef, useState} from 'react';
 import {openCallWindow} from './call-window.js';
 import type {Calling} from './calls-ui.js';
-type CallAction={id:string;action:'open'|'accept'};
+type CallAction={id:string;action:'open'|'accept'|'decline'};
 declare global {
   interface Window {
     logisticallDesktop?: {
+      nativeRinging?:boolean;
       incoming(value:{id:string;name:string;detail:string;expiresAt:number}|null):void;
       onAction(callback:(action:CallAction)=>void):()=>void;
       showWorkspace():void;
@@ -27,6 +28,7 @@ export function useDesktopCall(calling:Calling) {
     const unsubscribe=bridge.onAction(({id,action})=>{
       const {state,controller}=latest.current;
       if(state.current?.id!==id || state.current.status!=='ringing' || !controller.incoming(state.current))return;
+      if(action==='decline'){void controller.end();return;}
       open();
       if(action==='accept')void controller.accept();
     });
