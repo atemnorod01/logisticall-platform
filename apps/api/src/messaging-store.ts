@@ -136,21 +136,18 @@ export function postgresMessaging(
   ): Promise<Conversation> {
     const key = addressKey(inbox);
     const {team, external, own, peer} = conversationShape(row,inbox);
-    const state = await c.query(
-      "select s.*, (s.done and not exists(select 1 from platform.messages m where m.conversation_id=s.conversation_id and not m.internal and m.sequence>s.resolved_sequence)) as effective_done from platform.conversation_state s where conversation_id=$1 and address_key=$2",
-      [row.id, key],
-    );
-    // RLS hides notes belonging to the opposite inbox before preview/unread calculation.
-    const messages = await c.query(
-      `select body,created_at,internal,reply_to,deleted_at,actor_id,actor_name from platform.messages where conversation_id=$1 order by sequence desc limit 1`,
-      [row.id],
-    );
-    const unread = await c.query(
-      `select count(*)::int as n from platform.messages m where conversation_id=$1 and actor_id<>$2 ${unreadCallFilter(inbox, "$3")} and sequence>coalesce((select last_sequence from platform.conversation_reads where conversation_id=$1 and address_key=$3 and user_id=$2),0)`,
-      [row.id, a.userId, key],
-    );
-    const s = state.rows[0];
-    const last = messages.rows[0];
+    // Keep summary metadata in one round trip, including the empty-state case.
+    const metadata = await c.query(`select
+      (select to_jsonb(s) || jsonb_build_object('effective_done',s.done and not exists(
+        select 1 from platform.messages m where m.conversation_id=s.conversation_id and not m.internal and m.sequence>s.resolved_sequence))
+       from platform.conversation_state s where conversation_id=$1 and address_key=$3) as state,
+      (select to_jsonb(m) from (select body,created_at,internal,reply_to,deleted_at,actor_id,actor_name
+       from platform.messages where conversation_id=$1 order by sequence desc limit 1) m) as last,
+      (select count(*)::int from platform.messages m where conversation_id=$1 and actor_id<>$2 ${unreadCallFilter(inbox, "$3")}
+       and sequence>coalesce((select last_sequence from platform.conversation_reads where conversation_id=$1 and address_key=$3 and user_id=$2),0)) as unread`,
+      [row.id,a.userId,key]);
+    const s = metadata.rows[0].state;
+    const last = metadata.rows[0].last;
     const result: Conversation = {
       id: row.id,
       kind: team ? "team" : "direct",
@@ -162,14 +159,14 @@ export function postgresMessaging(
       hasMessages: Boolean(last),
       inbox: publicAddress(own),
       peer: publicAddress(peer),
-      updatedAt: (last?.created_at ?? row.created_at).toISOString(),
+      updatedAt: new Date(last?.created_at ?? row.created_at).toISOString(),
       preview: last
         ? `${last.actor_id === a.userId ? "You" : last.actor_name}: ` +
           (last.deleted_at ? "This message has been deleted." :
             (last.internal ? (last.reply_to ? "Internal comment: " : "Internal note: ") : "") +
             (last.body.slice(0, 200) || "Attachment"))
         : "No messages yet",
-      unread: row.departures?.[addressKey(inbox)] ? 0 : unread.rows[0].n,
+      unread: row.departures?.[addressKey(inbox)] ? 0 : metadata.rows[0].unread,
       done: s?.effective_done ?? false,
       assignedTo: s?.assigned_to ?? null,
       assignedName: s?.assigned_name ?? null,
@@ -494,6 +491,15 @@ export function postgresMessaging(
         return r.rows[0];
       });
     },
+    authorizeMedia(a: MessageActor, inbox: Address, id: string, attachmentId: string) {
+      return transaction(a,inbox,async c=>{
+        await get(c,id,inbox,false,true);
+        // RLS enforces message visibility and attachment ownership; authorization
+        // needs no local bytea or remote object download.
+        const r=await c.query("select id from platform.message_attachments where id=$1 and conversation_id=$2 and state='ready'",[attachmentId,id]);
+        if(!r.rows[0]) throw new MessageFailure(404);
+      });
+    },
     async media(a: MessageActor, inbox: Address, id: string, attachmentId: string) {
       const file = await transaction(a, inbox, async (c) => {
         await get(c, id, inbox,false,true);
@@ -672,31 +678,33 @@ export function postgresMessaging(
     },
     messages(a: MessageActor, inbox: Address, id: string, before: number, changes?: {after: number; oldest: number}) {
       return transaction(a, inbox, async (c) => {
-        const conversation = await get(c, id, inbox,false,true);
-        const changeVersion = Number((conversation as unknown as {change_revision:number}).change_revision ?? 0);
-        const r = changes ? await c.query(
-          `select * from platform.messages where conversation_id=$1 and not (internal and reply_to is not null)
-           and change_revision>$2 and change_revision<=$3 and sequence>=$4 order by change_revision limit 51`,
-          [id,changes.after,changeVersion,changes.oldest],
-        ) : await c.query(
-          "select * from platform.messages where conversation_id=$1 and not (internal and reply_to is not null) and sequence<$2 order by sequence desc limit 51",
-          [id, before],
-        );
-        // Related timeline data is read in one database round trip under the same
-        // transaction/RLS context. JSON aggregation keeps the page payload bounded.
-        const related = await c.query(`with sources as materialized (
-          select id,body,deleted_at from platform.messages where conversation_id=$1 and id=any($3::uuid[])
-        ), ids as (select unnest($2::uuid[]) as id union select id from sources)
-        select
-          platform.messaging_group_identity($1,$5::jsonb) as a,
-          platform.messaging_group_identity($1,$6::jsonb) as b,
+        // Read access, the bounded page and its dependencies in one database snapshot.
+        // Every table/function still runs under the existing inbox-scoped RLS context.
+        const related = await c.query(`with conversation as materialized (
+          select * from platform.conversations where id=$1 and platform.messaging_selected_access(a,b,participants)
+        ), page as materialized (
+          select m.* from platform.messages m join conversation c on c.id=m.conversation_id
+          where not (m.internal and m.reply_to is not null)
+            and ($4::bigint is null and m.sequence<$3 or $4::bigint is not null
+              and m.change_revision>$4 and m.change_revision<=c.change_revision and m.sequence>=$5)
+          order by case when $4::bigint is null then m.sequence end desc,
+                   case when $4::bigint is not null then m.change_revision end
+          limit 51
+        ), sources as materialized (
+          select id,body,deleted_at from platform.messages where conversation_id=$1 and id in (select reply_to from page)
+        ), ids as (select id from page union select id from sources)
+        select to_jsonb(c) as conversation,
+          coalesce((select jsonb_agg(p order by case when $4::bigint is null then p.sequence end desc,
+            case when $4::bigint is not null then p.change_revision end) from page p),'[]') as messages,
+          platform.messaging_group_identity($1,c.a) as a,
+          platform.messaging_group_identity($1,c.b) as b,
           coalesce((select jsonb_agg(s) from sources s),'[]') as sources,
           coalesce((select jsonb_agg(m order by m.sequence) from (
             select id,reply_to,sequence,body,actor_name,actor_id,created_at,deleted_at from platform.messages
             where conversation_id=$1 and internal and reply_to in (select id from ids)
           ) m),'[]') as comments,
           coalesce((select jsonb_agg(r) from (
-            select message_id,emoji,count(*)::int as count,bool_or(user_id=$4) as mine
+            select message_id,emoji,count(*)::int as count,bool_or(user_id=$2) as mine
             from platform.message_reactions where message_id in (select id from ids) group by message_id,emoji
           ) r),'[]') as reactions,
           coalesce((select jsonb_agg(f order by f.position,f.id) from (
@@ -704,9 +712,15 @@ export function postgresMessaging(
             where message_id in (select id from ids) and state='ready'
           ) f),'[]') as files,
           coalesce((select jsonb_agg(r) from platform.messaging_receipts($1) r),'[]') as reads,
-          (select max(expires_at) from platform.message_typing where conversation_id=$1 and user_id<>$4 and expires_at>now()) as typing_until`,
-          [id,r.rows.map(m=>m.id),r.rows.map(m=>m.reply_to).filter(Boolean),a.userId,JSON.stringify(conversation.a),JSON.stringify(conversation.b)]);
+          (select max(expires_at) from platform.message_typing where conversation_id=$1 and user_id<>$2 and expires_at>now()) as typing_until
+        from conversation c`, [id,a.userId,before,changes?.after ?? null,changes?.oldest ?? 0]);
         const data = related.rows[0];
+        const conversation = data?.conversation as ParticipantRow | undefined;
+        if (!conversation || ![conversation.a,conversation.b,...conversation.participants].some(p=>addressKey(p)===addressKey(inbox))) throw new MessageFailure(404);
+        const changeVersion = Number((conversation as unknown as {change_revision:number}).change_revision ?? 0);
+        const r: {rows: Record<string, any>[]} = {rows: (data.messages as Record<string, any>[]).map(m=>({...m,
+          created_at:new Date(m.created_at), edited_at:m.edited_at ? new Date(m.edited_at) : null,
+          deleted_at:m.deleted_at ? new Date(m.deleted_at) : null}))};
         const identities = {rows:[{a:data.a,b:data.b}]};
         const identity = (sender: Address) => addressKey(sender) === addressKey(conversation.a) ? data.a : data.b;
         const sources = {rows:data.sources as {id:string;body:string;deleted_at:string|null}[]};

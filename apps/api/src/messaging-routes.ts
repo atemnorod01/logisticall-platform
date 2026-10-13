@@ -417,7 +417,7 @@ export function messagingRoutes(
       const a = await auth(req),
         q = query.strict().parse(req.query),
         p = params(req);
-      await a.store.media(
+      await a.store.authorizeMedia(
         a.actor,
         await inbox(a, q.groupId),
         p.conversationId!,
