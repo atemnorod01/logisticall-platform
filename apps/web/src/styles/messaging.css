@@ -461,8 +461,10 @@
   box-shadow: inset 0 0 0 1px var(--muted);
 }
 #app.tenant-ui.conversation-workspace .lc-messaging .thread-head {
-  height: 100px;
-  min-height: 100px;
+  /* Align with the lower edge of the inbox chips at the default text size. */
+  height: auto;
+  min-height: calc(var(--workspace-pad-y, 16px) + var(--workspace-heading-height, 29px) + 38px);
+  max-height: none;
 }
 #app.tenant-ui .lc-messaging .lc-company-identifiers {
   font-variant-numeric: tabular-nums;
