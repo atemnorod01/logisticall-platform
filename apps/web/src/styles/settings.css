@@ -1342,3 +1342,15 @@
 #app.tenant-ui .lc-ringtone-settings input[type=range] {width:100%;padding:0;accent-color:var(--accent);}
 #app.tenant-ui .lc-ringtone-settings button {justify-self:start;}
 #app.tenant-ui .lc-ringtone-settings [role=status] {min-height:1.4em;font-size:12px;color:var(--muted);}
+
+#app.tenant-ui .lc-install-apps {max-width:760px;display:grid;gap:20px}
+#app.tenant-ui .lc-install-card {border:1px solid var(--line);border-radius:14px;padding:24px;background:var(--panel)}
+#app.tenant-ui .lc-install-card h2 {margin:0 0 8px;font-size:20px}
+#app.tenant-ui .lc-install-title {display:flex;align-items:flex-start;gap:14px}
+#app.tenant-ui .lc-install-title>svg {width:30px;height:30px;flex-shrink:0}
+#app.tenant-ui .lc-install-release {min-height:70px;display:flex;flex-direction:column;gap:8px;margin:16px 0}
+#app.tenant-ui .lc-install-release span {color:var(--muted);font-size:13px}
+#app.tenant-ui .lc-install-card .button {display:inline-flex;align-items:center;gap:8px;text-decoration:none}
+#app.tenant-ui .lc-install-note {padding:14px;border:1px solid var(--line);border-radius:8px;font-size:13px;line-height:1.6;margin:20px 0}
+#app.tenant-ui .lc-install-card li {margin:8px 0;line-height:1.5}
+#app.tenant-ui .lc-install-future {padding:20px 24px}

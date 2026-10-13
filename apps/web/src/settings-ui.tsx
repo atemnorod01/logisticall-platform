@@ -1,3 +1,4 @@
+import { InstallApps } from "./install-apps.js";
 import { RingtoneSettings } from "./ringtone-settings.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { VoicemailSettingsEditor } from "./voicemail-settings.js";
@@ -24,6 +25,7 @@ import type { WorkspaceState } from "./workspace.js";
 import type { PresenceMode } from "./presence.js";
 export type SettingPage =
   | "Voicemail"
+  | "Install Apps"
   | "Profile"
   | "Notifications"
   | "Audio & video"
@@ -145,6 +147,7 @@ export function AccountMenu({
               Notification preferences
             </button>
           </div>
+          <button onClick={() => {setOpen(false);onSettings("Install Apps");}}><Icon name="devices" />Install Apps</button>
           {state.session?.platformAdmin && <button onClick={() => {setOpen(false);onPlatformAdmin();}}>Platform administration</button>}
           <button
             className="lc-signout"
@@ -182,7 +185,7 @@ export function SettingsNav({
         Settings
         <select aria-label="Settings page" value={page} onChange={(e) => setPage(e.target.value as SettingPage)}>
           <optgroup label="Personal">
-            {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+            {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance", "Install Apps"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>
           {admin && <optgroup label={organization || "Organization"}>
             {(["Overview", "Members", "Teams"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
@@ -197,6 +200,7 @@ export function SettingsNav({
           "Audio & video",
           "Voicemail",
           "Appearance",
+          "Install Apps",
         ] as SettingPage[]
       ).map((p) => (
         <button
@@ -207,7 +211,7 @@ export function SettingsNav({
         >
           <Icon
             name={
-              p === "Profile"
+              p === "Install Apps" ? "devices" : p === "Profile"
                 ? "user"
                 : p === "Voicemail"
                   ? "phone"
@@ -358,6 +362,7 @@ export function PersonalSettings({
         title={page}
         description={
           {
+            "Install Apps": "Logisticall on your desktop.",
             Profile: "Manage your name and workspace.",
             Voicemail: "Choose what callers hear when you’re unavailable.",
             Notifications:
@@ -372,7 +377,7 @@ export function PersonalSettings({
       />
       {state.error && <p role="alert">{state.error}</p>}
       {(page === "Notifications" || page === "Audio & video") && <RingtoneSettings user={state.session?.userId || ""} />}
-      {page === "Voicemail" ? (
+      {page === "Install Apps" ? <InstallApps /> : page === "Voicemail" ? (
         state.context && state.session && <VoicemailSettingsEditor key={`${state.session.userId}:${state.context.organization_id}`} org={state.context.organization_id} csrf={state.session.csrfToken}/>
       ) : page === "Profile" ? (
         <>

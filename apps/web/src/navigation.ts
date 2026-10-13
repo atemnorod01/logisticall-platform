@@ -2,7 +2,7 @@ import {useSyncExternalStore} from 'react';
 import type {SettingPage} from './settings-ui.js';
 import type {PlatformAdminPage} from './platform-admin.js';
 export const settingsPaths: Record<SettingPage,string> = {
- Profile:'/settings/profile', Notifications:'/settings/notifications', 'Audio & video':'/settings/audio-video', Voicemail:'/settings/voicemail', Appearance:'/settings/appearance',
+ 'Install Apps':'/settings/install-apps', Profile:'/settings/profile', Notifications:'/settings/notifications', 'Audio & video':'/settings/audio-video', Voicemail:'/settings/voicemail', Appearance:'/settings/appearance',
  Overview:'/settings/organization/overview', Members:'/settings/organization/members', Teams:'/settings/organization/teams',
 };
 export const platformPaths: Record<PlatformAdminPage,string> = {
