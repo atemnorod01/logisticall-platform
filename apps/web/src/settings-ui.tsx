@@ -147,7 +147,6 @@ export function AccountMenu({
               Notification preferences
             </button>
           </div>
-          {state.session?.platformAdmin && <button onClick={() => {setOpen(false);onPlatformAdmin();}}>Platform administration</button>}
           <button
             className="lc-signout"
             onClick={() => {
@@ -184,7 +183,7 @@ export function SettingsNav({
         Settings
         <select aria-label="Settings page" value={page} onChange={(e) => setPage(e.target.value as SettingPage)}>
           <optgroup label="Personal">
-            {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance", "Install Apps"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+            {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance", "Install Apps"] as SettingPage[]).filter(p=>p!=="Install Apps"||!window.logisticallDesktop).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>
           {admin && <optgroup label={organization || "Organization"}>
             {(["Overview", "Members", "Teams"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
@@ -201,7 +200,7 @@ export function SettingsNav({
           "Appearance",
           "Install Apps",
         ] as SettingPage[]
-      ).map((p) => (
+      ).filter(p=>p!=="Install Apps"||!window.logisticallDesktop).map((p) => (
         <button
           key={p}
           className={page === p ? "selected" : ""}
@@ -387,6 +386,7 @@ export function PersonalSettings({
               {state.session?.email && <p className="lc-profile-email">{state.session.email}</p>}
             </div>
           </div>
+          {window.logisticallDesktop?.checkForUpdates && <button className="button" onClick={()=>window.logisticallDesktop?.checkForUpdates?.()}>Check for desktop updates</button>}
           <NameEditor
             label="Your name"
             value={state.session?.displayName || ""}

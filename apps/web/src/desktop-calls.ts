@@ -7,6 +7,7 @@ declare global {
   interface Window {
     logisticallDesktop?: {
       nativeRinging?:boolean;
+      checkForUpdates?():void;
       active?(value:boolean):void;
       onPresentation?(callback:(mode:'dock'|'detach')=>void):()=>void;
       incoming(value:{id:string;name:string;detail:string;expiresAt:number;ringtone?:string;volume?:number}|null):void;

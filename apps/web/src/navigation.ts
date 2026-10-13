@@ -15,6 +15,7 @@ export function parseAppPath(input:string) {
  const url=new URL(input,'https://local.invalid');
  const path=url.pathname.replace(/\/+$/,'') || '/';
  const base={page:'Not found' as AppPage,setting:'Profile' as SettingPage,platformPage:'organizations' as PlatformAdminPage,contactTab:'corporate' as keyof typeof contactPaths,inbox:'',conversationId:'',filter:['unread','done'].includes(url.searchParams.get('filter')??'')?url.searchParams.get('filter')!:'all'};
+ if(path==='/settings/install-apps' && typeof window!=='undefined' && window.logisticallDesktop)return {...base,page:'Settings' as const};
  for(const [setting,p] of Object.entries(settingsPaths)) if(path===p)return {...base,page:'Settings' as const,setting:setting as SettingPage};
  for(const [platformPage,p] of Object.entries(platformPaths)) if(path===p)return {...base,page:'Platform administration' as const,platformPage:platformPage as PlatformAdminPage};
  for(const [contactTab,p] of Object.entries(contactPaths)) if(path===p)return {...base,page:'Contacts' as const,contactTab:contactTab as keyof typeof contactPaths};
