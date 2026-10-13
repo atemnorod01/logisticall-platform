@@ -45,7 +45,7 @@
   font-size: 12px;
 }
 /* Compact pre-call, ringing, and voicemail surfaces. */
-#app.tenant-ui .lc-compact-call {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call {
   width: min(390px, calc(100vw - 32px));
   padding: 0;
   border: 1px solid var(--line);
@@ -54,7 +54,7 @@
   color: var(--ink);
   box-shadow: 0 14px 36px #0003;
 }
-#app.tenant-ui .lc-compact-call > header {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call > header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -62,7 +62,7 @@
   padding: 16px 18px 0;
   margin: 0;
 }
-#app.tenant-ui .lc-compact-call > header h2 {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call > header h2 {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -71,15 +71,15 @@
   color: var(--muted);
   margin: 0;
 }
-#app.tenant-ui .lc-compact-call > header > span {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call > header > span {
   color: var(--muted);
   font-size: 12px;
 }
-#app.tenant-ui .lc-compact-call > header svg {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call > header svg {
   width: 15px;
   height: 15px;
 }
-#app.tenant-ui .lc-compact-call > header button {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call > header button {
   padding: 0;
   width: 28px;
   height: 28px;
@@ -87,23 +87,23 @@
   color: var(--muted);
   line-height: 1;
 }
-#app.tenant-ui .lc-compact-call .lc-compact-call-identity {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call .lc-compact-call-identity {
   display: flex;
   align-items: center;
   gap: 16px;
   padding: 25px 20px;
 }
-#app.tenant-ui .lc-compact-call-identity > .avatar {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-identity > .avatar {
   width: 54px;
   height: 54px;
   flex: 0 0 54px;
   border-radius: 22px;
   font-size: 18px;
 }
-#app.tenant-ui .lc-compact-call-identity > div {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-identity > div {
   min-width: 0;
 }
-#app.tenant-ui .lc-compact-call-identity h3 {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-identity h3 {
   font-size: 18px;
   font-weight: 600;
   letter-spacing: -0.3px;
@@ -111,13 +111,13 @@
   margin: 0 0 4px;
   overflow-wrap: anywhere;
 }
-#app.tenant-ui .lc-compact-call-company {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-company {
   font-size: 13px;
   color: var(--muted);
   line-height: 1.5;
   margin: 0;
 }
-#app.tenant-ui .lc-compact-call .lc-compact-call-status {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call .lc-compact-call-status {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -126,7 +126,7 @@
   line-height: 1.5;
   margin: 7px 0 0;
 }
-#app.tenant-ui .lc-compact-call-status::before {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-status::before {
   content: "";
   width: 5px;
   height: 5px;
@@ -134,15 +134,15 @@
   border-radius: 50%;
   background: var(--accent);
 }
-#app.tenant-ui .lc-compact-incoming .lc-compact-call-status::before {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-incoming .lc-compact-call-status::before {
   background: light-dark(#167953, #6bd5a7);
 }
-#app.tenant-ui .lc-compact-call-actions {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-actions {
   display: flex;
   gap: 10px;
   padding: 0 20px 20px;
 }
-#app.tenant-ui .lc-compact-call-actions > .button {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-actions > .button {
   display: flex;
   flex: 1;
   min-width: 0;
@@ -155,33 +155,33 @@
   font-weight: 500;
   padding: 10px 14px;
 }
-#app.tenant-ui .lc-compact-call-actions svg {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-actions svg {
   width: 17px;
   height: 17px;
   flex: none;
 }
-#app.tenant-ui .lc-compact-call-actions > .lc-compact-accept {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-actions > .lc-compact-accept {
   background: light-dark(#147951, #6bd5a7);
   color: light-dark(#fff, #10271e);
   border-color: transparent;
 }
-#app.tenant-ui .lc-compact-call-actions > .lc-compact-decline,
-#app.tenant-ui .lc-compact-call-actions > .lc-compact-cancel {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-actions > .lc-compact-decline,
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-actions > .lc-compact-cancel {
   background: light-dark(#f9e4e8, #39242e);
   color: light-dark(#b53447, #f28e9a);
   border-color: transparent;
 }
-#app.tenant-ui .lc-compact-decline svg,
-#app.tenant-ui .lc-compact-cancel svg {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-decline svg,
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-cancel svg {
   transform: rotate(135deg);
 }
-#app.tenant-ui .lc-compact-call-error {
+:is(#app.tenant-ui, .lc-call-window) .lc-compact-call-error {
   padding: 0 20px 20px;
   font-size: 13px;
   line-height: 1.5;
 }
 
-#app.tenant-ui .lc-voicemail-recording {
+:is(#app.tenant-ui, .lc-call-window) .lc-voicemail-recording {
   margin: 0;
   padding: 0 20px 12px;
   flex-wrap: wrap;
@@ -200,3 +200,6 @@
   margin-left: auto;
   color: var(--muted);
 }
+
+/* Native notification opens only this controls window. */
+.lc-call-window > .lc-call-panel.lc-compact-call { position: relative; inset: auto; width: 100%; max-width: none; margin: 0; box-sizing: border-box; }

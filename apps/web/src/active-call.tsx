@@ -7,6 +7,7 @@ import type { Calling } from "./calls-ui.js";
 import "./styles/active-call.css";
 
 type Props = {
+  detached?: {target:HTMLElement|null;dock:()=>void;focus:()=>void};
   calling: Calling;
   seconds: number;
   openingConversation: boolean;
@@ -15,6 +16,7 @@ type Props = {
 };
 export function ActiveCallPanel({
   calling,
+  detached,
   seconds,
   openingConversation,
   conversationError,
@@ -26,7 +28,8 @@ export function ActiveCallPanel({
   const owns = call ? controller.owns(call) : state.preparing;
   const pending = !call?.acceptedAt;
   const pendingStatus = state.preparing ? "Calling…" : "Ringing…";
-  const [target, setTarget] = useState<HTMLElement | null>(null);
+  const [localTarget, setTarget] = useState<HTMLElement | null>(null);
+  const target=detached?.target ?? localTarget;
   const popup = useRef<ReturnType<typeof openCallWindow>>(null);
   const [windowError, setWindowError] = useState("");
   const [minimized, setMinimized] = useState(false);
@@ -51,12 +54,15 @@ export function ActiveCallPanel({
     [],
   );
   function dock() {
+    if(detached?.target)detached.dock();
+    window.logisticallDesktop?.showWorkspace();
     popup.current?.close();
     popup.current = null;
     setTarget(null);
     setWindowError("");
   }
   function undock() {
+    if(detached?.target){detached.focus();return;}
     if (popup.current) {
       popup.current.focus();
       return;
@@ -242,6 +248,7 @@ export function ActiveCallPanel({
         {call?.conversationId && (
           <button
             onClick={() => {
+              window.logisticallDesktop?.showWorkspace();
               window.focus();
               setMinimized(true);
               void openConversation();
@@ -277,7 +284,7 @@ export function ActiveCallPanel({
       )}
       {target && (
         <p className="lc-active-window-note">
-          Keep the main LogistiCall tab open.
+          {window.logisticallDesktop ? "The workspace can stay in the background." : "Keep the main LogistiCall tab open."}
         </p>
       )}
     </aside>
@@ -289,7 +296,7 @@ export function ActiveCallPanel({
         <span>
           Call with {other?.name ?? "Voice call"} · {pending ? pendingStatus : duration}
         </span>
-        <button onClick={() => popup.current?.focus()}>Show call window</button>
+        <button onClick={() => detached?.target ? detached.focus() : popup.current?.focus()}>Show call window</button>
         <button onClick={dock}>Dock call</button>
       </aside>
       {createPortal(content, target)}

@@ -1,3 +1,5 @@
+import {createPortal} from "react-dom";
+import {useDesktopCall} from "./desktop-calls.js";
 import {ActiveCallPanel} from "./active-call.js";
 import {callConversationPath} from "./call-conversation.js";
 import {navigate} from "./navigation.js";
@@ -52,6 +54,7 @@ export function useCalls(
 export type Calling = ReturnType<typeof useCalls>;
 export function CallPanel({ calling }: { calling: Calling }) {
   const { controller, state, user } = calling;
+  const desktopCall=useDesktopCall(calling);
   const [now, setNow] = useState(Date.now());
   const [openingConversation,setOpeningConversation]=useState(false);
   const [conversationError,setConversationError]=useState("");
@@ -215,8 +218,8 @@ export function CallPanel({ calling }: { calling: Calling }) {
   const seconds = call?.acceptedAt
     ? Math.max(0, Math.floor((now - call.acceptedAt) / 1000))
     : 0;
-  if (!docked)
-    return (
+  if (!docked) {
+    const content = (
       <aside
         className={`lc-call-panel lc-compact-call ${ringing ? "lc-compact-incoming" : ""}`}
         aria-label={ringing ? "Incoming voice call" : "Outgoing voice call"}
@@ -273,7 +276,7 @@ export function CallPanel({ calling }: { calling: Calling }) {
               <button
                 className="button lc-compact-accept"
                 disabled={state.preparing}
-                onClick={() => void controller.accept()}
+                onClick={desktopCall.accept}
               >
                 <Icon name="phone" />
                 Accept
@@ -283,7 +286,9 @@ export function CallPanel({ calling }: { calling: Calling }) {
         )}
       </aside>
     );
-  return <ActiveCallPanel key={call?.id ?? "outgoing"} calling={calling} seconds={seconds} openingConversation={openingConversation} conversationError={conversationError} openConversation={openConversation}/>;
+    return desktopCall.target ? createPortal(content,desktopCall.target) : content;
+  }
+  return <ActiveCallPanel detached={desktopCall} key={call?.id ?? "outgoing"} calling={calling} seconds={seconds} openingConversation={openingConversation} conversationError={conversationError} openConversation={openConversation}/>;
 }
 export function Calls({ calling }: { calling: Calling }) {
   const { state, user } = calling;
