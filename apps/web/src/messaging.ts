@@ -64,6 +64,16 @@ export function messagingController(
   }
   const abort = new AbortController();
   const cache = new Map<string, { messages: Message[]; hasMore: boolean; at: number }>();
+  // Session-only, scoped to this organization/controller; never persist inbox data.
+  const inboxCache = new Map<string, { rows: Conversation[]; nextOffset: number | null; at: number }>();
+  const inboxKey = (scope: string, filter: string, search: string) => JSON.stringify([scope, filter, search]);
+  function rememberInbox(rows: Conversation[], nextOffset: number | null) {
+    const key = inboxKey(state.scope, state.filter, state.search);
+    inboxCache.delete(key);
+    // Bound both inbox count and rows retained, preserving pagination after trimming.
+    inboxCache.set(key, {rows:rows.slice(0,90),nextOffset:rows.length>90?90:nextOffset,at:Date.now()});
+    if (inboxCache.size > 8) inboxCache.delete(inboxCache.keys().next().value!);
+  }
   const pagesInFlight = new Map<string, Promise<ReturnType<typeof messagePage.parse>>>();
   let warmTimer: ReturnType<typeof setTimeout> | undefined;
   const pageKey = (row: Conversation) => `${row.inbox.kind}:${row.inbox.id}:${row.inbox.organizationId}:${row.id}`;
@@ -119,6 +129,14 @@ export function messagingController(
   const emit = (patch: Partial<State>) => {
     if (disposed) return;
     state = { ...state, ...patch };
+    // Keep cached previews, unread counts and presence coherent without extending freshness.
+    if (patch.rows && patch.scope === undefined && !patch.error) {
+      const entry = inboxCache.get(inboxKey(state.scope, state.filter, state.search));
+      if (entry) {
+        entry.rows = state.rows.slice(0,90);
+        entry.nextOffset = state.rows.length > 90 ? 90 : state.nextOffset;
+      }
+    }
     if (patch.messages && state.selected && !state.timelineLoading)
       remember(state.selected,state.messages,state.hasMore);
     listeners.forEach((f) => f());
@@ -160,6 +178,7 @@ export function messagingController(
       ++epoch;
       ++selection;
       cache.clear();
+      inboxCache.clear();
       pagesInFlight.clear();
       clearTimeout(warmTimer);
     }
@@ -189,6 +208,7 @@ export function messagingController(
       clearTimeout(refreshRetry);
       clearTimeout(warmTimer);
       cache.clear();
+      inboxCache.clear();
       abort.abort();
     },
     request,
@@ -201,16 +221,22 @@ export function messagingController(
       clearTimeout(warmTimer);
       const ticket = ++epoch;
       ++selection;
+      const entry = inboxCache.get(inboxKey(scope,filter,search));
+      const cached = entry && Date.now()-entry.at<30000 ? entry : undefined;
       emit({
         scope,
         groupId: scope === "all" ? "" : scope,
         filter,
         search,
-        rows: [],
-        nextOffset: null,
+        rows: cached?.rows ?? [],
+        nextOffset: cached?.nextOffset ?? null,
         selected: null,
         messages: [],
-        loading: true,
+        typing: false,
+        typingExpiresAt: null,
+        timelineLoading: false,
+        hasMore: false,
+        loading: !cached,
         error: "",
       });
       try {
@@ -219,6 +245,7 @@ export function messagingController(
         );
         if (ticket === epoch) {
           lastListRefresh = Date.now();
+          rememberInbox(p.conversations,p.nextOffset);
           emit({ rows: p.conversations, nextOffset: p.nextOffset });
           warmRecent();
         }
@@ -345,6 +372,7 @@ export function messagingController(
             offset = p.nextOffset;
           }
           lastListRefresh = Date.now();
+          rememberInbox(rows,offset);
           emit({ rows, nextOffset: offset });
         };
         const [listResult, snapshotResult] = await Promise.allSettled([
@@ -590,6 +618,7 @@ export function messagingController(
       try {
         await request(path, method, body);
         cache.clear();
+        inboxCache.clear();
         prefetched = null;
         if (current === epoch && ticket === selection) await api.refresh();
         return true;
