@@ -147,7 +147,6 @@ export function AccountMenu({
               Notification preferences
             </button>
           </div>
-          <button onClick={() => {setOpen(false);onSettings("Install Apps");}}><Icon name="devices" />Install Apps</button>
           {state.session?.platformAdmin && <button onClick={() => {setOpen(false);onPlatformAdmin();}}>Platform administration</button>}
           <button
             className="lc-signout"
