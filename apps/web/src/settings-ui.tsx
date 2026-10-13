@@ -1,3 +1,4 @@
+import { AudioVideoSettings } from "./audio-video-settings.js";
 import { InstallApps } from "./install-apps.js";
 import { RingtoneSettings } from "./ringtone-settings.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
@@ -336,23 +337,6 @@ export function PersonalSettings({
       return {};
     }
   });
-  const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
-  useEffect(() => {
-    if (page !== "Audio & video") return;
-    let live = true;
-    navigator.mediaDevices
-      ?.enumerateDevices()
-      .then((d) => {
-        if (live) setDevices(d);
-      })
-      .catch(() => {
-        if (live)
-          setNotice("Device information is unavailable in this browser.");
-      });
-    return () => {
-      live = false;
-    };
-  }, [page]);
   return (
     <section className="lc-settings-page">
       <SettingsHeader
@@ -365,7 +349,7 @@ export function PersonalSettings({
             Voicemail: "Choose what callers hear when you’re unavailable.",
             Notifications:
               "Choose your notification preferences for this browser.",
-            "Audio & video": "Review your microphone, speaker and camera.",
+            "Audio & video": "Choose the devices LogistiCall uses for your calls.",
             Appearance: "Choose the appearance for this browser.",
             Overview: "Manage your organization.",
             Members: "People in your organization.",
@@ -374,7 +358,7 @@ export function PersonalSettings({
         }
       />
       {state.error && <p role="alert">{state.error}</p>}
-      {(page === "Notifications" || page === "Audio & video") && <RingtoneSettings user={state.session?.userId || ""} />}
+      {page === "Notifications" && <RingtoneSettings user={state.session?.userId || ""} />}
       {page === "Install Apps" ? <InstallApps /> : page === "Voicemail" ? (
         state.context && state.session && <VoicemailSettingsEditor key={`${state.session.userId}:${state.context.organization_id}`} org={state.context.organization_id} csrf={state.session.csrfToken} name={state.session.displayName || ""}/>
       ) : page === "Profile" ? (
@@ -460,30 +444,7 @@ export function PersonalSettings({
           ))}
         </>
       ) : (
-        <div className="lc-form">
-          <p>
-            Available devices reported by your browser.
-          </p>
-          {(["audioinput", "audiooutput", "videoinput"] as const).map(
-            (kind) => (
-              <div className="lc-setting-row" key={kind}>
-                <strong>
-                  {kind === "audioinput"
-                    ? "Microphone"
-                    : kind === "audiooutput"
-                      ? "Speaker"
-                      : "Camera"}
-                </strong>
-                <span>
-                  {devices
-                    .filter((d) => d.kind === kind)
-                    .map((d) => d.label || "System device")
-                    .join(", ") || "System default"}
-                </span>
-              </div>
-            ),
-          )}
-        </div>
+        <AudioVideoSettings />
       )}
       {notice && (
         <p className="lc-feedback" role="status">

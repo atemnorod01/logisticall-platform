@@ -1,3 +1,4 @@
+import { captureMicrophone, configureSpeaker, type MicrophoneCapture } from "./media-preferences.js";
 import { voicemailSettings } from "../../../packages/types/src/voicemail.js";
 import { greetingUrl } from "./voicemail-audio.js";
 import type { CallTarget } from "../../../packages/types/src/calls.js";
@@ -20,6 +21,7 @@ export function voicemailController(
   let version = 0,
     stream: MediaStream | null = null,
     recorder: MediaRecorder | null = null;
+  let microphone: MicrophoneCapture | null = null;
   let greetingAudio: HTMLAudioElement | null = null;
   let greetingObjectUrl = "";
   let context: AudioContext | null = null,
@@ -88,6 +90,8 @@ export function voicemailController(
       if (recorder.state !== "inactive") recorder.stop();
       recorder = null;
     }
+    microphone?.close();
+    microphone = null;
     stream?.getTracks().forEach((t) => t.stop());
     stream = null;
     if (context) {
@@ -200,14 +204,13 @@ export function voicemailController(
         throw Error(
           "This browser cannot play the voicemail greeting or record audio. Try a supported browser.",
         );
-      const media = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true },
-        video: false,
-      });
+      const capture = await captureMicrophone();
+      const media = capture.stream;
       if (!valid(v)) {
-        media.getTracks().forEach((t) => t.stop());
+        capture.close();
         return;
       }
+      microphone = capture;
       stream = media;
       stream.getAudioTracks().forEach((t) => {
         t.enabled = false;
@@ -259,6 +262,8 @@ export function voicemailController(
         greetingObjectUrl = greetingUrl(preferences.greeting);
         greetingAudio = new Audio(greetingObjectUrl);
         const player = greetingAudio;
+        await configureSpeaker(player);
+        if (!valid(v)) return;
         await playback(
           new Promise<void>((resolve, reject) => {
             player.onended = () => resolve();

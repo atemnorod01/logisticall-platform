@@ -1,0 +1,158 @@
+#app.tenant-ui .lc-av-settings {
+  max-width: 800px;
+}
+#app.tenant-ui .lc-av-tabs {
+  display: flex;
+  gap: 28px;
+  border-bottom: 1px solid var(--line);
+  margin: 16px 0;
+}
+#app.tenant-ui .lc-av-tabs button {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  padding: 12px 3px;
+  font: inherit;
+}
+#app.tenant-ui .lc-av-tabs button[aria-selected="true"] {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+#app.tenant-ui .lc-av-section {
+  padding: 16px 0 24px;
+}
+#app.tenant-ui .lc-av-section + .lc-av-section {
+  border-top: 1px solid var(--line);
+  padding-top: 24px;
+}
+#app.tenant-ui .lc-av-section h3 {
+  margin: 0 0 16px;
+  font-size: 15px;
+}
+#app.tenant-ui .lc-av-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(0, 2fr);
+  gap: 20px;
+  align-items: center;
+  margin: 16px 0;
+  font-size: 13px;
+}
+#app.tenant-ui .lc-av-settings select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--surface);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font: inherit;
+}
+#app.tenant-ui .lc-av-range {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+#app.tenant-ui .lc-av-range input {
+  width: 100%;
+  accent-color: var(--accent);
+}
+#app.tenant-ui .lc-av-range output {
+  min-width: 42px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+#app.tenant-ui .lc-av-row meter {
+  width: 100%;
+  height: 12px;
+}
+#app.tenant-ui .lc-av-test {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+#app.tenant-ui .lc-av-settings .button {
+  width: auto;
+  min-height: 36px;
+  padding: 8px 14px;
+  font-size: 12px;
+}
+#app.tenant-ui .lc-av-test span,
+#app.tenant-ui .lc-av-settings small,
+#app.tenant-ui .lc-av-section p {
+  font-size: 12px;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-av-settings small {
+  display: block;
+  margin-top: 5px;
+}
+#app.tenant-ui .lc-av-settings details {
+  margin-top: 22px;
+  font-size: 13px;
+}
+#app.tenant-ui .lc-av-settings summary {
+  color: var(--muted);
+  cursor: pointer;
+}
+#app.tenant-ui .lc-av-check {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 16px 0;
+  font-size: 13px;
+}
+#app.tenant-ui .lc-av-check input {
+  accent-color: var(--accent);
+  width: 17px;
+  height: 17px;
+}
+#app.tenant-ui .lc-av-camera {
+  position: relative;
+  background: var(--surface);
+  border-radius: 10px;
+  aspect-ratio: 16/9;
+  overflow: hidden;
+}
+#app.tenant-ui .lc-av-camera video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+#app.tenant-ui .lc-av-camera span {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+#app.tenant-ui .lc-av-camera + .lc-av-test {
+  margin-top: 14px;
+}
+#app.tenant-ui .lc-av-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--muted);
+}
+#app.tenant-ui .lc-av-feedback {
+  min-height: 20px;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  #app.tenant-ui .lc-av-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  #app.tenant-ui .lc-av-footer {
+    flex-wrap: wrap;
+  }
+}

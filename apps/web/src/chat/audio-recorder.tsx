@@ -1,3 +1,4 @@
+import { captureMicrophone, type MicrophoneCapture } from "../media-preferences.js";
 import { AudioPlayer } from "./audio-player.js";
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "../settings-ui.js";
@@ -25,10 +26,13 @@ export function AudioRecorder({
   const [preview, setPreview] = useState("");
   const live = useRef(true);
   const media = useRef<MediaStream | null>(null);
+  const microphone = useRef<MicrophoneCapture | null>(null);
   const recorder = useRef<MediaRecorder | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const release = () => {
     clearInterval(timer.current);
+    microphone.current?.close();
+    microphone.current = null;
     media.current?.getTracks().forEach((t) => t.stop());
     media.current = null;
   };
@@ -75,14 +79,13 @@ export function AudioRecorder({
       ].find((t) => MediaRecorder.isTypeSupported(t));
       if (!mime)
         throw Error("This browser cannot record a supported audio format.");
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: true,
-        video: false,
-      });
+      const input = await captureMicrophone();
+      const stream = input.stream;
       if (!live.current) {
-        stream.getTracks().forEach((t) => t.stop());
+        input.close();
         return;
       }
+      microphone.current = input;
       media.current = stream;
       const capture = new MediaRecorder(stream, {
         mimeType: mime,

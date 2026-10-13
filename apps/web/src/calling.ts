@@ -1,3 +1,4 @@
+import { captureMicrophone, configureSpeaker, readMediaPreferences, type MicrophoneCapture } from "./media-preferences.js";
 import { gatherCallIce } from "./call-ice.js";
 import { voicemailController, type VoicemailState } from "./voicemail.js";
 import type {
@@ -56,6 +57,7 @@ export function callController(
   }
   let pc: RTCPeerConnection | null = null,
     stream: MediaStream | null = null;
+  let microphone: MicrophoneCapture | null = null;
   let audio: HTMLAudioElement | null = null;
   let changingMicrophone = false;
   let revision = 0;
@@ -133,7 +135,9 @@ export function callController(
     connectionTimer = undefined;
     pc?.close();
     pc = null;
-    stream?.getTracks().forEach((t) => t.stop());
+    if (microphone) microphone.close();
+    else stream?.getTracks().forEach((t) => t.stop());
+    microphone = null;
     stream = null;
     if (audio) {
       audio.pause();
@@ -180,14 +184,13 @@ export function callController(
       throw Error(
         "Voice calling requires a supported browser with microphone access on HTTPS.",
       );
-    const media = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true },
-      video: false,
-    });
+    const capture = await captureMicrophone();
+    const media = capture.stream;
     if (disposed || version !== generation) {
-      media.getTracks().forEach((t) => t.stop());
+      capture.close();
       ensureLive(version);
     }
+    microphone = capture;
     stream = media;
     publish({ preparation: "network" });
     const connection = new RTCPeerConnection({ iceServers });
@@ -200,6 +203,8 @@ export function callController(
     };
     audio = new Audio();
     audio.autoplay = true;
+    await configureSpeaker(audio);
+    ensureLive(version);
     connection.ontrack = (e) => {
       if (!audio || pc !== connection) return;
       audio.srcObject = e.streams[0] ?? new MediaStream([e.track]);
@@ -441,16 +446,18 @@ export function callController(
     owns,
     async audioDevices() {
       const devices = await navigator.mediaDevices.enumerateDevices();
-      return { devices, microphone: stream?.getAudioTracks()[0]?.getSettings().deviceId ?? "default",
+      return { devices, microphone: microphone?.raw.getAudioTracks()[0]?.getSettings().deviceId ?? "default",
         speaker: audio?.sinkId || "default", canSelectSpeaker: !!audio && typeof audio.setSinkId === "function" };
     },
     async selectMicrophone(deviceId: string) {
       if (changingMicrophone || !pc || !stream || !state.current || !owns(state.current)) throw Error("Microphone is not ready.");
       changingMicrophone = true;
-      const connection = pc, previous = stream, version = generation;
+      const connection = pc, previous = stream, previousCapture = microphone, version = generation;
       let replacement: MediaStream | null = null;
+      let replacementCapture: MicrophoneCapture | null = null;
       try {
-        replacement = await navigator.mediaDevices.getUserMedia({ audio: { deviceId: { exact: deviceId }, echoCancellation: true, noiseSuppression: true }, video: false });
+        replacementCapture = await captureMicrophone({...readMediaPreferences(), microphone: deviceId}, false);
+        replacement = replacementCapture.stream;
         ensureLive(version);
         const track = replacement.getAudioTracks()[0];
         const sender = connection.getSenders().find(s => s.track?.kind === "audio");
@@ -460,13 +467,17 @@ export function callController(
         ensureLive(version);
         track.enabled = !state.muted && !state.held;
         stream = replacement;
+        microphone = replacementCapture;
+        replacementCapture = null;
         replacement = null;
-        previous.getTracks().forEach(t => { t.onended = null; t.stop(); });
+        if (previousCapture) previousCapture.close();
+        else previous.getTracks().forEach(t => { t.onended = null; t.stop(); });
         track.onended = () => {
           if (pc === connection) { publish({ error: "Microphone disconnected." }); void end(); }
         };
       } finally {
-        replacement?.getTracks().forEach(t => t.stop());
+        if (replacementCapture) replacementCapture.close();
+        else replacement?.getTracks().forEach(t => t.stop());
         changingMicrophone = false;
       }
     },
