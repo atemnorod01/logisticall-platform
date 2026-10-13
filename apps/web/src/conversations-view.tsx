@@ -1417,6 +1417,7 @@ function NewConversation({
   onClose: () => void;
   onCreated: () => void;
 }) {
+  const externalOnly = Boolean(controller.snapshot().groupId);
   const [tab, setTab] = useState("people"),
     [chosen, setChosen] = useState<Address[]>([]),
     [title, setTitle] = useState(""),
@@ -1494,11 +1495,12 @@ function NewConversation({
     };
   }, [tab, search, offset, controller, organizationId, userId]);
   return (
-    <Modal title="New conversation" onClose={onClose}>
+    <Modal title={externalOnly ? "Start an external conversation" : "New conversation"} onClose={onClose}>
       <div className="lc-new-chat">
         <p className="sub">
           From {from} · {organizationName}
         </p>
+        {externalOnly && <p className="sub">Conversations started here are sent on behalf of {from} and shared with this team. Use My chats to talk with coworkers.</p>}
         <div className="tabs">
           {["people", "team", "groups"]
             .filter((t) => t !== "team" || !controller.snapshot().groupId)
@@ -1514,21 +1516,21 @@ function NewConversation({
                 }}
               >
                 {t === "people"
-                  ? "People"
+                  ? (externalOnly ? "External people" : "People")
                   : t === "team"
                     ? "Team group chat"
-                    : "Teams"}
+                    : (externalOnly ? "Company teams" : "Teams")}
               </button>
             ))}
         </div>
         <input
           type="search"
           autoFocus
-          aria-label="Find people or teams"
+          aria-label={externalOnly ? (tab === "people" ? "Find a person outside your organization" : "Find a team at another company") : "Find people or teams"}
           placeholder={
             tab === "people"
-              ? "Name or exact email in another organization"
-              : tab === "team" ? "Search coworkers" : "Search teams"
+              ? (externalOnly ? "Enter an external person’s exact email" : "Name or exact email in another organization")
+              : tab === "team" ? "Search coworkers" : (externalOnly ? "Search company or team name" : "Search teams")
           }
           value={search}
           onChange={(e) => {
@@ -1582,7 +1584,11 @@ function NewConversation({
             ))}
           {!rows.length && (
             <div className={loading ? "" : "empty"}>
-              {loading ? <LoadingSkeleton rows={4} /> : failure || "No matching contacts."}
+              {loading ? <LoadingSkeleton rows={4} /> : failure || (externalOnly
+                ? tab === "people"
+                  ? search.trim() ? "No external person found. Check their exact email address, or choose Company teams." : "Enter the exact email of someone at another company, or choose Company teams to find a public team."
+                  : "No public teams found at other companies. Try another company or team name."
+                : "No matching contacts.")}
             </div>
           )}
         </div>
