@@ -577,7 +577,7 @@ export function Conversations({
           all.push(...page.groups);
           offset = page.nextOffset;
         }
-        if (live) setGroups(all);
+        if (live) { setGroups(all); controller.prepareInboxes(all.map(g=>g.id)); }
       } catch {
         /* Conversation API independently rechecks current inbox access. */
       }

@@ -67,12 +67,36 @@ export function messagingController(
   // Session-only, scoped to this organization/controller; never persist inbox data.
   const inboxCache = new Map<string, { rows: Conversation[]; nextOffset: number | null; at: number }>();
   const inboxKey = (scope: string, filter: string, search: string) => JSON.stringify([scope, filter, search]);
-  function rememberInbox(rows: Conversation[], nextOffset: number | null) {
-    const key = inboxKey(state.scope, state.filter, state.search);
+  function rememberInbox(rows: Conversation[], nextOffset: number | null, key = inboxKey(state.scope, state.filter, state.search)) {
     inboxCache.delete(key);
     // Bound both inbox count and rows retained, preserving pagination after trimming.
     inboxCache.set(key, {rows:rows.slice(0,90),nextOffset:rows.length>90?90:nextOffset,at:Date.now()});
     if (inboxCache.size > 8) inboxCache.delete(inboxCache.keys().next().value!);
+  }
+  const inboxRequests = new Map<string, Promise<ReturnType<typeof conversationPage.parse>>>();
+  let inboxWarmTimer: ReturnType<typeof setTimeout> | undefined;
+  let inboxWarmVersion = 0;
+  let inboxCacheVersion = 0;
+  function clearInboxes() {
+    inboxCache.clear();
+    inboxRequests.clear();
+    ++inboxCacheVersion;
+    ++inboxWarmVersion;
+    clearTimeout(inboxWarmTimer);
+  }
+  function inboxPage(scope: string, filter: string, search: string) {
+    const key = inboxKey(scope,filter,search);
+    const pending = inboxRequests.get(key);
+    if (pending) return pending;
+    const version = inboxCacheVersion;
+    const path = scope === "all" ? "/feed?" : "?";
+    const page = request(path + new URLSearchParams({...(scope && scope!=="all" ? {groupId:scope} : {}),filter,search})).then(conversationPage.parse).then(value=>{
+      if (!disposed && version===inboxCacheVersion) rememberInbox(value.conversations,value.nextOffset,key);
+      return value;
+    });
+    inboxRequests.set(key,page);
+    void page.finally(()=>{if(inboxRequests.get(key)===page)inboxRequests.delete(key);}).catch(()=>{});
+    return page;
   }
   const pagesInFlight = new Map<string, Promise<ReturnType<typeof messagePage.parse>>>();
   let warmTimer: ReturnType<typeof setTimeout> | undefined;
@@ -178,7 +202,7 @@ export function messagingController(
       ++epoch;
       ++selection;
       cache.clear();
-      inboxCache.clear();
+      clearInboxes();
       pagesInFlight.clear();
       clearTimeout(warmTimer);
     }
@@ -208,10 +232,23 @@ export function messagingController(
       clearTimeout(refreshRetry);
       clearTimeout(warmTimer);
       cache.clear();
-      inboxCache.clear();
+      clearInboxes();
       abort.abort();
     },
     request,
+    prepareInboxes(scopes: string[]) {
+      const version = ++inboxWarmVersion;
+      clearTimeout(inboxWarmTimer);
+      // Only the personal inbox and two nearby teams; one request at a time.
+      const targets = [...new Set(["",...scopes])].slice(0,3);
+      inboxWarmTimer = setTimeout(async () => {
+        for (const scope of targets) {
+          if (disposed || version!==inboxWarmVersion) return;
+          if (scope===state.scope || inboxCache.has(inboxKey(scope,"all",""))) continue;
+          try { await inboxPage(scope,"all",""); } catch { /* Opening the inbox will retry and report errors. */ }
+        }
+      },750);
+    },
     async load(
       scope = state.scope,
       filter = state.filter,
@@ -222,7 +259,7 @@ export function messagingController(
       const ticket = ++epoch;
       ++selection;
       const entry = inboxCache.get(inboxKey(scope,filter,search));
-      const cached = entry && Date.now()-entry.at<30000 ? entry : undefined;
+      const cached = entry;
       emit({
         scope,
         groupId: scope === "all" ? "" : scope,
@@ -240,9 +277,7 @@ export function messagingController(
         error: "",
       });
       try {
-        const p = conversationPage.parse(
-          await request(listQuery({ filter, search })),
-        );
+        const p = await inboxPage(scope,filter,search);
         if (ticket === epoch) {
           lastListRefresh = Date.now();
           rememberInbox(p.conversations,p.nextOffset);
@@ -618,7 +653,7 @@ export function messagingController(
       try {
         await request(path, method, body);
         cache.clear();
-        inboxCache.clear();
+        clearInboxes();
         prefetched = null;
         if (current === epoch && ticket === selection) await api.refresh();
         return true;
