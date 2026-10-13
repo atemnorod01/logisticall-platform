@@ -663,6 +663,8 @@ body[data-tenant-theme="light"] #app.tenant-ui.conversation-workspace .lc-messag
   background: color-mix(in srgb, var(--panel) 65%, transparent);
 }
 #app.tenant-ui.conversation-workspace .lc-messaging > .thread > .composer {
-  margin-bottom: 0;
-  padding-bottom: 14px;
+  margin: 0;
+  width: 100%;
+  border-radius: 0;
+  padding: 10px 10px 14px;
 }
