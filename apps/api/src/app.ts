@@ -1,3 +1,4 @@
+import type {TelephonyService} from './telephony/service.js';
 import { platformAdminRoutes } from "./platform-admin-routes.js";
 import { iamIdentity } from "./iam.js";
 import { callsRoutes } from "./calls-routes.js";
@@ -30,6 +31,7 @@ export function buildApp(
   deps: {
     profileChanged?: (id: string, name: string) => Promise<void>;
     organizationChanged?: (id: string, name: string) => Promise<void>;
+    telephony?: TelephonyService;
     calls?: CallsStore;
     iceServers?: RTCIceServer[];
     iceServersFor?: (userId: string) => Promise<RTCIceServer[]>;
@@ -92,6 +94,7 @@ export function buildApp(
           : "Service temporarily unavailable",
     });
   });
+  if(deps.telephony)app.addHook('onClose',()=>deps.telephony!.close());
   const verify = deps.verify ?? tokenVerifier(config.issuer, config.clientId);
   const context = deps.context ?? iamGateway(config.iamApi);
   const organizations = deps.organizations ?? iamOrganizations(config.iamApi);
@@ -320,6 +323,8 @@ export function buildApp(
     },
   );
   platformAdminRoutes(app, {
+    telephony: deps.telephony,
+    actorId: async token => (await (deps.identity ?? iamIdentity(config.iamApi))(token)).user_id,
     profileChanged: deps.profileChanged,
     organizationChanged: deps.organizationChanged,
     presence: deps.presence,

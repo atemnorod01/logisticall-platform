@@ -1,3 +1,4 @@
+import {postgresTelephony} from './telephony/service.js';
 import { startSupabaseRealtime } from "./realtime.js";
 import { postgresCalls } from "./calls-store.js";
 import { supabaseMediaStorage } from "./media-storage.js";
@@ -25,6 +26,7 @@ const config = z
     AUTH_MODE: z.enum(["browser", "protocol"]).default("browser"),
     APP_ORIGIN: https.optional(),
     SESSION_DATABASE_URL: z.string().optional(),
+    TELEPHONY_DATABASE_URL: z.string().optional(),
     PLATFORM_DATABASE_URL: z.string().optional(),
     MEDIA_STORAGE_ORIGIN: https.optional(),
     MEDIA_STORAGE_SECRET: z.string().min(1).optional(),
@@ -136,6 +138,18 @@ if (config.PLATFORM_DATABASE_URL) {
     console.error("Groups database connection failed"),
   );
 }
+let telephonyPool:Pool|undefined;
+if(config.TELEPHONY_DATABASE_URL){
+ const url=new URL(config.TELEPHONY_DATABASE_URL);
+ if([...url.searchParams.keys()].some(k=>k.startsWith('ssl')))throw Error('Configure telephony TLS using SESSION_DATABASE_CA');
+ telephonyPool=new Pool({connectionString:config.TELEPHONY_DATABASE_URL,ssl:{rejectUnauthorized:true,...(config.SESSION_DATABASE_CA?{ca:config.SESSION_DATABASE_CA}:{})},max:12,connectionTimeoutMillis:5000,statement_timeout:10000});
+ const check=await telephonyPool.query("SELECT r.rolsuper,r.rolbypassrls,pg_has_role(current_user,'platform_telephony_runtime','USAGE') AS allowed,has_schema_privilege(current_user,'platform','USAGE') AS tenant_access FROM pg_roles r WHERE r.rolname=current_user");
+ const role=check.rows[0];
+ if(!role?.allowed||role.rolsuper||role.rolbypassrls||role.tenant_access){await telephonyPool.end();throw Error('Use a dedicated restricted telephony login');}
+ telephonyPool.on('error',()=>console.error('Telephony database connection failed'));
+}
+const telephony=telephonyPool?postgresTelephony(telephonyPool):undefined;
+if(telephony&&telephonyPool){const stop=telephony.close.bind(telephony);telephony.close=async()=>{await stop();await telephonyPool!.end();};}
 const app = buildApp(
   {
     issuer: config.IAM_ISSUER,
@@ -143,6 +157,7 @@ const app = buildApp(
     iamApi: config.IAM_API_URL,
   },
   {
+    ...(telephony?{telephony}:{}),
     iceServers: config.CALL_ICE_SERVERS.map(s => ({urls:s.urls,...(s.username ? {username:s.username} : {}),...(s.credential ? {credential:s.credential} : {})})),
     ...(turn ? {iceServersFor: turn} : {}),
     ...(browser ? { browser, presence: postgresPresence(pool!, groupsPool) } : {}),
