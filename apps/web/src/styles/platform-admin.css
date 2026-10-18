@@ -372,3 +372,23 @@ body[data-tenant-theme="light"]
     border-radius: 0;
   }
 }
+
+/* Keep the telephony control visible when the detail card becomes cramped. */
+#app.tenant-ui.conversation-workspace .lc-platform-editor-panel {
+  container-type: inline-size;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-editor footer {
+  flex-wrap: wrap;
+  flex-basis: auto;
+  height: auto;
+  min-height: 56px;
+  row-gap: 10px;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-editor footer > * {
+  flex-shrink: 0;
+}
+@container (max-width: 380px) {
+  #app.tenant-ui.conversation-workspace .lc-platform-telephony-footer {
+    flex-basis: 100%;
+  }
+}
