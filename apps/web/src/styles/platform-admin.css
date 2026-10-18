@@ -1,3 +1,8 @@
+/* Platform administration shares one fluid content width across all sections. */
+#app.tenant-ui.conversation-workspace .lc-settings-open.lc-platform-open {
+  --settings-content-width: 1300px;
+}
+
 #app.tenant-ui.conversation-workspace .lc-platform-admin {
   --platform-accent: #b6a6ff;
   --platform-fill: #353052;
@@ -128,7 +133,7 @@ body[data-tenant-theme="light"]
   box-sizing: border-box;
 }
 #app.tenant-ui.conversation-workspace .lc-platform-form {
-  max-width: 900px;
+  max-width: var(--settings-content-width, 1300px);
   width: 100%;
 }
 #app.tenant-ui.conversation-workspace .lc-platform-form fieldset {
@@ -333,10 +338,10 @@ body[data-tenant-theme="light"]
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--panel);
-  padding: 16px 16px 0;
+  padding: 16px 16px 12px;
 }
 #app.tenant-ui.conversation-workspace .lc-platform-content.is-editing > .lc-platform-list-view {
-  padding-bottom: 1px;
+  padding-bottom: 13px;
 }
 
 /* Shared header rhythm aligns the list rule with the identity rule in each panel. */
