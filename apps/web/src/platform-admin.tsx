@@ -1,4 +1,3 @@
-import {PlatformUserModal} from './platform-user-modal.js';
 import {PlatformIntegrations} from './platform-integrations.js';
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { usePlatformUserPresence } from "./platform-user-presence.js";
@@ -161,7 +160,6 @@ function PlatformAdminData({
 }) {
   const panel = useRef<HTMLElement>(null);
   const [editing, setEditing] = useState<PlatformRow | null>(null);
-  const [editingUser,setEditingUser]=useState<{id:string;anchor:HTMLElement}|null>(null);
   const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
@@ -594,11 +592,10 @@ function PlatformAdminData({
                         ) : (
                           <button
                             className="lc-platform-row-name"
-                            onClick={(event) => {
+                            onClick={() => {
                               setNotice("");
                               setError("");
-                              if(section === "users")setEditingUser({id:row.id,anchor:event.currentTarget});
-                              else setEditing(row);
+                              setEditing(row);
                             }}
                           >
                             {row.name || row.email}
@@ -638,11 +635,10 @@ function PlatformAdminData({
                         <button
                           className="button lc-platform-edit"
                           aria-label={`View ${row.name || row.email}`}
-                          onClick={(event) => {
+                          onClick={() => {
                             setNotice("");
                             setError("");
-                            if(section === "users")setEditingUser({id:row.id,anchor:event.currentTarget});
-                            else setEditing(row);
+                            setEditing(row);
                           }}
                         >
                           <span aria-hidden="true">›</span>
@@ -703,8 +699,6 @@ function PlatformAdminData({
               </button>
             </footer>
           </div>
-          {editingUser&&<PlatformUserModal id={editingUser.id} anchor={editingUser.anchor} csrf={csrf}
-            onClose={()=>setEditingUser(null)} onSaved={()=>{setEditingUser(null);setRevision(value=>value+1);setNotice("Changes saved.");}}/>}
           {editing && section !== "audit" && (
             <aside
               className="lc-platform-editor-panel"
