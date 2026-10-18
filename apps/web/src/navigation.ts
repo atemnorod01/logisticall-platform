@@ -6,7 +6,7 @@ export const settingsPaths: Record<SettingPage,string> = {
  Overview:'/settings/organization/overview', Members:'/settings/organization/members', Teams:'/settings/organization/teams',
 };
 export const platformPaths: Record<PlatformAdminPage,string> = {
- organizations:'/platform/organizations',users:'/platform/users',directory:'/platform/industry-directory',phones:'/platform/phone-numbers',jambonz:'/platform/jambonz',devices:'/platform/devices',audit:'/platform/audit-history',
+ integrations:'/platform/integrations',organizations:'/platform/organizations',users:'/platform/users',directory:'/platform/industry-directory',phones:'/platform/phone-numbers',jambonz:'/platform/jambonz',devices:'/platform/devices',audit:'/platform/audit-history',
 };
 export const contactPaths = {corporate:'/contacts/company',personal:'/contacts/personal',industry:'/contacts/industry'} as const;
 export type AppPage = 'Conversations'|'Calls'|'Contacts'|'Settings'|'Platform administration'|'Organization administration'|'Group inboxes'|'Network directory'|'Not found';

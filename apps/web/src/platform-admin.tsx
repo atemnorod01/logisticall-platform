@@ -1,3 +1,4 @@
+import {PlatformIntegrations} from './platform-integrations.js';
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
@@ -14,7 +15,7 @@ import { PlatformEditor } from "./platform-editor.js";
 import { Avatar, Icon, SettingsHeader } from "./ui.js";
 import { invitationLink } from "../../../packages/types/src/settings.js";
 export type PlatformAdminPage =
-  PlatformSection | "phones" | "jambonz" | "devices";
+  PlatformSection | "integrations" | "phones" | "jambonz" | "devices";
 const tabs: {
   id: PlatformAdminPage;
   label: string;
@@ -22,6 +23,7 @@ const tabs: {
   group: string;
   description: string;
 }[] = [
+  {id:"integrations",label:"Integrations",icon:"settings",group:"Integrations",description:"Manage telephony provider connections."},
   {
     id: "organizations",
     label: "Organizations",
@@ -85,7 +87,7 @@ export function PlatformAdminNavigation({
       aria-label="Platform administration navigation"
     >
       <h2>Platform administration</h2>
-      {["Management", "Communications", "Security"].map((group) => (
+      {["Management", "Integrations", "Communications", "Security"].map((group) => (
         <div className="lc-platform-nav-group" key={group}>
           <span className="lc-caption">{group}</span>
           {tabs
@@ -116,6 +118,7 @@ export function PlatformAdmin({
   onPage: (page: PlatformAdminPage) => void;
 }) {
   const tab = tabs.find((t) => t.id === page)!;
+  if(page === "integrations")return <PlatformIntegrations csrf={csrf}/>;
   if (page === "phones" || page === "jambonz" || page === "devices")
     return (
       <section className="admin lc-platform-admin">
@@ -181,7 +184,8 @@ function PlatformAdminData({
   useEffect(() => {
     const refresh = () => setRevision(value => value + 1);
     window.addEventListener('logisticall:profile-changed', refresh);
-    return () => window.removeEventListener('logisticall:profile-changed', refresh);
+    window.addEventListener('logisticall:telephony-changed', refresh);
+    return () => {window.removeEventListener('logisticall:profile-changed', refresh);window.removeEventListener('logisticall:telephony-changed', refresh);};
   }, []);
   const [requestId, setRequestId] = useState(() => crypto.randomUUID());
   useEffect(() => {
@@ -202,6 +206,7 @@ function PlatformAdminData({
     );
     return () => clearTimeout(timer);
   }, [section, search, query]);
+  const [telephonyOnly,setTelephonyOnly] = useState(false);
   const loadedSection = useRef(section);
   useEffect(() => {
     const abort = new AbortController();
@@ -210,7 +215,7 @@ function PlatformAdminData({
     if (loadedSection.current !== section) setRows([]);
     loadedSection.current = section;
     fetch(
-      `/v1/platform/${section}?${new URLSearchParams({ search: query, offset: String(offset), limit: String(pageSize) })}`,
+      `/v1/platform/${section}?${new URLSearchParams({ search: query, offset: String(offset), limit: String(pageSize), ...(section === "organizations" && telephonyOnly ? {telephony_only:"true"} : {}) })}`,
       { credentials: "same-origin", signal: abort.signal },
     )
       .then(async (response) => {
@@ -234,7 +239,7 @@ function PlatformAdminData({
         if (!abort.signal.aborted) setLoading(false);
       });
     return () => abort.abort();
-  }, [section, query, offset, pageSize, revision]);
+  }, [section, query, offset, pageSize, revision, telephonyOnly]);
   async function post(path: string, body: unknown) {
     const response = await fetch(`/v1/platform/${path}`, {
       method: "POST",
@@ -335,10 +340,12 @@ function PlatformAdminData({
       className={`admin lc-platform-admin${section === "directory" ? " lc-platform-directory" : ""}`}
       aria-label="Platform administration"
     >
+      {!(section === "organizations" && editing && !form) && (
       <SettingsHeader
         title={tabs.find((t) => t.id === section)!.label}
         description={tabs.find((t) => t.id === section)!.description}
       />
+      )}
       {notice && <p role="status">{notice}</p>}
       {error && (
         <p role="alert">
@@ -501,6 +508,12 @@ function PlatformAdminData({
       ) : (
         <div className={`lc-platform-content${editing ? " is-editing" : ""}`}>
           <div className="lc-platform-list-view">
+            {section === "organizations" && editing && (
+              <SettingsHeader
+                title={tabs.find((t) => t.id === section)!.label}
+                description={tabs.find((t) => t.id === section)!.description}
+              />
+            )}
             <div className="lc-platform-toolbar">
               <form
                 onSubmit={(e) => {
@@ -524,6 +537,10 @@ function PlatformAdminData({
                   <Icon name="search" />
                 </button>
               </form>
+            {section === "organizations" && <label className="lc-platform-telephony-filter">
+              <input type="checkbox" checked={telephonyOnly} onChange={event=>{setTelephonyOnly(event.currentTarget.checked);setOffset(0);}} />
+              <span>PBX only</span>
+            </label>}
               {section === "organizations" && (
                 <button
                   className="button primary lc-platform-add"
@@ -584,6 +601,7 @@ function PlatformAdminData({
                             {row.name || row.email}
                           </button>
                         )}
+                        {section === "organizations" && row.telephony_enabled && <span className="lc-platform-badge">PBX</span>}
                         {row.platform_admin && (
                           <span className="lc-platform-badge">
                             Platform admin

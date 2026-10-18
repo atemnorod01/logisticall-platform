@@ -350,3 +350,12 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .lc-platform-add-user > header > .button {padding:6px 10px;font-size:12px;}
 
 #app.tenant-ui :is(.lc-platform-list, .lc-platform-profile-heading) .avatar .presence-dot {width:12px;height:12px;box-sizing:border-box;border:2px solid var(--panel);}
+
+/* The organization tabs already provide the separator above their content. */
+#app.tenant-ui.conversation-workspace .lc-platform-editor [role="tabpanel"] > .lc-platform-profile-section:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+#app.tenant-ui.conversation-workspace .lc-platform-telephony-filter {display:flex;align-items:center;gap:8px;font-size:12px;margin:0;flex-shrink:0;white-space:nowrap;}
+#app.tenant-ui.conversation-workspace .lc-platform-telephony-filter input {width:16px;height:16px;margin:0;padding:0;flex-shrink:0;accent-color:var(--platform-accent);}

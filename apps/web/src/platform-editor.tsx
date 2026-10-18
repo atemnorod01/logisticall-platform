@@ -1,3 +1,5 @@
+import { TelephonyTabs } from "./telephony-resources.js";
+import { OrganizationTelephony } from "./platform-telephony.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
@@ -88,6 +90,10 @@ export function PlatformEditor({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const [organizationTab, setOrganizationTab] = useState("info");
+  const [telephonyEnabled, setTelephonyEnabled] = useState(false);
+  const selectedOrganizationTab = telephonyEnabled || ["info", "members"].includes(organizationTab) ? organizationTab : "info";
+  const [telephonySwitchTarget, setTelephonySwitchTarget] = useState<HTMLDivElement | null>(null);
   const [record, setRecord] = useState<
     (PlatformRow & { revision: string }) | null
   >(null);
@@ -233,9 +239,36 @@ export function PlatformEditor({
             )}
           </div>
         )}
-        {record && organizationAccess}
+        {record && kind === "organizations" && (
+          <>
+            <TelephonyTabs
+              label="Organization"
+              items={[
+                { key: "info", label: "Info" },
+                { key: "members", label: "Members" },
+                ...(telephonyEnabled ? [
+                  { key: "portaone", label: "PortaOne" },
+                  { key: "netsapiens", label: "NetSapiens" },
+                  { key: "billing", label: "Billing" },
+                ] : []),
+              ]}
+              value={selectedOrganizationTab}
+              onChange={setOrganizationTab}
+            />
+            <OrganizationTelephony id={id} csrf={csrf} active={record.status === "active"} switchTarget={telephonySwitchTarget} tab={selectedOrganizationTab} onEnabledChange={setTelephonyEnabled} />
+            {selectedOrganizationTab === "billing" && (
+              <section role="tabpanel" aria-label="Billing">
+                <p>Billing information is not available yet.</p>
+              </section>
+            )}
+          </>
+        )}
+        {record && kind === "organizations" && selectedOrganizationTab === "members" && (
+          <div role="tabpanel" aria-label="Members">{organizationAccess}</div>
+        )}
         {error && <p role="alert">{error}</p>}
         {!record && !error && <LoadingSkeleton variant="details" rows={4} />}
+        <div hidden={kind === "organizations" && selectedOrganizationTab !== "info"} role={kind === "organizations" ? "tabpanel" : undefined} aria-label={kind === "organizations" ? "Info" : undefined}>
         {record &&
           sections.map((section) => (
             <section
@@ -338,6 +371,7 @@ export function PlatformEditor({
               )}
             </section>
           ))}
+        </div>
         {readOnly && record && (
           <p className="lc-platform-source-note">
             Directory information is managed through imports.
@@ -346,6 +380,7 @@ export function PlatformEditor({
       </div>
       {!readOnly && (
         <footer>
+          {kind === "organizations" && <div className="lc-platform-telephony-footer" ref={setTelephonySwitchTarget} />}
           <button
             className="button"
             type="button"
