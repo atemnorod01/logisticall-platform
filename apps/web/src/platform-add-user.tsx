@@ -1,5 +1,9 @@
 import { useState, useEffect } from "react";
+import type { z } from "zod";
+import { Avatar } from "./ui.js";
 import {
+  platformRecord,
+  platformMember,
   platformInvite,
   platformInviteResult,
 } from "../../../packages/types/src/platform-admin.js";
@@ -21,6 +25,23 @@ export function PlatformAddUser({
   active: boolean;
   csrf: string;
 }) {
+  const [members, setMembers] = useState<z.infer<typeof platformMember>[] | null>(null);
+  const [membersError, setMembersError] = useState("");
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    const abort = new AbortController();
+    setMembers(null);
+    setMembersError("");
+    fetch(`/v1/platform/records/organizations/${organizationId}`, {signal: abort.signal})
+      .then(async response => {
+        if (!response.ok) throw Error("Could not load members.");
+        const record = platformRecord.parse(await response.json());
+        if (!record.member_list) throw Error("Member list is not available yet.");
+        if (!abort.signal.aborted) setMembers(record.member_list);
+      })
+      .catch(error => { if (!abort.signal.aborted) setMembersError(error.message); });
+    return () => abort.abort();
+  }, [organizationId, retry]);
   const [open, setOpen] = useState(false),
     [name, setName] = useState(""),
     [email, setEmail] = useState(""),
@@ -109,7 +130,7 @@ export function PlatformAddUser({
     <section className="lc-platform-profile-section lc-platform-add-user">
       <header>
         <h3>
-          Members <small>({memberCount})</small>
+          Members <small>({members?.length ?? memberCount})</small>
         </h3>
         <button
           type="button"
@@ -129,6 +150,25 @@ export function PlatformAddUser({
           Add user
         </button>
       </header>
+      {membersError ? (
+        <p role="alert">{membersError} <button type="button" className="button" onClick={() => setRetry(value => value + 1)}>Retry</button></p>
+      ) : members === null ? <p role="status">Loading members…</p> : members.length === 0 ? <p>No members yet.</p> : (
+        <ul className="lc-platform-members" aria-label="Organization members">
+          {members.map(member => (
+            <li key={member.id}>
+              <Avatar name={member.name || member.email} />
+              <div className="lc-platform-member-identity">
+                <strong>{member.name || member.email}</strong>
+                <span>{member.email}</span>
+              </div>
+              <div className="lc-platform-member-role">
+                <span>{member.role === "owner" ? "Owner" : member.role === "admin" ? "Organization admin" : "Member"}</span>
+                <small>{member.status}</small>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
       {!open &&
         pending.map((inv) => (
           <div className="lc-platform-owner-invitation" key={inv.id}>
