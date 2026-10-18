@@ -296,3 +296,22 @@
 .lc-telephony-flow-steps li {display: flex;align-items: baseline;gap: 12px;padding: 12px 0;border-bottom: 1px solid var(--line);font-size: 13px;}
 .lc-telephony-flow-actions {display: flex;justify-content: flex-end;gap: 8px;margin-top: 24px;}
 .lc-telephony-flow-actions > span {font-size: 12px;color: var(--muted);}
+
+/* Preserve the switch and action buttons; shorten only the telephony label. */
+#app.tenant-ui.conversation-workspace .lc-platform-telephony-footer {
+  flex: 1 1 0;
+  min-width: 36px;
+  overflow: hidden;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-telephony-footer .lc-telephony-switch {
+  min-width: 0;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-telephony-footer .lc-telephony-switch span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#app.tenant-ui.conversation-workspace .lc-platform-editor footer > .button {
+  flex-shrink: 0;
+}
