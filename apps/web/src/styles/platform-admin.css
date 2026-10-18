@@ -381,3 +381,19 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .lc-platform-member-identity span {font-size:12px;color:var(--muted);}
 #app.tenant-ui.conversation-workspace .lc-platform-member-role {display:flex;flex-direction:column;gap:4px;text-align:right;font-size:12px;}
 #app.tenant-ui.conversation-workspace .lc-platform-member-role small {color:var(--muted);text-transform:capitalize;}
+
+
+#app.tenant-ui.conversation-workspace .lc-platform-member-name {display:block;width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;font-weight:600;text-align:left;cursor:pointer;}
+#app.tenant-ui.conversation-workspace .lc-platform-member-name:hover {text-decoration:underline;}
+#app.tenant-ui.conversation-workspace .lc-platform-member-name:focus-visible {outline:2px solid var(--platform-accent);outline-offset:3px;border-radius:2px;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal {position:fixed;margin:0;padding:0;box-sizing:border-box;border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--text);box-shadow:0 18px 60px #0004;overflow:hidden;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal::backdrop {background:#0005;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal > form {display:flex;flex-direction:column;max-height:inherit;min-height:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal header {padding:20px;border-bottom:1px solid var(--line);flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal-body {padding:20px;overflow-y:auto;min-height:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal .lc-member-row {margin:0 0 20px;padding:0;border:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal .lc-platform-fields {display:grid;grid-template-columns:minmax(0,1fr);gap:16px;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal .lc-muted {color:var(--muted);font-size:12px;margin:12px 0 0;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal footer {display:flex;justify-content:flex-end;gap:8px;padding:16px 20px 20px;border-top:1px solid var(--line);flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal {--platform-accent:light-dark(#6550af,#b6a6ff);color:var(--ink);}
+#app.tenant-ui.conversation-workspace .lc-platform-user-modal .primary {background:var(--platform-accent);border-color:var(--platform-accent);color:light-dark(white,#141024);}

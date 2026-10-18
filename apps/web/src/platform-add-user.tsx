@@ -1,3 +1,4 @@
+import {PlatformUserModal} from './platform-user-modal.js';
 import { useState, useEffect } from "react";
 import type { z } from "zod";
 import { Avatar } from "./ui.js";
@@ -25,6 +26,7 @@ export function PlatformAddUser({
   active: boolean;
   csrf: string;
 }) {
+  const [editingMember,setEditingMember]=useState<{id:string;anchor:HTMLElement}|null>(null);
   const [members, setMembers] = useState<z.infer<typeof platformMember>[] | null>(null);
   const [membersError, setMembersError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -158,7 +160,7 @@ export function PlatformAddUser({
             <li key={member.id}>
               <Avatar name={member.name || member.email} />
               <div className="lc-platform-member-identity">
-                <strong>{member.name || member.email}</strong>
+                <button type="button" className="lc-platform-member-name" onClick={event=>setEditingMember({id:member.id,anchor:event.currentTarget})}>{member.name || member.email}</button>
                 <span>{member.email}</span>
               </div>
               <div className="lc-platform-member-role">
@@ -319,6 +321,8 @@ export function PlatformAddUser({
           )}
         </div>
       )}
+      {editingMember&&<PlatformUserModal id={editingMember.id} anchor={editingMember.anchor} csrf={csrf}
+        onClose={()=>setEditingMember(null)} onSaved={()=>{setEditingMember(null);setRetry(value=>value+1);}}/>}
       {error && <p role="alert">{error}</p>}
     </section>
   );
