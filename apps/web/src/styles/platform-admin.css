@@ -364,3 +364,11 @@ body[data-tenant-theme="light"]
 
 #app.tenant-ui.conversation-workspace .lc-platform-telephony-filter {display:flex;align-items:center;gap:8px;font-size:12px;margin:0;flex-shrink:0;white-space:nowrap;}
 #app.tenant-ui.conversation-workspace .lc-platform-telephony-filter input {width:16px;height:16px;margin:0;padding:0;flex-shrink:0;accent-color:var(--platform-accent);}
+
+/* A standalone detail pane does not need an additional card outline. */
+@container (max-width: 580px) {
+  #app.tenant-ui.conversation-workspace .lc-platform-editor-panel {
+    border: 0;
+    border-radius: 0;
+  }
+}
