@@ -32,6 +32,9 @@ export function createNumberConsole(
             ? {}
             : { "Content-Type": "application/json", "X-CSRF-Token": csrf }),
         },
+      }).then(response=>{
+        if(organizationId&&response.status===403&&typeof window!=='undefined')window.dispatchEvent(new CustomEvent('logisticall:telephony-access-denied',{detail:organizationId}));
+        return response;
       });
     },
   };

@@ -57,8 +57,14 @@ export function organizationPhoneNumberRoutes(
   options: {
     numbers?: NumberProvisioning | undefined;
     authorize: (req: FastifyRequest, org: string) => Promise<string>;
+    enabled: (org:string)=>Promise<boolean>;
   },
 ) {
+  app.get('/v1/organizations/:organizationId/telephony-access',async(req)=>{
+    const org=z.uuid().parse((req.params as {organizationId:string}).organizationId);
+    await options.authorize(req,org);
+    return {enabled:await options.enabled(org)};
+  });
   const base = "/v1/organizations/:organizationId/phone-numbers/console/*";
   app.route({
     method: ["GET", "POST"],
@@ -69,6 +75,7 @@ export function organizationPhoneNumberRoutes(
           .uuid()
           .parse((req.params as { organizationId: string }).organizationId),
         actor = await options.authorize(req, org);
+      if(!await options.enabled(org))deny();
       req.raw.setTimeout?.(75000);
       if (!options.numbers)
         throw Object.assign(Error("Number provisioning is not connected"), {

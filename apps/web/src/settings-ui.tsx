@@ -40,6 +40,8 @@ export type SettingPage =
   | "Phone numbers";
 export const organizationSetting = (page: SettingPage) =>
   ["Overview", "Members", "Teams", "Phone numbers"].includes(page);
+export const organizationSettingsPages=(telephonyEnabled:boolean):SettingPage[]=>
+  telephonyEnabled?["Overview","Members","Teams","Phone numbers"]:["Overview","Members","Teams"];
 export function AccountMenu({
   state,
   selector,
@@ -170,6 +172,7 @@ export function SettingsNav({
   page,
   setPage,
   admin,
+  telephonyEnabled=false,
   organization,
   platformAdmin,
   onPlatformAdmin,
@@ -177,6 +180,7 @@ export function SettingsNav({
   page: SettingPage;
   setPage: (p: SettingPage) => void;
   admin: boolean;
+  telephonyEnabled?: boolean;
   organization?: string | undefined;
   platformAdmin: boolean;
   onPlatformAdmin: () => void;
@@ -191,7 +195,7 @@ export function SettingsNav({
             {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance", "Install Apps"] as SettingPage[]).filter(p=>p!=="Install Apps"||!window.logisticallDesktop).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>
           {admin && <optgroup label={organization || "Organization"}>
-            {(["Overview", "Members", "Teams", "Phone numbers"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+            {organizationSettingsPages(telephonyEnabled).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>}
         </select>
       </label>
@@ -232,7 +236,7 @@ export function SettingsNav({
         <>
           <span className="lc-caption lc-org-caption">Organization</span>
           <strong className="lc-org-name">{organization}</strong>
-          {(["Overview", "Members", "Teams", "Phone numbers"] as SettingPage[]).map((p) => (
+          {organizationSettingsPages(telephonyEnabled).map((p) => (
             <button
               key={p}
               className={page === p ? "selected" : ""}

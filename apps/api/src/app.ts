@@ -374,7 +374,7 @@ export function buildApp(
       }
       return {token,actor};
   };
-  organizationPhoneNumberRoutes(app,{numbers:deps.numbers,authorize:async(req,org)=>(await authorizeOrganization(req,org)).actor.userId});
+  organizationPhoneNumberRoutes(app,{numbers:deps.numbers,enabled:async org=>await deps.telephony?.canAccessTelephony(org)??false,authorize:async(req,org)=>(await authorizeOrganization(req,org)).actor.userId});
   settingsRoutes(app, {
     profileChanged: deps.profileChanged,
     organizationChanged: deps.organizationChanged,

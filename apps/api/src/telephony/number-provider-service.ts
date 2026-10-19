@@ -2,6 +2,7 @@ import {z} from 'zod';
 import type {Pool,PoolClient} from 'pg';
 import type {FastifyInstance} from 'fastify';
 import {numberServicePath,numberServiceVerifier} from './number-service-auth';
+import {organizationTelephonyActive} from './organization-access';
 import {PostgresIntegrationVault} from './integration-vault';
 import {PortaoneClient} from './portaone';
 import {NetsapiensClient} from './netsapiens';
@@ -32,7 +33,7 @@ export const providerOperation=z.discriminatedUnion('action',[
 const writes=new Set(['add-alias','add-number','route-number','delete-alias','delete-number']);
 const unavailable=()=>Object.assign(Error('Organization telephony unavailable'),{statusCode:409});
 export function assertProviderOrganization(org:Organization,state:string,input:z.infer<typeof providerOperation>){
- if(state!=='complete'||org.disabling||org.termination||org.portaoneProvisioning?.status!=='complete'||org.netsapiensProvisioning?.status!=='complete'||org.id!==input.organizationId||org.portaoneId!==input.customerId||org.netsapiensDomain!==input.domain)throw unavailable();
+ if(!organizationTelephonyActive({data:org,state})||org.id!==input.organizationId||org.portaoneId!==input.customerId||org.netsapiensDomain!==input.domain)throw unavailable();
 }
 export function removedProviderTargets(org:Organization){
  return [org,...(org.lifecycleHistory??[])].flatMap(o=>o.termination?.status==='complete'&&o.portaoneId&&o.netsapiensDomain?[{organizationId:org.id,customerId:o.portaoneId,domain:o.netsapiensDomain}]:[]);
@@ -44,7 +45,7 @@ export function platformNumberProviders(pool:Pool,clients?:{po:Pick<PortaoneClie
  return {
   async destinations(){
    const {rows}=await pool.query("SELECT data,state FROM telephony.organizations");
-   return rows.flatMap(({data:o,state}:{data:Organization;state:string})=>state==='complete'&&!o.disabling&&!o.termination&&o.portaoneId&&o.netsapiensDomain&&o.portaoneProvisioning?.status==='complete'&&o.netsapiensProvisioning?.status==='complete'?[{id:o.id,name:o.name,createdAt:o.createdAt,portaoneId:o.portaoneId,netsapiensDomain:o.netsapiensDomain}]:[]);
+   return rows.flatMap(({data:o,state}:{data:Organization;state:string})=>organizationTelephonyActive({data:o,state})?[{id:o.id,name:o.name,createdAt:o.createdAt,portaoneId:o.portaoneId,netsapiensDomain:o.netsapiensDomain}]:[]);
   },
   async removals(){
    const {rows}=await pool.query('SELECT data,state FROM telephony.organizations');

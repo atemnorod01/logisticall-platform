@@ -1,4 +1,5 @@
 import {OrganizationPhoneNumbers} from './organization-phone-numbers.js';
+import {useOrganizationTelephonyAccess} from './organization-telephony-access.js';
 import {useAppPath,parseAppPath,navigate,settingsPaths,platformPaths,contactPaths,conversationPath,type AppPage} from "./navigation.js";
 import { subscribeWorkspace } from "./realtime.js";
 import { PlatformAdmin, PlatformAdminNavigation, type PlatformAdminPage } from "./platform-admin.js";
@@ -98,8 +99,12 @@ function App() {
   const admin = Boolean(
     state.context && state.permissions.includes("groups.manage"),
   );
+  const telephonyAccess=useOrganizationTelephonyAccess(page==='Settings'&&admin?state.context?.organization_id:undefined);
+  useEffect(()=>{
+    if(page==='Settings'&&setting==='Phone numbers'&&admin&&telephonyAccess.loaded&&!telephonyAccess.enabled)navigate(settingsPaths.Overview,true);
+  },[page,setting,admin,telephonyAccess.loaded,telephonyAccess.enabled]);
   const currentSetting =
-    organizationSetting(setting) && !admin ? "Profile" : setting;
+    organizationSetting(setting) && !admin ? "Profile" : setting==='Phone numbers'&&!telephonyAccess.enabled?'Overview':setting;
   const openSettings = (p: SettingPage) => {
     navigate(settingsPaths[p]);
   };
@@ -319,6 +324,7 @@ function App() {
           page={currentSetting}
           setPage={openSettings}
           admin={admin}
+          telephonyEnabled={telephonyAccess.enabled}
           platformAdmin={state.session?.platformAdmin === true}
           onPlatformAdmin={() => setPage("Platform administration")}
           organization={state.context?.name}
