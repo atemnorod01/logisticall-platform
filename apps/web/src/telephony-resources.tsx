@@ -1,3 +1,4 @@
+import {InfiniteScroll} from './infinite-scroll.js';
 import { useEffect, useId, useMemo, useState } from "react";
 import { splitNetSapiensUsers } from "./netsapiens-user-groups.js";
 import {
@@ -134,8 +135,7 @@ export function TelephonyResources({
           .toLowerCase()
           .includes(search.toLowerCase()),
       ),
-    pages = Math.max(1, Math.ceil(rows.length / 20)),
-    selectedPage = Math.min(page, pages - 1);
+    visibleCount=(page+1)*30;
   return (
     <section
       className="lc-telephony-resources"
@@ -220,7 +220,7 @@ export function TelephonyResources({
                       </thead>
                       <tbody>
                         {rows
-                          .slice(selectedPage * 20, (selectedPage + 1) * 20)
+                          .slice(0,visibleCount)
                           .map((row, index) => (
                             <tr key={index}>
                               {data.columns.map((col) => (
@@ -230,6 +230,7 @@ export function TelephonyResources({
                           ))}
                       </tbody>
                     </table>
+                    <InfiniteScroll label={names[section]!} hasMore={visibleCount<rows.length} onMore={()=>changeView({page:page+1})} progress={`${section}:${visibleCount}`} resetKey={`${section}:${search}`} />
                   </div>
                 ) : (
                   <p className="lc-telephony-resource-empty">
@@ -238,25 +239,6 @@ export function TelephonyResources({
                       : "No resources returned for this organization."}
                   </p>
                 )}
-                <div className="lc-telephony-resource-toolbar lc-telephony-resource-pagination" role="group" aria-label={`${names[section]} pagination`}>
-                  <button
-                    type="button"
-                    disabled={selectedPage === 0}
-                    onClick={() => changeView({ page: selectedPage - 1 })}
-                  >
-                    Previous
-                  </button>
-                  <small>
-                    {rows.length} resources · Page {selectedPage + 1} of {pages}
-                  </small>
-                  <button
-                    type="button"
-                    disabled={selectedPage + 1 >= pages}
-                    onClick={() => changeView({ page: selectedPage + 1 })}
-                  >
-                    Next
-                  </button>
-                </div>
               </>
             )}
           </>

@@ -1,6 +1,6 @@
 import {PlatformPhoneNumbers} from './platform-phone-numbers.js';
 import {PlatformIntegrations} from './platform-integrations.js';
-import {PlatformPagination} from './platform-pagination.js';
+import {InfiniteScroll,useInfiniteData} from './infinite-scroll.js';
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
@@ -161,13 +161,8 @@ function PlatformAdminData({
 }) {
   const panel = useRef<HTMLElement>(null);
   const [editing, setEditing] = useState<PlatformRow | null>(null);
-  const [pageSize, setPageSize] = useState(20);
   const [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
-    [offset, setOffset] = useState(0),
-    [rows, setRows] = useState<PlatformRow[]>([]),
-    [next, setNext] = useState<number | null>(null),
-    [loading, setLoading] = useState(true),
     [error, setError] = useState(""),
     [revision, setRevision] = useState(0);
   const [form, setForm] = useState<{
@@ -180,6 +175,15 @@ function PlatformAdminData({
       url: string;
       expires_at: string | null;
     } | null>(null);
+  const [telephonyOnly,setTelephonyOnly] = useState(false);
+  const [ownerInvitation,setOwnerInvitation]=useState<string|null>(null);
+  const list=useInfiniteData<PlatformRow>({queryKey:`${section}:${query}:${telephonyOnly}`,refreshKey:revision,id:row=>row.id,
+    read:async(offset,signal)=>{
+      const response=await fetch(`/v1/platform/${section}?${new URLSearchParams({search:query,offset:String(offset),limit:'20',...(section==='organizations'&&telephonyOnly?{telephony_only:'true'}:{})})}`,{credentials:'same-origin',signal});
+      if(!response.ok)throw Error(response.status===403?'Platform administrator access is required.':'Could not load platform data. Please try again.');
+      const page=platformPage.parse(await response.json());return {items:page.rows,nextOffset:page.nextOffset};
+    }});
+  const {items:rows,loading}=list;
   const userPresence = usePlatformUserPresence(section === 'users' ? rows.map(row => row.id) : []);
   const companyPresence=useCompanyPresence(section==='organizations'?rows.map(r=>r.id):section==='directory'?rows.flatMap(r=>r.organization_id?[r.organization_id]:[]):[]);
   useEffect(() => {
@@ -194,12 +198,12 @@ function PlatformAdminData({
     panel.current
       ?.querySelector(".lc-platform-row.selected")
       ?.scrollIntoView({ block: "nearest" });
-  }, [form, editing, section, offset]);
+  }, [form, editing, section]);
   useEffect(() => {
     if (section !== "directory" || search.trim() === query) return;
     const timer = setTimeout(
       () => {
-        setOffset(0);
+
         setQuery(search.trim());
         setEditing(null);
       },
@@ -207,40 +211,6 @@ function PlatformAdminData({
     );
     return () => clearTimeout(timer);
   }, [section, search, query]);
-  const [telephonyOnly,setTelephonyOnly] = useState(false);
-  const loadedSection = useRef(section);
-  useEffect(() => {
-    const abort = new AbortController();
-    setLoading(true);
-    setError("");
-    if (loadedSection.current !== section) setRows([]);
-    loadedSection.current = section;
-    fetch(
-      `/v1/platform/${section}?${new URLSearchParams({ search: query, offset: String(offset), limit: String(pageSize), ...(section === "organizations" && telephonyOnly ? {telephony_only:"true"} : {}) })}`,
-      { credentials: "same-origin", signal: abort.signal },
-    )
-      .then(async (response) => {
-        if (!response.ok)
-          throw Error(
-            response.status === 403
-              ? "Platform administrator access is required."
-              : "Could not load platform data. Please try again.",
-          );
-        return platformPage.parse(await response.json());
-      })
-      .then((page) => {
-        if (abort.signal.aborted) return;
-        setRows(page.rows);
-        setNext(page.nextOffset);
-      })
-      .catch((e) => {
-        if (!abort.signal.aborted) setError(e.message);
-      })
-      .finally(() => {
-        if (!abort.signal.aborted) setLoading(false);
-      });
-    return () => abort.abort();
-  }, [section, query, offset, pageSize, revision, telephonyOnly]);
   async function post(path: string, body: unknown) {
     const response = await fetch(`/v1/platform/${path}`, {
       method: "POST",
@@ -264,6 +234,7 @@ function PlatformAdminData({
     setNotice("");
     setError("");
     setSetup(null);
+    setOwnerInvitation(null);
   }
   async function create(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -308,10 +279,11 @@ function PlatformAdminData({
       const result = platformResult.parse(await post("companies", parsed.data));
       setForm(null);
       setSection(result.organization_id ? "organizations" : "directory");
-      setOffset(0);
+
       setSearch("");
       setQuery("");
       setRevision((v) => v + 1);
+      setOwnerInvitation(result.invitation_id);
       setNotice(
         result.organization_id
           ? "Organization created. The owner invitation is ready. Generate a setup link below to share with the owner."
@@ -348,6 +320,7 @@ function PlatformAdminData({
       />
       )}
       {notice && <p role="status">{notice}</p>}
+      {ownerInvitation&&!setup&&<button className="button" disabled={busy} onClick={()=>void link(ownerInvitation)}>Get owner setup link</button>}
       {error && (
         <p role="alert">
           {error}{" "}
@@ -519,7 +492,7 @@ function PlatformAdminData({
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
-                  setOffset(0);
+
                   setQuery(search.trim());
                   setEditing(null);
                 }}
@@ -539,7 +512,7 @@ function PlatformAdminData({
                 </button>
               </form>
             {section === "organizations" && <label className="lc-platform-telephony-filter">
-              <input type="checkbox" checked={telephonyOnly} onChange={event=>{setTelephonyOnly(event.currentTarget.checked);setOffset(0);}} />
+              <input type="checkbox" checked={telephonyOnly} onChange={event=>{setTelephonyOnly(event.currentTarget.checked);}} />
               <span>PBX only</span>
             </label>}
               {section === "organizations" && (
@@ -657,26 +630,8 @@ function PlatformAdminData({
                   </article>
                 ))
               )}
+              <InfiniteScroll label={tabs.find(t=>t.id===section)!.label} hasMore={list.nextOffset!==null} loading={loading} error={list.error} onMore={list.loadMore} onRetry={list.retry} progress={rows.length} resetKey={`${section}:${query}:${telephonyOnly}`}/>
             </div>
-            <PlatformPagination
-              page={Math.floor(offset / pageSize)}
-              pageSize={pageSize}
-              onPageSizeChange={(size) => {
-                setPageSize(size);
-                setOffset(0);
-                setEditing(null);
-              }}
-              previousDisabled={loading || offset === 0}
-              nextDisabled={loading || next === null}
-              onPrevious={() => {
-                setOffset(Math.max(0, offset - pageSize));
-                setEditing(null);
-              }}
-              onNext={() => {
-                setOffset(next!);
-                setEditing(null);
-              }}
-            />
           </div>
           {editing && section !== "audit" && (
             <aside
@@ -709,37 +664,6 @@ function PlatformAdminData({
                         active={editing.status === "active"}
                         csrf={csrf}
                       />
-                      {!!editing.invitations?.length && (
-                        <section className="lc-platform-profile-section">
-                          <header>
-                            <h3>Owner invitation</h3>
-                          </header>
-                          {editing.invitations?.map((inv) => (
-                            <div
-                              className="lc-platform-owner-invitation"
-                              key={inv.id}
-                            >
-                              <p>{inv.email}</p>
-                              <small>
-                                {Date.parse(inv.expires_at) < Date.now()
-                                  ? "Invitation expired"
-                                  : "Awaiting acceptance"}
-                              </small>
-                              <button
-                                type="button"
-                                className="button"
-                                disabled={
-                                  busy ||
-                                  Date.parse(inv.expires_at) < Date.now()
-                                }
-                                onClick={() => void link(inv.id)}
-                              >
-                                Get setup link
-                              </button>
-                            </div>
-                          ))}
-                        </section>
-                      )}
                     </>
                   ) : null
                 }

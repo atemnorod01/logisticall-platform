@@ -1,5 +1,7 @@
+import {InfiniteScroll,useInfiniteItems} from './infinite-scroll.js';
+import {formatMemberPhone} from './member-phone.js';
 import {PlatformMemberModal} from './platform-member-modal.js';
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { z } from "zod";
 import { Avatar } from "./ui.js";
 import {
@@ -10,7 +12,6 @@ import {
 } from "../../../packages/types/src/platform-admin.js";
 import {
   invitationLink,
-  invitationRows,
 } from "../../../packages/types/src/settings.js";
 
 export function PlatformAddUser({
@@ -30,9 +31,10 @@ export function PlatformAddUser({
   const [members, setMembers] = useState<z.infer<typeof platformMember>[] | null>(null);
   const [membersError, setMembersError] = useState("");
   const [retry, setRetry] = useState(0);
+  const loadedOrganization=useRef(organizationId);
   useEffect(() => {
     const abort = new AbortController();
-    setMembers(null);
+    if(loadedOrganization.current!==organizationId){setMembers(null);loadedOrganization.current=organizationId;}
     setMembersError("");
     fetch(`/v1/platform/records/organizations/${organizationId}`, {signal: abort.signal})
       .then(async response => {
@@ -44,37 +46,17 @@ export function PlatformAddUser({
       .catch(error => { if (!abort.signal.aborted) setMembersError(error.message); });
     return () => abort.abort();
   }, [organizationId, retry]);
+  const memberList=useInfiniteItems(members??[],organizationId);
   const [open, setOpen] = useState(false),
     [name, setName] = useState(""),
     [email, setEmail] = useState(""),
     [role, setRole] = useState("member");
-  const [pending, setPending] = useState<
-    { id: string; email: string; role_id: string; expires_at: string }[]
-  >([]);
   const [localOnly, setLocalOnly] = useState(false);
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [invitation, setInvitation] = useState(""),
     [url, setUrl] = useState(""),
     [copied, setCopied] = useState(false);
-  useEffect(() => {
-    const abort = new AbortController();
-    fetch(`/v1/platform/organizations/${organizationId}/invitations`, {
-      signal: abort.signal,
-    })
-      .then(async (r) => {
-        if (!r.ok) throw Error("Could not load invitations.");
-        return r.json();
-      })
-      .then((v) => {
-        setPending(invitationRows.parse(v.invitations));
-        setLocalOnly(v.local_only ?? false);
-      })
-      .catch((e) => {
-        if (!abort.signal.aborted) setError(e.message);
-      });
-    return () => abort.abort();
-  }, [organizationId, invitation]);
   async function request(path: string, body: unknown) {
     const response = await fetch(`/v1/platform/${path}`, {
       method: "POST",
@@ -107,6 +89,7 @@ export function PlatformAddUser({
         ),
       );
       setInvitation(result.id);
+      setRetry(value => value + 1);
       setLocalOnly(result.local_only ?? false);
     } catch (e) {
       setError((e as Error).message);
@@ -155,52 +138,28 @@ export function PlatformAddUser({
       {membersError ? (
         <p role="alert">{membersError} <button type="button" className="button" onClick={() => setRetry(value => value + 1)}>Retry</button></p>
       ) : members === null ? <p role="status">Loading members…</p> : members.length === 0 ? <p>No members yet.</p> : (
-        <ul className="lc-platform-members" aria-label="Organization members">
-          {members.map(member => (
+        <><ul className="lc-platform-members" aria-label="Organization members">
+          {memberList.items.map(member => (
             <li key={member.id}>
               <Avatar name={member.name || member.email} />
               <div className="lc-platform-member-identity">
                 <button type="button" className="lc-platform-member-name" onClick={event=>setEditingMember({id:member.id,anchor:event.currentTarget})}>{member.name || member.email}</button>
                 <span>{member.email}</span>
               </div>
-              {!!member.extensions?.length&&<span className="lc-member-extension" title={`Extension${member.extensions.length===1?'':'s'} ${member.extensions.join(', ')}`}>Ext. {member.extensions.join(', ')}</span>}
+              <div className="lc-platform-member-telephony">
+                {member.telephony_unavailable ? <small>Phone details unavailable</small> : <>
+                  {!!member.extensions?.length && <span className="lc-member-extension">Ext. {member.extensions.join(', ')}</span>}
+                  {member.phone_numbers?.map(number => <span className="lc-member-phone" key={number}>{formatMemberPhone(number)}</span>)}
+                </>}
+              </div>
               <div className="lc-platform-member-role">
                 <span>{member.role === "owner" ? "Owner" : member.role === "admin" ? "Organization admin" : "Member"}</span>
                 <small>{member.status==='pending'?'Pending':member.status}</small>
               </div>
             </li>
           ))}
-        </ul>
+        </ul><InfiniteScroll label="Members" hasMore={memberList.hasMore} onMore={memberList.loadMore} progress={memberList.items.length} resetKey={organizationId}/></>
       )}
-      {!open &&
-        pending.map((inv) => (
-          <div className="lc-platform-owner-invitation" key={inv.id}>
-            <p>{inv.email}</p>
-            <small>
-              {inv.role_id === "admin" ? "Organization admin" : "Member"} ·{" "}
-              {Date.parse(inv.expires_at) < Date.now()
-                ? "Expired"
-                : "Invitation pending"}
-            </small>
-            {!localOnly && (
-              <button
-                type="button"
-                className="button"
-                disabled={Date.parse(inv.expires_at) < Date.now()}
-                onClick={() => {
-                  setInvitation(inv.id);
-                  setEmail(inv.email);
-                  setUrl("");
-                  setCopied(false);
-                  setError("");
-                  setOpen(true);
-                }}
-              >
-                Get invitation link
-              </button>
-            )}
-          </div>
-        ))}
       {!active && (
         <small>Available after organization setup is complete.</small>
       )}
@@ -209,8 +168,7 @@ export function PlatformAddUser({
           {invitation ? (
             <>
               <p role="status">
-                Invitation created for {email}. They’ll join {organizationName}{" "}
-                after accepting.
+                Invitation created for {email}. They’re a pending member of {organizationName}.
               </p>
               {localOnly ? (
                 <small>

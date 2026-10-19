@@ -816,3 +816,6 @@
 #app.tenant-ui.conversation-workspace .lc-number-console .tn-purchase-price {display:flex;align-items:center;justify-content:space-between;gap:16px;margin:16px 0;padding:16px 0;border-block:1px solid var(--line);font-size:14px;}
 #app.tenant-ui.conversation-workspace .lc-number-console .tn-purchase-price small {margin-top:4px;font-size:12px;}
 #app.tenant-ui.conversation-workspace .lc-number-console .tn-purchase-price > strong {white-space:nowrap;font-size:18px;}
+
+/* Keep all inventory columns accessible through horizontal scrolling on narrow screens. */
+#app.tenant-ui.conversation-workspace .lc-platform-number-page .telephone-inventory :is(th,td) {display:table-cell;}

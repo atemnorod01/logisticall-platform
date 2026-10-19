@@ -1,5 +1,6 @@
 import {numberWorkflowMessage,numberMonthlyPrice} from './customer-language';
 import {numberIntent,completeNumberIntent} from './request-intent';
+import {InfiniteScroll} from '../infinite-scroll';
 import {ListPagination,usePagination} from './ListPagination';
 import {useEffect,useMemo,useRef,useState} from 'react';
 import {CoverageCombobox} from './CoverageCombobox';
@@ -16,6 +17,7 @@ export default function BuyNumbersPanel({context,onPending,onOrder,lockedOrganiz
  const [confirmation,setConfirmation]=useState<AvailableNumber[]|null>(null),[submitting,setSubmitting]=useState(false),[order,setOrder]=useState<NumberOrder>(),[notice,setNotice]=useState('');
  const confirm=useRef<HTMLDialogElement>(null),requestId=useRef(''),generation=useRef(0),controller=useRef<AbortController|null>(null);
  const accountId=destination||null;
+ const tenantScope=!!lockedOrganization;
  const destinationLabel=lockedOrganization?.name??context.destinations.find(d=>d.id===destination)?.label??'unassigned inventory';
  const countries=useCoverage('countries',context.scopeKey,accountId,'USA','',true,retry);
  const supportsRegions=countries.items.find(c=>c.value===country)?.hasRegions??true;
@@ -25,13 +27,14 @@ export default function BuyNumbersPanel({context,onPending,onOrder,lockedOrganiz
  const coverageError=[countries,regions,localities,areaCodes].find(q=>q.error)?.error;
  const mode=tollFree?'tollFree':searchBy;
  const ready=tollFree||(!coverageError&&(mode==='areaCode'?!!areaCode:!!locality&&(!supportsRegions||!!region)));
+ const nextOffset=useRef(0);
  const pagination=usePagination(rows);
- const criteria=useMemo(()=>({accountId,mode,countryCodeA3:country,numberType:tollFree?'TOLL_FREE':'LOCAL',quantity:pagination.pageSize,lca:false,...(mode==='areaCode'?{areaCode}:{}),...(mode==='cityState'?{city:locality,...(region?{state:region}:{})}:{})}),[accountId,mode,country,tollFree,areaCode,region,locality,pagination.pageSize]);
+ const criteria=useMemo(()=>({accountId,mode,countryCodeA3:country,numberType:tollFree?'TOLL_FREE':'LOCAL',quantity:tenantScope?pagination.pageSize:30,lca:false,...(mode==='areaCode'?{areaCode}:{}),...(mode==='cityState'?{city:locality,...(region?{state:region}:{})}:{})}),[accountId,mode,country,tollFree,areaCode,region,locality,tenantScope,pagination.pageSize]);
  async function search(offset:number,reset:boolean,advance=false){
   controller.current?.abort();const abort=new AbortController();controller.current=abort;const version=++generation.current;
-  setSearching(true);setError('');if(reset){pagination.setPage(0);setRows([]);setHasMore(false);setSelected(new Set());}
+  setSearching(true);setError('');if(reset){pagination.setPage(0);nextOffset.current=0;setRows([]);setHasMore(false);setSelected(new Set());}
   try{const data=await buyRequest<{items:AvailableNumber[];hasMore:boolean}>('/search',{method:'POST',body:JSON.stringify({...criteria,offset}),signal:abort.signal});if(version!==generation.current)return;
-   setRows(previous=>[...new Map([...(reset?[]:previous),...data.items].map(n=>[n.phone_number,n])).values()]);setHasMore(data.hasMore);if(advance&&data.items.length)pagination.setPage(pagination.page+1);
+   setRows(previous=>[...new Map([...(reset?[]:previous),...data.items].map(n=>[n.phone_number,n])).values()]);nextOffset.current=offset+data.items.length;setHasMore(data.hasMore&&data.items.some(item=>reset||!rows.some(row=>row.phone_number===item.phone_number)));if(advance&&data.items.length)pagination.setPage(pagination.page+1);
   }catch(e){if(version===generation.current&&(e as Error).name!=='AbortError'){setError((e as Error).message);setNotice((e as Error).message);setHasMore(false);}}
   finally{if(version===generation.current)setSearching(false);}
  }
@@ -57,11 +60,11 @@ export default function BuyNumbersPanel({context,onPending,onOrder,lockedOrganiz
    </>}
   </div><div className="tn-search-status" aria-live="polite">{searching&&<><span className="tn-spinner"/>Searching…</>}</div></section>
   <section className="tn-panel tn-results"><h2>Available Numbers</h2><div className="tn-results-scroll"><table className="tn-table"><thead><tr><th className="tn-select-cell"><span className="visually-hidden">Select</span></th><th>Phone Number</th><th>Location</th><th>Type</th><th>Rate Center</th></tr></thead><tbody>
-   {searching&&!rows.length?Array.from({length:8},(_,i)=><tr key={i} aria-hidden="true">{Array.from({length:5},(_,j)=><td key={j}><div className="tn-skeleton"/></td>)}</tr>):pagination.items.map(n=><tr key={n.phone_number}><td className="tn-select-cell"><input type="checkbox" aria-label={`Select ${n.display_number}`} checked={selected.has(n.phone_number)} disabled={searching} onChange={()=>toggle(n.phone_number)}/></td><td className="tn-mono"><strong>{n.display_number}</strong></td><td>{locationLabel(n)}</td><td>{n.number_type==='TOLL_FREE'?'Toll Free':'Local'}</td><td className="muted">{n.rate_center??'—'}</td></tr>)}
+   {searching&&!rows.length?Array.from({length:8},(_,i)=><tr key={i} aria-hidden="true">{Array.from({length:5},(_,j)=><td key={j}><div className="tn-skeleton"/></td>)}</tr>):(lockedOrganization?pagination.items:rows).map(n=><tr key={n.phone_number}><td className="tn-select-cell"><input type="checkbox" aria-label={`Select ${n.display_number}`} checked={selected.has(n.phone_number)} disabled={searching} onChange={()=>toggle(n.phone_number)}/></td><td className="tn-mono"><strong>{n.display_number}</strong></td><td>{locationLabel(n)}</td><td>{n.number_type==='TOLL_FREE'?'Toll Free':'Local'}</td><td className="muted">{n.rate_center??'—'}</td></tr>)}
    {!searching&&!rows.length&&<tr><td colSpan={5} className="tn-empty"><strong>{error?'Search failed':ready?'No available numbers':'No results yet'}</strong><p>{numberWorkflowMessage(error)|| (ready?'Try another area code or locality.':'Choose an area code or locality to search carrier inventory automatically.')}</p></td></tr>}
-  </tbody></table></div></section>
+  </tbody></table>{!lockedOrganization&&<InfiniteScroll label="Available numbers" hasMore={hasMore} loading={searching} error={error} onMore={()=>void search(nextOffset.current,false)} onRetry={()=>void search(nextOffset.current,!rows.length)} progress={rows.length} enabled={ready&&!confirmation} resetKey={JSON.stringify(criteria)}/>}</div></section>
  </div>
- <ListPagination pagination={pagination} label="Available numbers" loading={searching} hasMore={hasMore} onMore={()=>void search(rows.length,false,true)}/>
+ {lockedOrganization&&<ListPagination pagination={pagination} label="Available numbers" loading={searching} hasMore={hasMore} onMore={()=>void search(nextOffset.current,false,true)}/>}
  {selected.size>0&&<div className="tn-selection-bar"><div className="tn-selection-actions"><strong>{selected.size} {selected.size===1?'number':'numbers'} selected</strong><button className="primary" disabled={!context.livePurchasing||submitting||searching} onClick={()=>{requestId.current=numberIntent('purchase',accountId,rows.filter(n=>selected.has(n.phone_number)).map(n=>n.phone_number));setOrder(undefined);setConfirmation(rows.filter(n=>selected.has(n.phone_number)));}}>{destination?'Purchase & provision':'Purchase Selected'}</button></div>{!context.livePurchasing&&<p className="tn-warning">Live purchasing is disabled for this workspace.</p>}</div>}
  <dialog ref={confirm} className="tn-confirm" aria-labelledby="purchase-title" onCancel={e=>{if(submitting)e.preventDefault();}} onClose={()=>{if(!submitting){setConfirmation(null);setOrder(undefined);}}} onClick={e=>{const r=e.currentTarget.getBoundingClientRect();if(!submitting&&e.target===e.currentTarget&&(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom))e.currentTarget.close();}}>
  <div className="tn-confirm-body">{notice&&!order&&<p role="alert" className="error">{numberWorkflowMessage(notice)}</p>}<h2 id="purchase-title">{order?`Order ${order.customerOrderId}`:`Purchase ${confirmation?.length??0} Phone ${confirmation?.length===1?'Number':'Numbers'}?`}</h2>{order?<NumberOrderProgress initial={order} onUpdate={onOrder}/>:<><p className="subtitle">{destination?`Purchase and provision these numbers for ${destinationLabel}.`:'Numbers will be purchased into unassigned inventory.'}</p><ul className="tn-purchase-list">{confirmation?.map(n=><li className="tn-mono" key={n.phone_number}>{n.display_number}</li>)}</ul>{lockedOrganization&&<div className="tn-purchase-price"><span>Monthly total<small>{numberMonthlyPrice(1)} per telephone number</small></span><strong>{numberMonthlyPrice(confirmation?.length??0)}</strong></div>}<p className="tn-help">{destination?'Your numbers will be added to your phone system automatically.':'You can assign these numbers to an organization after purchase.'}{context.demo&&' No charges in this preview.'}</p></>}</div>
