@@ -1,4 +1,6 @@
+import {PlatformPhoneNumbers} from './platform-phone-numbers.js';
 import {PlatformIntegrations} from './platform-integrations.js';
+import {PlatformPagination} from './platform-pagination.js';
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { usePlatformUserPresence } from "./platform-user-presence.js";
 import { useCompanyPresence } from './company-presence.js';
@@ -54,7 +56,7 @@ const tabs: {
   },
   {
     id: "jambonz",
-    label: "Jambonz",
+    label: "Voice platform",
     icon: "headphones",
     group: "Communications",
     description: "Calling infrastructure and account configuration.",
@@ -119,7 +121,8 @@ export function PlatformAdmin({
 }) {
   const tab = tabs.find((t) => t.id === page)!;
   if(page === "integrations")return <PlatformIntegrations csrf={csrf}/>;
-  if (page === "phones" || page === "jambonz" || page === "devices")
+  if(page === "phones")return <PlatformPhoneNumbers csrf={csrf}/>;
+  if (page === "jambonz" || page === "devices")
     return (
       <section className="admin lc-platform-admin">
         <SettingsHeader title={tab.label} description={tab.description} />
@@ -128,9 +131,7 @@ export function PlatformAdmin({
           <h2>
             {page === "devices"
               ? "Session inventory is not connected"
-              : page === "phones"
-                ? "Phone vendor is not connected"
-                : "Jambonz is not connected"}
+              : "Voice platform is not connected"}
           </h2>
           <p>
             {page === "devices"
@@ -657,47 +658,25 @@ function PlatformAdminData({
                 ))
               )}
             </div>
-            <footer className="lc-platform-pagination">
-              <label>
-                Rows
-                <select
-                  aria-label="Rows per page"
-                  value={pageSize}
-                  onChange={(e) => {
-                    setPageSize(Number(e.target.value));
-                    setOffset(0);
-                    setEditing(null);
-                  }}
-                >
-                  {[10, 20, 50].map((n) => (
-                    <option key={n} value={n}>
-                      {n}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <button
-                className="button"
-                disabled={loading || offset === 0}
-                onClick={() => {
-                  setOffset(Math.max(0, offset - pageSize));
-                  setEditing(null);
-                }}
-              >
-                Previous
-              </button>
-              <span>Page {Math.floor(offset / pageSize) + 1}</span>
-              <button
-                className="button"
-                disabled={loading || next === null}
-                onClick={() => {
-                  setOffset(next!);
-                  setEditing(null);
-                }}
-              >
-                Next
-              </button>
-            </footer>
+            <PlatformPagination
+              page={Math.floor(offset / pageSize)}
+              pageSize={pageSize}
+              onPageSizeChange={(size) => {
+                setPageSize(size);
+                setOffset(0);
+                setEditing(null);
+              }}
+              previousDisabled={loading || offset === 0}
+              nextDisabled={loading || next === null}
+              onPrevious={() => {
+                setOffset(Math.max(0, offset - pageSize));
+                setEditing(null);
+              }}
+              onNext={() => {
+                setOffset(next!);
+                setEditing(null);
+              }}
+            />
           </div>
           {editing && section !== "audit" && (
             <aside

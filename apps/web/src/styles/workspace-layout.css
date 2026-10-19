@@ -90,3 +90,163 @@
   margin-inline: 0;
   box-sizing: border-box;
 }
+
+/* Organization administration shares one fluid content width across its sections. */
+#app.tenant-ui.conversation-workspace .lc-settings-open.lc-organization-settings-open {
+  --settings-content-width: 1300px;
+}
+
+/* Organization lists share their heading, action row, tabs, and search rhythm. */
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open {
+  --organization-accent: light-dark(#6550af, #b6a6ff);
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-header {
+  display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+  gap:24px;height:auto;min-height:0;flex-shrink:0;
+  margin:0 0 24px;padding:0;border:0;background:transparent;color:var(--ink);
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-header h1 {
+  margin:0 0 6px;font-family:inherit;font-size:calc(20px * var(--font-scale,1));
+  line-height:calc(29px * var(--font-scale,1));font-weight:700;letter-spacing:-.4px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-header p {
+  margin:0;font-family:inherit;font-size:calc(13px * var(--font-scale,1));
+  line-height:calc(20px * var(--font-scale,1));font-weight:400;color:var(--muted);
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-heading-row {
+  display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:46px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-tabs {min-width:0;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-header [role=tablist] {
+  display:flex;align-items:center;gap:24px;flex-wrap:nowrap;overflow-x:auto;
+  margin:0;padding:0;border:0;min-width:0;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-header [role=tab] {
+  box-sizing:border-box;flex-shrink:0;height:46px;margin:0;padding:12px 0;
+  border:0;border-bottom:2px solid transparent;border-radius:0;background:transparent;
+  color:var(--muted);font-family:inherit;font-size:calc(14px * var(--font-scale,1));
+  font-weight:400;line-height:20px;white-space:nowrap;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-header [role=tab][aria-selected=true] {
+  color:var(--organization-accent);border-bottom-color:var(--organization-accent);
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-actions {
+  display:flex;align-items:center;gap:16px;margin-left:auto;flex-shrink:0;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-meta {
+  font-size:calc(11px * var(--font-scale,1));line-height:16px;color:var(--muted);white-space:nowrap;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-actions > .primary {
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  height:40px;min-height:40px;margin:0;padding:0 14px;box-sizing:border-box;
+  border:1px solid var(--organization-accent);border-radius:8px;background:var(--organization-accent);
+  color:light-dark(white,#141024);font-family:inherit;font-size:calc(12px * var(--font-scale,1));
+  font-weight:500;line-height:18px;white-space:nowrap;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-actions > .primary svg {width:14px;height:14px;flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-search-toolbar {
+  display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:0;flex-shrink:0;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-search-toolbar input:not([type=checkbox]),
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-search-toolbar > button {
+  box-sizing:border-box;height:40px;min-height:40px;margin:0;padding:0 12px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);
+  font-family:inherit;font-size:calc(13px * var(--font-scale,1));font-weight:400;line-height:20px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-search-toolbar input:not([type=checkbox]) {flex:1;min-width:0;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-search-toolbar input::placeholder {color:var(--muted);opacity:1;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-search-toolbar > button {flex-shrink:0;white-space:nowrap;}
+@media(max-width:850px) {
+ #app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-heading-row {flex-wrap:wrap;gap:8px;}
+ #app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-org-page-tabs {max-width:100%;}
+}
+
+/* Organization lists fill the workspace; rows scroll independently of footers. */
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-members-page,.lc-group-list-page,.lc-group-member-page,.lc-organization-numbers) {
+  display:flex;flex-direction:column;height:100%;min-height:0;overflow:hidden;box-sizing:border-box;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-members-split {
+  display:grid;min-height:0;overflow:hidden;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-members-list {
+  display:flex;flex-direction:column;min-height:0;max-height:none;overflow:hidden;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-member-editor-shell .lc-member-editor {
+  position:absolute;inset:0;height:auto;min-height:0;overflow:hidden;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-member-editor-body {overflow-y:auto;}
+@media(max-width:1050px) {
+  #app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-members-split.is-editing .lc-members-list {display:none;}
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-rows,.lc-team-rows,.lc-team-member-rows) {
+  flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-platform-pagination {
+  position:static;flex:0 0 auto;min-height:56px;height:auto;display:flex;align-items:center;
+  margin:0;padding:12px 0 0;box-sizing:border-box;gap:6px;border-top:1px solid var(--line);
+  background:var(--panel);color:var(--muted);font-family:inherit;font-size:11px;line-height:16px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-platform-pagination label {
+  display:flex;align-items:center;gap:6px;margin:0 auto 0 0;font-size:12px;line-height:18px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-platform-pagination :is(.button,select) {
+  box-sizing:border-box;height:36px;min-height:36px;width:auto;margin:0;padding:6px 9px;
+  border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);
+  font-family:inherit;font-size:12px;font-weight:400;line-height:18px;white-space:nowrap;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-platform-pagination select {padding:6px;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-platform-pagination .button:disabled {opacity:.45;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-group-member-page > :not(.lc-group-members) {flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-group-member-page > .lc-group-members {
+  display:flex;flex-direction:column;flex:1;min-height:0;overflow:hidden;margin:0;padding:0;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-group-members > :not(.lc-team-member-rows) {flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-invitations:not([hidden]) {
+  flex:1;min-height:0;overflow-y:auto;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-rows > .lc-member-row,.lc-team-rows > .lc-group-row) {
+  box-sizing:border-box;min-height:60px;padding:8px 12px;margin:0;gap:12px;flex-wrap:nowrap;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-member-rows .avatar,
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-team-rows .lc-group-symbol {
+  width:34px;height:34px;flex:0 0 34px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-copy,.lc-team-copy) {
+  min-width:0;flex:1;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-copy,.lc-team-copy) strong {
+  display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:calc(13px * var(--font-scale,1));line-height:calc(20px * var(--font-scale,1));
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-copy,.lc-team-copy) small {
+  display:block;margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  font-size:calc(11px * var(--font-scale,1));line-height:calc(18px * var(--font-scale,1));
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-member-rows .lc-member-row > .button {
+  flex-shrink:0;min-height:32px;height:32px;padding:0 10px;font-size:calc(11px * var(--font-scale,1));white-space:nowrap;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-team-rows .lc-group-row em {flex-shrink:0;}
+
+/* Match organization members to the established member rows inside each team. */
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-rows,.lc-group-members) .lc-member-row {
+  min-height:71px;padding-block:16px;gap:11px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-rows,.lc-group-members) .lc-member-row strong {
+  font-size:calc(13px * var(--font-scale,1));font-weight:600;line-height:1.45;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-rows,.lc-group-members) .lc-member-row small {
+  font-size:calc(11px * var(--font-scale,1));line-height:1.45;margin-top:3px;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open :is(.lc-member-rows,.lc-group-members) .avatar {
+  flex:0 0 32px;width:32px;height:32px;font-size:calc(11px * var(--font-scale,1));
+}
+#app.tenant-ui.conversation-workspace .lc-organization-numbers > .lc-number-console {
+  display:flex;flex-direction:column;flex:1;min-height:0;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-numbers > .lc-number-console > :not([role=tabpanel]) {flex-shrink:0;}
+#app.tenant-ui.conversation-workspace .lc-organization-numbers > .lc-number-console > [role=tabpanel] {
+  display:flex;flex-direction:column;flex:1;min-height:0;
+}
+#app.tenant-ui.conversation-workspace .lc-organization-numbers > .lc-number-console > [role=tabpanel] > .paginated-panel {
+  flex:1;min-height:0;border:0;border-radius:0;margin:0;padding:0;
+}

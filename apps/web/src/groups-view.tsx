@@ -1,4 +1,7 @@
 import { LoadingSkeleton } from "./loading-skeleton.js";
+import { OrganizationPageHeader } from "./organization-page-header.js";
+import { PlatformPagination } from "./platform-pagination.js";
+import { usePagination } from "./use-pagination.js";
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import {
@@ -362,6 +365,11 @@ export function OrganizationGroups({
   const [detail, setDetail] = useState<z.infer<typeof groupDetail> | null>(
     null,
   );
+  const visibleGroups = groups.filter(g =>
+    (showArchived || !g.archived) && g.name.toLowerCase().includes(groupSearch.toLowerCase()),
+  );
+  const groupPagination = usePagination(visibleGroups, `${organizationId}:${showArchived}:${groupSearch}`);
+  const memberPagination = usePagination(detail?.members ?? [], detail?.group.id ?? '');
   const [memberProfiles, setMemberProfiles] = useState<
     Record<string, DirectoryContact>
   >({});
@@ -434,7 +442,7 @@ export function OrganizationGroups({
     }, clear);
   return (
     <section
-      className={`admin lc-group-admin${detail ? " lc-group-detail" : ""}`}
+      className={`admin lc-group-admin${detail ? ` lc-group-detail${tab === "Members" ? " lc-group-member-page" : ""}` : " lc-group-list-page"}`}
       aria-busy={api.busy}
     >
       {detail && (
@@ -450,8 +458,7 @@ export function OrganizationGroups({
         </button>
       )}
       {!detail ? (
-        <SettingsHeader
-
+        <OrganizationPageHeader
           title="Teams"
           description="Public and private teams managed by your organization."
           actions={
@@ -509,7 +516,7 @@ export function OrganizationGroups({
       )}
       {!detail && (
         <>
-          <div className="lc-group-toolbar">
+          <div className="lc-group-toolbar lc-org-search-toolbar">
             <input
               type="search"
               aria-label="Search teams"
@@ -526,62 +533,65 @@ export function OrganizationGroups({
               Show archived
             </label>
           </div>
-          {groups
-            .filter(
-              (g) =>
-                (showArchived || !g.archived) &&
-                g.name.toLowerCase().includes(groupSearch.toLowerCase()),
-            )
-            .map((g) => (
-              <button
-                key={g.id}
-                className="lc-group-row"
-                disabled={api.busy}
-                onClick={() => {
-                  setTab("Members");
-                  void api.run(() => select(g.id), clear);
-                }}
-                aria-label={`Manage ${g.name}`}
-              >
-                <span className="lc-group-symbol">
-                  <Icon name="inbox" />
-                </span>
-                <span>
-                  <strong>{g.name}</strong>
-                  <small>
-                    {g.member_count === undefined
-                      ? "Member count unavailable"
-                      : `${g.member_count} ${g.member_count === 1 ? "member" : "members"}`}
-                    {g.archived ? " · Archived" : ""}
-                  </small>
-                </span>
-                <em>
-                  {g.visibility === "network" ? "Public" : "Private"}
-                </em>
-                <span className="lc-group-chevron">
-                  <Icon name="chevron" />
-                </span>
-              </button>
-            ))}
-          {!api.busy &&
-            !api.error &&
-            !groups.some(
-              (g) =>
-                (showArchived || !g.archived) &&
-                g.name.toLowerCase().includes(groupSearch.toLowerCase()),
-            ) && (
-              <p className="lc-feedback">
-                No teams to show. Create a group or include archived groups.
-              </p>
-            )}
-          {next !== null && (
-            <button
-              className="button"
-              disabled={api.busy}
-              onClick={() => void api.run(() => list(next), clear)}
-            >
-              Load more teams
-            </button>
+          <div className="lc-team-rows">
+            {groupPagination.items.map((g) => (
+                <button
+                  key={g.id}
+                  className="lc-group-row"
+                  disabled={api.busy}
+                  onClick={() => {
+                    setTab("Members");
+                    void api.run(() => select(g.id), clear);
+                  }}
+                  aria-label={`Manage ${g.name}`}
+                >
+                  <span className="lc-group-symbol">
+                    <Icon name="inbox" />
+                  </span>
+                  <span className="lc-team-copy">
+                    <strong>{g.name}</strong>
+                    <small>
+                      {g.member_count === undefined
+                        ? "Member count unavailable"
+                        : `${g.member_count} ${g.member_count === 1 ? "member" : "members"}`}
+                      {g.archived ? " · Archived" : ""}
+                    </small>
+                  </span>
+                  <em>
+                    {g.visibility === "network" ? "Public" : "Private"}
+                  </em>
+                  <span className="lc-group-chevron">
+                    <Icon name="chevron" />
+                  </span>
+                </button>
+              ))}
+            {!api.busy &&
+              !api.error &&
+              !visibleGroups.length && (
+                <p className="lc-feedback">
+                  No teams to show. Create a group or include archived groups.
+                </p>
+              )}
+          </div>
+          {(groups.length > 10 || next !== null) && (
+            <PlatformPagination
+              label="Teams"
+              page={groupPagination.page}
+              pageSize={groupPagination.pageSize}
+              pageSizes={[10, 20, 30, 50]}
+              loading={api.busy}
+              onPageSizeChange={groupPagination.setPageSize}
+              previousDisabled={groupPagination.page === 0}
+              nextDisabled={groupPagination.page + 1 >= groupPagination.pages && next === null}
+              onPrevious={() => groupPagination.setPage(groupPagination.page - 1)}
+              onNext={() => {
+                if (groupPagination.page + 1 < groupPagination.pages) groupPagination.setPage(groupPagination.page + 1);
+                else if (next !== null) void api.run(async () => {
+                  await list(next);
+                  groupPagination.setPage(groupPagination.page + 1);
+                }, clear);
+              }}
+            />
           )}
         </>
       )}
@@ -752,8 +762,8 @@ export function OrganizationGroups({
               </button>
             </p>
           )}
-          <div>
-            {detail.members.map((m) => (
+          <div className="lc-team-member-rows">
+            {memberPagination.items.map((m) => (
               <div className="lc-member-row" key={m.user_id}>
                 <Avatar name={memberProfiles[m.user_id]?.name ?? m.name} />
                 <div>
@@ -785,8 +795,22 @@ export function OrganizationGroups({
                 </button>
               </div>
             ))}
-          </div>
           {!detail.members.length && <p>No members assigned.</p>}
+          </div>
+          {detail.members.length > 10 && (
+            <PlatformPagination
+              label="Team members"
+              page={memberPagination.page}
+              pageSize={memberPagination.pageSize}
+              pageSizes={[10, 20, 30, 50]}
+              loading={api.busy}
+              onPageSizeChange={memberPagination.setPageSize}
+              previousDisabled={memberPagination.page === 0}
+              nextDisabled={memberPagination.page + 1 >= memberPagination.pages}
+              onPrevious={() => memberPagination.setPage(memberPagination.page - 1)}
+              onNext={() => memberPagination.setPage(memberPagination.page + 1)}
+            />
+          )}
           {adding && !detail.group.archived && (
             <AddGroupMembers
               organizationId={organizationId}

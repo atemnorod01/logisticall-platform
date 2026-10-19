@@ -3,7 +3,7 @@ import type {SettingPage} from './settings-ui.js';
 import type {PlatformAdminPage} from './platform-admin.js';
 export const settingsPaths: Record<SettingPage,string> = {
  'Install Apps':'/settings/install-apps', Profile:'/settings/profile', Notifications:'/settings/notifications', 'Audio & video':'/settings/audio-video', Voicemail:'/settings/voicemail', Appearance:'/settings/appearance',
- Overview:'/settings/organization/overview', Members:'/settings/organization/members', Teams:'/settings/organization/teams',
+ 'Phone numbers':'/settings/organization/phone-numbers', Overview:'/settings/organization/overview', Members:'/settings/organization/members', Teams:'/settings/organization/teams',
 };
 export const platformPaths: Record<PlatformAdminPage,string> = {
  integrations:'/platform/integrations',organizations:'/platform/organizations',users:'/platform/users',directory:'/platform/industry-directory',phones:'/platform/phone-numbers',jambonz:'/platform/jambonz',devices:'/platform/devices',audit:'/platform/audit-history',

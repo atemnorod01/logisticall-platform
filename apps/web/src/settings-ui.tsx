@@ -1,4 +1,7 @@
 import { AudioVideoSettings } from "./audio-video-settings.js";
+import { OrganizationPageHeader } from "./organization-page-header.js";
+import { PlatformPagination } from "./platform-pagination.js";
+import { loadMemberPage } from "./organization-member-pagination.js";
 import { InstallApps } from "./install-apps.js";
 import { RingtoneSettings } from "./ringtone-settings.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
@@ -33,9 +36,10 @@ export type SettingPage =
   | "Appearance"
   | "Overview"
   | "Members"
-  | "Teams";
+  | "Teams"
+  | "Phone numbers";
 export const organizationSetting = (page: SettingPage) =>
-  ["Overview", "Members", "Teams"].includes(page);
+  ["Overview", "Members", "Teams", "Phone numbers"].includes(page);
 export function AccountMenu({
   state,
   selector,
@@ -187,7 +191,7 @@ export function SettingsNav({
             {(["Profile", "Notifications", "Audio & video", "Voicemail", "Appearance", "Install Apps"] as SettingPage[]).filter(p=>p!=="Install Apps"||!window.logisticallDesktop).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>
           {admin && <optgroup label={organization || "Organization"}>
-            {(["Overview", "Members", "Teams"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
+            {(["Overview", "Members", "Teams", "Phone numbers"] as SettingPage[]).map((p) => <option key={p} value={p}>{p}</option>)}
           </optgroup>}
         </select>
       </label>
@@ -228,7 +232,7 @@ export function SettingsNav({
         <>
           <span className="lc-caption lc-org-caption">Organization</span>
           <strong className="lc-org-name">{organization}</strong>
-          {(["Overview", "Members", "Teams"] as SettingPage[]).map((p) => (
+          {(["Overview", "Members", "Teams", "Phone numbers"] as SettingPage[]).map((p) => (
             <button
               key={p}
               className={page === p ? "selected" : ""}
@@ -237,7 +241,7 @@ export function SettingsNav({
             >
               <Icon
                 name={
-                  p === "Teams"
+                  p === "Phone numbers" ? "phone" : p === "Teams"
                     ? "inbox"
                     : p === "Members"
                       ? "users"
@@ -353,6 +357,7 @@ export function PersonalSettings({
             Appearance: "Choose the appearance for this browser.",
             Overview: "Manage your organization.",
             Members: "People in your organization.",
+            "Phone numbers": "Your organization’s telephone numbers.",
             Teams: "Public and private teams managed by your organization.",
           }[page]
         }
@@ -630,6 +635,7 @@ export function OrganizationMembers({
   const [editing, setEditing] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [tab, setTab] = useState<"members" | "invitations">("members");
+  const [pageSize, setPageSize] = useState(10);
   const [rows, setRows] = useState<z.infer<typeof managedMember>[]>([]),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
@@ -649,18 +655,20 @@ export function OrganizationMembers({
     const abort = new AbortController();
     setBusy(true);
     setError("");
-    fetch(
-      `/v1/organizations/${encodeURIComponent(organizationId)}/members?offset=${offset}&search=${encodeURIComponent(query)}`,
+    loadMemberPage(offset, pageSize, async pageOffset => {
+      const response = await fetch(
+      `/v1/organizations/${encodeURIComponent(organizationId)}/members?offset=${pageOffset}&search=${encodeURIComponent(query)}`,
       {
         credentials: "same-origin",
         cache: "no-store",
         redirect: "error",
         signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10000)]),
       },
-    )
-      .then(async (r) => {
-        if (!r.ok) throw Error();
-        const data = managedMemberPage.parse(await r.json());
+      );
+      if (!response.ok) throw Error();
+      return managedMemberPage.parse(await response.json());
+    })
+      .then((data) => {
         if (!abort.signal.aborted) {
           setRows(data.members);
           setNext(data.nextOffset);
@@ -677,20 +685,18 @@ export function OrganizationMembers({
         if (!abort.signal.aborted) setBusy(false);
       });
     return () => abort.abort();
-  }, [organizationId, offset, query, refresh, tab]);
+  }, [organizationId, offset, pageSize, query, refresh, tab]);
   return (
     <section className="lc-settings-page lc-members-page" aria-busy={busy}>
-      <SettingsHeader
-
+      <OrganizationPageHeader
         title="Members"
         description="People in your organization."
         actions={
           <button className="button primary" onClick={() => setInviting(true)}>
-            Invite member
+            <Icon name="plus" /> Invite member
           </button>
         }
-      />
-      <div
+        tabs={<div
         className="lc-group-tabs"
         role="tablist"
         aria-label="Organization members"
@@ -730,7 +736,8 @@ export function OrganizationMembers({
             {item === "members" ? "Members" : "Invitations"}
           </button>
         ))}
-      </div>
+      </div>}
+      />
       <div
         id="organization-members-panel"
         role="tabpanel"
@@ -738,7 +745,7 @@ export function OrganizationMembers({
         hidden={tab !== "members"}
       >
         <form
-          className="lc-search"
+          className="lc-search lc-org-search-toolbar"
           onSubmit={(e) => {
             e.preventDefault();
             setOffset(0);
@@ -763,62 +770,50 @@ export function OrganizationMembers({
         )}
         <div className={`lc-members-split ${editing ? "is-editing" : ""}`}>
           <div className="lc-members-list">
-            {busy && !rows.length && <LoadingSkeleton />}
-            {rows.map((p) => (
-              <div
-                className={`lc-member-row ${editing === p.user_id ? "is-selected" : ""}`}
-                key={p.user_id}
-              >
-                <Avatar name={p.name} presence={p.presence ?? "unknown"} />
-                <div>
-                  <strong>{p.name}</strong>
-                  <small>{p.email}</small>
-                  <small>
-                    {p.role_id === "owner"
-                      ? "Owner"
-                      : p.role_id === "admin"
-                        ? "Organization admin"
-                        : "Member"}{" "}
-                    · {p.status === "active" ? "Active" : "Suspended"}
-                  </small>
-                </div>
-                <button
-                  className="button"
-                  onClick={() => setEditing(p.user_id)}
+            <div className="lc-member-rows">
+              {busy && !rows.length && <LoadingSkeleton />}
+              {rows.map((p) => (
+                <div
+                  className={`lc-member-row ${editing === p.user_id ? "is-selected" : ""}`}
+                  key={p.user_id}
                 >
-                  Edit user
-                </button>
-              </div>
-            ))}
-            {!busy && !error && !rows.length && (
-              <p>No members match your search.</p>
-            )}
-            <nav
-              className="lc-member-pagination"
-              aria-label="Member pagination"
-            >
-              <span>
-                Page {Math.floor(offset / 10) + 1} · {rows.length} users
-              </span>
-              <button
-                className="button"
-                disabled={busy || offset === 0}
-                onClick={() => {
-                  setOffset(Math.max(0, offset - 10));
-                }}
-              >
-                Previous
-              </button>
-              <button
-                className="button"
-                disabled={busy || next === null}
-                onClick={() => {
-                  if (next !== null) setOffset(next);
-                }}
-              >
-                Next
-              </button>
-            </nav>
+                  <Avatar name={p.name} presence={p.presence ?? "unknown"} />
+                  <div className="lc-member-copy">
+                    <strong>{p.name}</strong>
+                    <small title={`${p.email} · ${p.role_id === "owner" ? "Owner" : p.role_id === "admin" ? "Organization admin" : "Member"} · ${p.status === "active" ? "Active" : "Suspended"}`}>
+                      {p.email} · {" "}
+                      {p.role_id === "owner"
+                        ? "Owner"
+                        : p.role_id === "admin"
+                          ? "Organization admin"
+                          : "Member"}{" "}
+                      · {p.status === "active" ? "Active" : "Suspended"}
+                    </small>
+                  </div>
+                  <button
+                    className="button"
+                    onClick={() => setEditing(p.user_id)}
+                  >
+                    Edit user
+                  </button>
+                </div>
+              ))}
+              {!busy && !error && !rows.length && (
+                <p>No members match your search.</p>
+              )}
+            </div>
+            <PlatformPagination
+              label="Members"
+              page={Math.floor(offset / pageSize)}
+              pageSize={pageSize}
+              pageSizes={[10, 20, 30, 50]}
+              loading={busy}
+              onPageSizeChange={size => { setPageSize(size); setOffset(0); }}
+              previousDisabled={offset === 0}
+              nextDisabled={next === null}
+              onPrevious={() => setOffset(Math.max(0, offset - pageSize))}
+              onNext={() => { if (next !== null) setOffset(next); }}
+            />
           </div>
           {editing && (
             <div className="lc-member-editor-shell">

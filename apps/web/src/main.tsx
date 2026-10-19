@@ -1,3 +1,4 @@
+import {OrganizationPhoneNumbers} from './organization-phone-numbers.js';
 import {useAppPath,parseAppPath,navigate,settingsPaths,platformPaths,contactPaths,conversationPath,type AppPage} from "./navigation.js";
 import { subscribeWorkspace } from "./realtime.js";
 import { PlatformAdmin, PlatformAdminNavigation, type PlatformAdminPage } from "./platform-admin.js";
@@ -232,7 +233,7 @@ function App() {
     );
   return (
     <div
-      className={`layout conversation-shell${(calling.state.current?.acceptedAt || (calling.state.current && !calling.controller.incoming(calling.state.current)) || (!calling.state.current && calling.state.preparing)) && !calling.state.voicemail ? " lc-call-docked" : ""}${page === "Settings" || page === "Platform administration" || !state.context ? " lc-settings-open" : ""}${page === "Platform administration" ? " lc-platform-open" : ""}`}
+      className={`layout conversation-shell${(calling.state.current?.acceptedAt || (calling.state.current && !calling.controller.incoming(calling.state.current)) || (!calling.state.current && calling.state.preparing)) && !calling.state.voicemail ? " lc-call-docked" : ""}${page === "Settings" || page === "Platform administration" || !state.context ? " lc-settings-open" : ""}${page === "Platform administration" ? " lc-platform-open" : ""}${page === "Settings" && organizationSetting(currentSetting) ? " lc-organization-settings-open" : ""}`}
     >
       <aside className="sidebar">
         <div className="rail-brand logisticall-logo" aria-label="LogistiCall">
@@ -326,7 +327,9 @@ function App() {
       {page === "Platform administration" && state.session?.platformAdmin && <PlatformAdminNavigation page={platformPage} onPage={setPlatformPage}/>}
       <main className="workspace" id="main-content">
         {page === "Not found" ? <section className="admin"><h1>Page not found</h1><button className="button" onClick={()=>setPage("Conversations")}>Go to My chats</button></section> : page === "Platform administration" ? (state.session?.platformAdmin ? <PlatformAdmin csrf={state.session.csrfToken} page={platformPage} onPage={setPlatformPage} /> : <section className="admin"><h1>Access unavailable</h1><p>Platform administrator access is required.</p></section>) : page === "Settings" || !state.context ? (
-          currentSetting === "Teams" && admin ? (
+          currentSetting === "Phone numbers" && admin ? (
+            <OrganizationPhoneNumbers key={state.context!.organization_id} organization={{id:state.context!.organization_id,name:state.context!.name}} csrf={state.session!.csrfToken}/>
+          ) : currentSetting === "Teams" && admin ? (
             <OrganizationGroups
               key={state.context!.organization_id}
               organizationId={state.context!.organization_id}
