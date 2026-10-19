@@ -1,3 +1,6 @@
+import {numberProviderRoutes,platformNumberProviders} from './telephony/number-provider-service.js';
+import {numberProvisioning} from './number-provisioning.js';
+import {readFile} from 'node:fs/promises';
 import {postgresTelephony} from './telephony/service.js';
 import { startSupabaseRealtime } from "./realtime.js";
 import { postgresCalls } from "./calls-store.js";
@@ -27,6 +30,12 @@ const config = z
     APP_ORIGIN: https.optional(),
     SESSION_DATABASE_URL: z.string().optional(),
     TELEPHONY_DATABASE_URL: z.string().optional(),
+    NUMBER_PROVISIONING_ORIGIN: https.optional(),
+    NUMBER_PROVISIONING_ISSUER: z.string().min(1).optional(),
+    NUMBER_PROVISIONING_AUDIENCE: z.string().min(1).optional(),
+    NUMBER_PROVISIONING_PRIVATE_KEY_FILE: z.string().min(1).optional(),
+    NUMBER_PROVISIONING_PRIVATE_KEY: z.string().min(1).optional(),
+    NUMBER_PROVIDER_PUBLIC_KEY: z.string().min(1).optional(),
     PLATFORM_DATABASE_URL: z.string().optional(),
     MEDIA_STORAGE_ORIGIN: https.optional(),
     MEDIA_STORAGE_SECRET: z.string().min(1).optional(),
@@ -150,6 +159,9 @@ if(config.TELEPHONY_DATABASE_URL){
 }
 const telephony=telephonyPool?postgresTelephony(telephonyPool):undefined;
 if(telephony&&telephonyPool){const stop=telephony.close.bind(telephony);telephony.close=async()=>{await stop();await telephonyPool!.end();};}
+const numberConfig=[config.NUMBER_PROVISIONING_ORIGIN,config.NUMBER_PROVISIONING_ISSUER,config.NUMBER_PROVISIONING_AUDIENCE,config.NUMBER_PROVISIONING_PRIVATE_KEY??config.NUMBER_PROVISIONING_PRIVATE_KEY_FILE];
+if(numberConfig.some(Boolean)&&!numberConfig.every(Boolean))throw Error('Configure all number provisioning service settings.');
+const numbers=config.NUMBER_PROVISIONING_ORIGIN?numberProvisioning({origin:config.NUMBER_PROVISIONING_ORIGIN,issuer:config.NUMBER_PROVISIONING_ISSUER!,audience:config.NUMBER_PROVISIONING_AUDIENCE!,privateKey:config.NUMBER_PROVISIONING_PRIVATE_KEY??await readFile(config.NUMBER_PROVISIONING_PRIVATE_KEY_FILE!,'utf8')}):undefined;
 const app = buildApp(
   {
     issuer: config.IAM_ISSUER,
@@ -158,6 +170,7 @@ const app = buildApp(
   },
   {
     ...(telephony?{telephony}:{}),
+    ...(numbers?{numbers}:{}),
     iceServers: config.CALL_ICE_SERVERS.map(s => ({urls:s.urls,...(s.username ? {username:s.username} : {}),...(s.credential ? {credential:s.credential} : {})})),
     ...(turn ? {iceServersFor: turn} : {}),
     ...(browser ? { browser, presence: postgresPresence(pool!, groupsPool) } : {}),
@@ -172,6 +185,10 @@ const app = buildApp(
       : {}),
   },
 );
+if(config.NUMBER_PROVIDER_PUBLIC_KEY){
+ if(!telephonyPool)throw Error('Provider execution requires the restricted telephony database');
+ numberProviderRoutes(app,platformNumberProviders(telephonyPool),config.NUMBER_PROVIDER_PUBLIC_KEY);
+}
 if (groupsPool && config.MEDIA_STORAGE_ORIGIN && config.MEDIA_STORAGE_SECRET) {
   const stopRealtime = startSupabaseRealtime(config.MEDIA_STORAGE_ORIGIN, config.MEDIA_STORAGE_SECRET);
   app.addHook("onClose", stopRealtime);

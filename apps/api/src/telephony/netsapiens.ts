@@ -1,3 +1,5 @@
+import {NumberAssignmentRejected,DeletionRejected} from './number-errors';
+import {inventoryAttendantName} from './announcement-text';
 import { RemovalRejected } from "./organization-termination";
 import {netsapiensResources} from './resource-views';
 import type { IntegrationVault, SecretRecords } from "./integration-vault";
@@ -14,7 +16,7 @@ import {
   NetsapiensCreateRejected,
   type NetsapiensDomainPayload,
 } from "./netsapiens-provisioning-options";
-import { domainDetailsSchema } from "./netsapiens-domain";
+import { domainDetailsSchema, domainNumberSchema, domainUserSchema, type DomainUser } from "./netsapiens-domain";
 class NetsapiensReadError extends Error {
   constructor(readonly status: number) {
     super(`NetSapiens read failed (HTTP ${status}).`);
@@ -256,7 +258,13 @@ export class NetsapiensClient {
     timer.unref();
     return () => clearInterval(timer);
   }
-  private async get(path: string) {
+  private reads=new Map<string,Promise<any>>();
+  private get(path:string){
+    const previous=this.reads.get(path);if(previous)return previous;
+    const work=this.read(path).finally(()=>{if(this.reads.get(path)===work)this.reads.delete(path);});
+    this.reads.set(path,work);return work;
+  }
+  private async read(path: string) {
     await this.refresh();
     const send = () =>
       this.request(baseUrl + path, {
@@ -423,6 +431,103 @@ export class NetsapiensClient {
       },
       save,
     );
+  }
+  private scopedRows<T extends {domain?:string|undefined}>(rows:T[],domain:string){
+    if(rows.some(row=>row.domain!==undefined&&row.domain!==domain))throw new Error('NetSapiens returned data for a different domain.');
+    return rows;
+  }
+  private async domainUsers(domain:string){
+    const rows:DomainUser[]=[];const seen=new Set<string>();
+    for(let start=0;start<100000;start+=100){
+      const page=this.scopedRows(z.array(domainUserSchema).parse(await this.get(`/domains/${encodeURIComponent(domain)}/users?start=${start}&limit=100`)),domain);
+      for(const user of page){
+        if(seen.has(user.user))throw new Error('NetSapiens repeated users during pagination.');
+        seen.add(user.user);rows.push(user);
+      }
+      if(page.length<100)return rows;
+    }
+    throw new Error('NetSapiens user list exceeded the safety limit.');
+  }
+  async domainDestinationUsers(domain:string){
+    const details=await this.readProvisionDomain(domain);
+    if(!details||details.domain!==domain||details.reseller!==(await this.load())?.reseller)throw new Error('NetSapiens domain ownership could not be verified.');
+    return this.domainUsers(domain);
+  }
+  async domainPhoneNumbers(domain:string){
+    const details=await this.readProvisionDomain(domain);
+    if(!details||details.domain!==domain||details.reseller!==(await this.load())?.reseller)throw new Error('NetSapiens domain ownership could not be verified.');
+    return this.scopedRows(z.array(domainNumberSchema).parse(await this.get(`/domains/${encodeURIComponent(domain)}/phonenumbers`)),domain);
+  }
+  async inventoryAttendantDestination(domain:string):Promise<'9999'|null>{
+    const details=await this.readProvisionDomain(domain);
+    if(!details||details.domain!==domain||details.reseller!==(await this.load())?.reseller)throw new Error('NetSapiens domain ownership could not be verified.');
+    const all=this.scopedRows(z.array(z.object({domain:z.string().optional(),user:z.string(),'attendant-name':z.string()})).parse(await this.get(`/domains/${domain}/autoattendants`)),domain);
+    const matches=all.filter(a=>a.user==='9999');
+    if(!matches.length||matches.length===1&&matches[0]!['attendant-name']!==inventoryAttendantName)return null;
+    if(matches.length!==1)throw new Error('Multiple attendants use extension 9999. Review the domain before assigning numbers.');
+    const user=z.object({domain:z.literal(domain),user:z.literal('9999'),'dial-plan':z.literal(`${domain}_9999`)}).parse(await this.get(`/domains/${domain}/users/9999`));
+    const answer=z.object({domain:z.literal(domain),user:z.literal(user.user),enabled:z.literal('yes'),'forward-always':z.object({enabled:z.literal('yes'),parameters:z.array(z.string()).length(1)})}).parse(await this.get(`/domains/${domain}/users/9999/answerrules/*`));
+    if(answer['forward-always'].parameters[0]!=='Announce_999903')throw new Error('Unassigned Inventory greeting is not active. Review attendant 9999 before assigning numbers.');
+    return '9999';
+  }
+  async globalInventoryNumber(number:string){
+    if(!/^\+1[2-9]\d{9}$/.test(number))throw new Error('Invalid telephone number.');
+    const matches:ReturnType<typeof domainNumberSchema.parse>[]=[];const seen=new Set<string>();
+    for(let start=0;start<100000;start+=100){
+      const page=z.array(domainNumberSchema.extend({domain:z.string().min(1)})).parse(await this.get(`/phonenumbers?start=${start}&limit=100`));
+      for(const n of page){
+        const key=n.domain+':'+n.phonenumber;if(seen.has(key))throw new Error('NetSapiens repeated phone numbers during pagination.');seen.add(key);
+        if(n.phonenumber.replace(/^\+/,'')===number.slice(1))matches.push(n);
+      }
+      if(page.length<100){
+        if(matches.length>1)throw new Error('NetSapiens contains duplicate inventory entries for this number.');
+        const n=matches[0];if(!n)return undefined;
+        return n;
+      }
+    }
+    throw new Error('NetSapiens phone number inventory exceeded the safety limit.');
+  }
+  async inventoryNumberForRemoval(number:string,domain:string){
+    if(!/^\d+$/.test(domain))throw new Error('Invalid domain.');
+    const n=await this.globalInventoryNumber(number);
+    if(n&&n.domain!==domain)throw new Error('This number already belongs to another NetSapiens domain. It has not been moved.');
+    return n;
+  }
+  async findInventoryNumber(number:string,domain:string,destination:'9999'|null=null,allowUnassigned=false){
+    const n=await this.inventoryNumberForRemoval(number,domain);if(!n)return false;
+        if(destination&&n.enabled==='yes'&&n['dial-rule-application']==='available-number'&&n['dial-rule-translation-destination-user']==='[*]'&&n['dial-rule-translation-destination-host']==='[*]')return allowUnassigned;
+        if(n.enabled!=='yes'||n['dial-rule-application']!==(destination?'to-user':'available-number')||n['dial-rule-translation-destination-user']!==(destination??'[*]')||n['dial-rule-translation-destination-host']!==(destination?domain:'[*]'))throw new Error('This NetSapiens number already has a PBX destination or different configuration. It has not been changed.');
+        return true;
+  }
+  async removeInventoryNumber(number:string,domain:string,expected:Record<string,unknown>){
+    const details=await this.readProvisionDomain(domain);
+    if(!details||details.domain!==domain||details.reseller!==(await this.load())?.reseller)throw new DeletionRejected('NetSapiens domain ownership could not be verified.');
+    const current=await this.inventoryNumberForRemoval(number,domain);if(!current)return;
+    if(JSON.stringify(current)!==JSON.stringify(expected))throw new DeletionRejected('The NetSapiens number changed before removal. Review its current destination.');
+    await this.refresh();
+    const response=await this.request(baseUrl+`/domains/${encodeURIComponent(domain)}/phonenumbers/${encodeURIComponent(current.phonenumber)}`,{method:'DELETE',redirect:'error',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+this.auth!.accessToken}});
+    this.reads.clear();
+    if([400,401,403,409,422,429].includes(response.status))throw new DeletionRejected(`NetSapiens rejected number removal (HTTP ${response.status}).`);
+    if(!response.ok&&response.status!==404)throw new Error(`NetSapiens number removal is unconfirmed (HTTP ${response.status}). Resume to verify its outcome.`);
+  }
+  async routeInventoryNumber(number:string,domain:string,description:string,destination:'9999'){
+    if(await this.inventoryAttendantDestination(domain)!==destination)throw new NumberAssignmentRejected('Unassigned Inventory attendant is no longer available.');
+    // Only an unassigned number in this domain may be routed. Never replace a user's route.
+    if(!await this.findInventoryNumber(number,domain))throw new NumberAssignmentRejected('The NetSapiens inventory number is no longer available.');
+    await this.refresh();
+    const response=await this.request(baseUrl+`/domains/${domain}/phonenumbers`,{method:'PUT',redirect:'error',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+this.auth!.accessToken,'Content-Type':'application/json'},body:JSON.stringify({phonenumber:number.slice(1),enabled:'yes','dial-rule-application':'to-user','dial-rule-translation-destination-user':destination,'dial-rule-translation-destination-host':domain,'dial-rule-description':description})});
+    this.reads.clear();
+    if([400,401,403,404,422,429].includes(response.status))throw new NumberAssignmentRejected(`NetSapiens rejected number routing (HTTP ${response.status}).`);
+    if(!response.ok)throw new Error(`NetSapiens number routing is unconfirmed (HTTP ${response.status}). Resume to check its outcome.`);
+  }
+  async createInventoryNumber(number:string,domain:string,description:string,destination:'9999'|null=null){
+    if(!/^\+1[2-9]\d{9}$/.test(number)||!/^\d+$/.test(domain))throw new Error('Invalid telephone number or domain.');
+    if(destination&&await this.inventoryAttendantDestination(domain)!==destination)throw new NumberAssignmentRejected('Unassigned Inventory attendant is no longer available.');
+    await this.refresh();
+    const response=await this.request(baseUrl+`/domains/${domain}/phonenumbers`,{method:'POST',redirect:'error',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+this.auth!.accessToken,'Content-Type':'application/json'},body:JSON.stringify({phonenumber:number.slice(1),enabled:'yes','dial-rule-application':destination?'to-user':'available-number','dial-rule-translation-destination-user':destination??'[*]','dial-rule-translation-destination-host':destination?domain:'[*]','dial-rule-description':description})});
+    this.reads.clear();
+    if([400,401,403,404,422,429].includes(response.status))throw new NumberAssignmentRejected(`NetSapiens rejected number creation (HTTP ${response.status}).`);
+    if(!response.ok)throw new Error(`NetSapiens number creation is unconfirmed (HTTP ${response.status}). Resume to check its outcome.`);
   }
   async resources(domain:string,section:string){return netsapiensResources(domain,section,this.get.bind(this));}
   async verifyProvisionResources(

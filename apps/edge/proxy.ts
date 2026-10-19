@@ -70,7 +70,8 @@ export async function proxyRequest(
   const calls = /^\/v1\/organizations\/[^/]+\/calls$/.test(incoming.pathname);
   const streaming = method === "GET" && messaging && /\/(?:events|typing-events|identity-events)$/.test(incoming.pathname);
   const mediaDownload = method === "GET" && /^\/v1\/organizations\/[^/]+\/messaging\/[^/]+\/attachments\/[^/]+$/.test(incoming.pathname);
-  const bodyLimit = upload ? 26214400 : calls ? 2900000 : messaging ? 500000 : 16384;
+  const numberRequest = ['GET','POST'].includes(method) && /^\/v1\/(?:platform|organizations\/[0-9a-f-]{36})\/phone-numbers\/(search|orders|console\/.*)$/.test(incoming.pathname);
+  const bodyLimit = numberRequest ? 65536 : upload ? 26214400 : calls ? 2900000 : messaging ? 500000 : 16384;
   if (request.body && !["GET", "HEAD"].includes(method)) {
     const reader = request.body.getReader(),
       chunks: Uint8Array[] = [];
@@ -105,7 +106,7 @@ export async function proxyRequest(
       headers,
       ...(body ? { body } : {}),
       redirect: "manual",
-      signal: AbortSignal.timeout(upload || streaming || mediaDownload ? 60000 : 12000),
+      signal: AbortSignal.timeout(numberRequest ? 70000 : upload || streaming || mediaDownload ? 60000 : 12000),
     });
     const outgoing = new Headers();
     for (const name of ["Content-Type", "Location", "Retry-After", "Content-Disposition", "Content-Range", "Accept-Ranges", "Content-Length"]) {

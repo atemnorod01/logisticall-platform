@@ -1,3 +1,5 @@
+import {phoneNumberRoutes} from './phone-number-routes.js';
+import type {NumberProvisioning} from './number-provisioning.js';
 import {resourceSections,telephonyResourceView} from '../../../packages/types/src/telephony-resources.js';
 import {disabledTelephony,type TelephonyService} from './telephony/service.js';
 import {telephonyEnable,telephonyDisableInput,telephonyDisablePreview} from '../../../packages/types/src/telephony.js';
@@ -27,6 +29,8 @@ export function platformAdminRoutes(
   app: FastifyInstance,
   options: {
     telephony?: TelephonyService | undefined;
+    numbers?: NumberProvisioning | undefined;
+    actorIdForRequest?: ((req:FastifyRequest)=>string|undefined) | undefined;
     actorId?: ((token:string)=>Promise<string>) | undefined;
     profileChanged?: ((id: string, name: string) => Promise<void>) | undefined;
     organizationChanged?: ((id: string, name: string) => Promise<void>) | undefined;
@@ -40,6 +44,7 @@ export function platformAdminRoutes(
     ) => Promise<unknown>;
   },
 ) {
+  phoneNumberRoutes(app,{numbers:options.numbers,authorize:async req=>{const token=await options.authorize(req);return z.uuid().parse(options.actorIdForRequest?.(req)??await options.actorId?.(token));}});
   const telephony = () => {if(!options.telephony)throw Object.assign(Error('Telephony is not configured'),{statusCode:503});return options.telephony;};
   const actorId = async (token:string) => z.uuid().parse(await options.actorId?.(token));
   app.get('/v1/platform/organizations/:id/telephony',async req=>{

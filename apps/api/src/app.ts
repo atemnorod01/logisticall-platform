@@ -1,3 +1,6 @@
+import type {FastifyRequest} from 'fastify';
+import {organizationPhoneNumberRoutes} from './organization-phone-numbers.js';
+import type {NumberProvisioning} from './number-provisioning.js';
 import type {TelephonyService} from './telephony/service.js';
 import { platformAdminRoutes } from "./platform-admin-routes.js";
 import { iamIdentity } from "./iam.js";
@@ -32,6 +35,7 @@ export function buildApp(
     profileChanged?: (id: string, name: string) => Promise<void>;
     organizationChanged?: (id: string, name: string) => Promise<void>;
     telephony?: TelephonyService;
+    numbers?: NumberProvisioning;
     calls?: CallsStore;
     iceServers?: RTCIceServer[];
     iceServersFor?: (userId: string) => Promise<RTCIceServer[]>;
@@ -322,8 +326,11 @@ export function buildApp(
       }
     },
   );
+  const platformActors = new WeakMap<object,string>();
   platformAdminRoutes(app, {
     telephony: deps.telephony,
+    numbers: deps.numbers,
+    actorIdForRequest: req => platformActors.get(req),
     actorId: async token => (await (deps.identity ?? iamIdentity(config.iamApi))(token)).user_id,
     profileChanged: deps.profileChanged,
     organizationChanged: deps.organizationChanged,
@@ -337,17 +344,11 @@ export function buildApp(
       try { actor = await verify(token); } catch { throw new IamFailure(401); }
       const identity = await (deps.identity ?? iamIdentity(config.iamApi))(token);
       if (identity.user_id !== actor.userId || !identity.platform_admin) throw new IamFailure(403);
+      platformActors.set(req, identity.user_id);
       return token;
     },
   });
-  settingsRoutes(app, {
-    profileChanged: deps.profileChanged,
-    organizationChanged: deps.organizationChanged,
-    presence: deps.presence
-      ? (org, ids) => deps.presence!.read(org, ids)
-      : undefined,
-    request: deps.settings ?? iamSettings(config.iamApi),
-    async authorize(req, org) {
+  const authorizeOrganization = async(req:FastifyRequest,org?:string)=>{
       if (req.headers["x-iam-impersonation"] !== undefined)
         throw new IamFailure(403);
       const token = deps.browser
@@ -371,8 +372,17 @@ export function buildApp(
         )
           throw new IamFailure(403);
       }
-      return token;
-    },
+      return {token,actor};
+  };
+  organizationPhoneNumberRoutes(app,{numbers:deps.numbers,authorize:async(req,org)=>(await authorizeOrganization(req,org)).actor.userId});
+  settingsRoutes(app, {
+    profileChanged: deps.profileChanged,
+    organizationChanged: deps.organizationChanged,
+    presence: deps.presence
+      ? (org, ids) => deps.presence!.read(org, ids)
+      : undefined,
+    request: deps.settings ?? iamSettings(config.iamApi),
+    authorize:async(req,org)=>(await authorizeOrganization(req,org)).token,
   });
   groupRoutes(app, {
     presence: deps.presence,
