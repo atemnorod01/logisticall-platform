@@ -125,7 +125,7 @@ export function organizationPhoneNumberRoutes(
               livePurchasing: boolean;
               scopeKey: string;
               demo?: boolean;
-            }>("GET", "/number-purchase/context?accountId=" + org),
+            }>("GET", "/number-purchase/context"),
             allAssignments(),
           ]);
           const destinations = data.destinations.filter((d) => d.id === org);
