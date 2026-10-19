@@ -1,7 +1,7 @@
 import {z} from 'zod';
 import type {PortaoneRead} from './portaone-accounts';
 import {PortaoneFault} from './portaone';
-import {portaoneCustomerReference} from './portaone-provisioning';
+import {customerBelongsToOrganization} from './organization-adoption';
 import type {NetsapiensClient} from './netsapiens';
 import type {Organization} from './model';
 import {RemovalRejected,type TerminationProviders} from './organization-termination';
@@ -20,8 +20,8 @@ export function terminationProviders(request:PortaoneRead,ns:Pick<NetsapiensClie
   }
   if(!found)return;
   const result=await request('/Customer/get_customer_info',{i_customer:Number(org.portaoneId),get_auth_info:0});
-  const row=z.object({i_customer:z.number(),i_parent:z.number(),i_customer_type:z.number().optional(),bill_status:z.string(),refnum:z.string()}).parse(result.customer_info);
-  if(String(row.i_customer)!==org.portaoneId||row.i_parent!==289507||row.i_customer_type!==undefined&&row.i_customer_type!==1||![org.id,portaoneCustomerReference(org.id)].includes(row.refnum))throw Error('PortaOne customer ownership does not match this organization.');
+  const row=z.object({i_customer:z.number(),i_parent:z.number(),i_customer_type:z.number().optional(),bill_status:z.string(),refnum:z.string().nullish()}).parse(result.customer_info);
+  if(!customerBelongsToOrganization(org,row)||row.i_customer_type!==undefined&&row.i_customer_type!==1)throw Error('PortaOne customer ownership does not match this organization.');
   return row;
  }
  async function domain(org:Organization){

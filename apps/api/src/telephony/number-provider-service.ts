@@ -3,6 +3,7 @@ import type {Pool,PoolClient} from 'pg';
 import type {FastifyInstance} from 'fastify';
 import {numberServicePath,numberServiceVerifier} from './number-service-auth';
 import {organizationTelephonyActive} from './organization-access';
+import {customerBelongsToOrganization,verifiedAdoption} from './organization-adoption';
 import {PostgresIntegrationVault} from './integration-vault';
 import {PortaoneClient} from './portaone';
 import {NetsapiensClient} from './netsapiens';
@@ -45,7 +46,7 @@ export function platformNumberProviders(pool:Pool,clients?:{po:Pick<PortaoneClie
  return {
   async destinations(){
    const {rows}=await pool.query("SELECT data,state FROM telephony.organizations");
-   return rows.flatMap(({data:o,state}:{data:Organization;state:string})=>organizationTelephonyActive({data:o,state})?[{id:o.id,name:o.name,createdAt:o.createdAt,portaoneId:o.portaoneId,netsapiensDomain:o.netsapiensDomain}]:[]);
+   return rows.flatMap(({data:o,state}:{data:Organization;state:string})=>organizationTelephonyActive({data:o,state})?[{id:o.id,name:o.name,createdAt:o.createdAt,portaoneId:o.portaoneId,netsapiensDomain:o.netsapiensDomain,...(verifiedAdoption(o)?{legacyOrganizationId:o.adoption!.legacyOrganizationId}:{})}]:[]);
   },
   async removals(){
    const {rows}=await pool.query('SELECT data,state FROM telephony.organizations');
@@ -66,7 +67,7 @@ export function platformNumberProviders(pool:Pool,clients?:{po:Pick<PortaoneClie
      const claimed=await db.query('INSERT INTO telephony.number_service_requests(id) VALUES($1) ON CONFLICT DO NOTHING RETURNING id',[requestId]);
      if(!claimed.rowCount){replayed=true;throw unavailable();}
      const c=(await po.call('/Customer/get_customer_info',{i_customer:Number(org.portaoneId),get_auth_info:0})).customer_info as Record<string,unknown>;
-     if(c?.i_customer!==Number(org.portaoneId)||c.i_parent!==289507||![org.id,org.id.replaceAll('-','')].includes(String(c.refnum)))throw unavailable();
+     if(!c||!customerBelongsToOrganization(org,c))throw unavailable();
      await db.query("INSERT INTO telephony.audit(organization_id,actor_id,event) VALUES($1,'00000000-0000-4000-8000-000000000021',$2)",[org.id,'number_'+input.action]);
     }
     const a={organizationId:org.id,customerId:org.portaoneId!,domain:org.netsapiensDomain!,number:'number' in input?input.number:'',masterAccountId:'master' in input?input.master:undefined,aliasId:'alias' in input?input.alias:undefined} as NumberAssignment;

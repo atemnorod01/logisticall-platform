@@ -109,9 +109,9 @@ export function postgresTelephony(pool: Pool): TelephonyService {
           netsapiensDomain: row.data.netsapiensDomain,
           portaoneStep: row.data.portaoneProvisioning?.step ?? null,
           netsapiensStep: row.data.netsapiensProvisioning?.step ?? null,
-          aliasCount: row.data.portaoneProvisioning?.aliases.length ?? 0,
+          aliasCount: row.data.portaoneProvisioning?.aliases.length ?? row.data.adoption?.ipAliases.length ?? 0,
           attendantReady:
-            row.data.netsapiensProvisioning?.announcement?.complete ?? false,
+            row.data.netsapiensProvisioning?.announcement?.complete ?? row.data.adoption?.attendant==='9999',
           message:
             row.state === "failed"
               ? row.data.termination?.error ?? "Provisioning needs attention. Resume to reconcile saved progress; unresolved provider responses require review."
