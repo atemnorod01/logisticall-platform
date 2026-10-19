@@ -35,3 +35,30 @@ export function memberExtensionDirectory(
   return Object.fromEntries(emails.map(email=>[email,directory[email.trim().toLowerCase()]??[]]));
  };
 }
+
+/** Includes only direct number destinations in this tenant, never caller-ID numbers. */
+export function memberPhoneNumbers(domain:string,extensions:string[],rows:Row[]){
+ return [...new Set(rows.filter(row=>
+  (!row.domain||row.domain===domain)&&row['dial-rule-application']==='to-user'&&
+  row['dial-rule-translation-destination-host']===domain&&
+  extensions.includes(row['dial-rule-translation-destination-user']??'')
+ ).map(row=>row.phonenumber??'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
+}
+export function memberTelephonyDirectory(binding:(id:string)=>Promise<Binding>,users:(domain:string)=>Promise<Row[]>,numbers:(domain:string)=>Promise<Row[]>,now:()=>number=Date.now){
+ let extensions=memberExtensionDirectory(binding,users,now);
+ const cache=new Map<string,{expires:number;value:Promise<Row[]>}>();
+ const lookup=async(id:string,emails:string[])=>{
+  const current=await binding(id);if(!current)return {};
+  const key=id+':'+current.domain;
+  let entry=cache.get(key);
+  if(!entry||entry.expires<=now()){
+   for(const [k,v] of cache)if(v.expires<=now())cache.delete(k);
+   if(cache.size>=1000)cache.delete(cache.keys().next().value!);
+   entry={expires:now()+60000,value:numbers(current.domain)};cache.set(key,entry);
+   const value=entry.value;void value.catch(()=>{if(cache.get(key)?.value===value)cache.delete(key);});
+  }
+  const [ext,rows]=await Promise.all([extensions(id,emails),entry.value]);
+  return Object.fromEntries(emails.map(email=>[email,{extensions:ext[email]??[],phone_numbers:memberPhoneNumbers(current.domain,ext[email]??[],rows)}]));
+ };
+ return Object.assign(lookup,{invalidate:()=>{cache.clear();extensions=memberExtensionDirectory(binding,users,now);}});
+}

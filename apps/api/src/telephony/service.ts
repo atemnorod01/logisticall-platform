@@ -1,6 +1,11 @@
 import { terminationProviders } from "./organization-termination-providers";
 import {organizationTelephonyActive} from './organization-access';
-import {memberExtensionDirectory} from './member-extensions';
+import {memberExtensionDirectory,memberTelephonyDirectory} from './member-extensions';
+import type {ArchiveMember} from './member-archive';
+import type {MemberTelephony} from '../../../../packages/types/src/settings';
+import {postgresMemberArchive} from './member-archive-postgres';
+import {postgresMemberInvitation} from './member-invitation-postgres';
+import type {MemberInviteInput,MemberInvitation} from './member-invitation';
 import { runTermination, removalHash, assertRemovable } from "./organization-termination";
 import type { TelephonyDisablePreview } from "../../../../packages/types/src/telephony";
 import {portaoneResources,pendingResources} from './resource-views';
@@ -28,6 +33,11 @@ import {
 import { editableContactSchema } from "./contact-update";
 
 export interface TelephonyService {
+  memberExtensionSuggestion?(id:string):Promise<{extension:string|null}>;
+  inviteMember?<T extends MemberInvitation>(input:MemberInviteInput,ensureMember:(previous?:MemberInvitation)=>Promise<T>):Promise<T&{extension:string}>;
+  memberDirectory?(id:string,emails:string[]):Promise<Record<string,MemberTelephony>>;
+  previewMemberArchive?(member:ArchiveMember):Promise<{preview_hash:string;extensions:string[];phone_numbers:string[];resume:boolean}>;
+  archiveMember?(member:ArchiveMember,hash:string,archive:()=>Promise<void>,begin?:()=>Promise<void>):Promise<void>;
   memberExtensions?(id:string,emails:string[]):Promise<Record<string,string[]>>;
   canAccessTelephony(id:string):Promise<boolean>;
   enabledOrganizationIds(): Promise<string[]>;
@@ -149,7 +159,19 @@ export function postgresTelephony(pool: Pool): TelephonyService {
     await removalProviders.inspect(row.data);
     return {action:"terminate",previewHash:removalHash(row.data),description:"This will terminate and then delete the PortaOne customer, then delete the NetSapiens domain and its PBX data. The Platform organization remains.",steps:["Terminate PortaOne customer","Delete PortaOne customer","Delete NetSapiens domain","Verify both systems"]};
   };
+  const memberBinding=async(id:string,client?:PoolClient)=>{const saved=await read(id,client);return organizationTelephonyActive(saved)&&saved?.data.netsapiensDomain?{domain:saved.data.netsapiensDomain}:undefined;};
+  const archiveBinding=async(id:string,client?:PoolClient)=>{const row=await read(id,client);if(row?.data.netsapiensDomain&&row.data.termination?.status!=='complete'&&!organizationTelephonyActive(row))throw conflict('Complete the organization telephony operation before archiving members.');return memberBinding(id,client);};
+  const archive=postgresMemberArchive(pool,ns,archiveBinding);
+  const invitations=postgresMemberInvitation(pool,ns,memberBinding);
+  const memberDirectory=memberTelephonyDirectory(memberBinding,async domain=>(await ns.resources(domain,'users')).rows,async domain=>(await ns.resources(domain,'phone-numbers')).rows);
   return {
+    memberExtensionSuggestion:invitations.suggestion,
+    inviteMember:async(input,ensureMember)=>{try{return await invitations.invite(input,ensureMember);}finally{memberDirectory.invalidate();}},
+    previewMemberArchive:archive.preview,archiveMember:async(member,hash,finish,begin)=>{try{await archive.run(member,hash,async()=>{
+      await finish();
+      await pool.query("UPDATE telephony.member_invitations SET data=jsonb_set(data,'{stage}','\"cancelled\"'),updated_at=now() WHERE organization_id=$1 AND lower(data->'input'->>'email')=lower($2)",[member.organizationId,member.email]);
+    },begin);}finally{memberDirectory.invalidate();}},
+    memberDirectory,
     memberExtensions: memberExtensionDirectory(async id=>{
       const saved=await read(id);
       return organizationTelephonyActive(saved)&&saved?.data.netsapiensDomain?{domain:saved.data.netsapiensDomain}:undefined;

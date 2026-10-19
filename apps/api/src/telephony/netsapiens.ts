@@ -1,3 +1,6 @@
+import {archiveConflict,memberResources,type ArchiveMember,type ArchiveResources} from './member-archive';
+import {MemberCreateRejected} from './member-invitation';
+import {pbxExtension} from '../../../../packages/types/src/settings';
 import {NumberAssignmentRejected,DeletionRejected} from './number-errors';
 import {inventoryAttendantName} from './announcement-text';
 import { RemovalRejected } from "./organization-termination";
@@ -453,6 +456,24 @@ export class NetsapiensClient {
     if(!details||details.domain!==domain||details.reseller!==(await this.load())?.reseller)throw new Error('NetSapiens domain ownership could not be verified.');
     return this.domainUsers(domain);
   }
+  async createMemberUser(domain:string,input:{name:string;email:string;extension:string}){
+    pbxExtension.parse(input.extension);
+    z.string().trim().min(1).max(100).parse(input.name);z.email().parse(input.email);
+    const users=await this.domainDestinationUsers(domain);
+    if(users.some(u=>u.user===input.extension||u.email.trim().toLowerCase()===input.email.trim().toLowerCase()))throw new MemberCreateRejected('PBX user already exists.');
+    const [first,...last]=input.name.trim().split(/\s+/);
+    await this.refresh();
+    const response=await this.request(baseUrl+`/domains/${encodeURIComponent(domain)}/users`,{
+      method:'POST',redirect:'error',signal:AbortSignal.timeout(30000),
+      headers:{Authorization:'Bearer '+this.auth!.accessToken,'Content-Type':'application/json'},
+      body:JSON.stringify({user:input.extension,'name-first-name':first,'name-last-name':last.join(' '),
+        email:input.email,'user-scope':'Basic User','dial-plan':domain,'dial-policy':'US and Canada',
+        'voicemail-enabled':'yes',synchronous:'yes'}),
+    });
+    this.reads.clear();
+    if([400,401,403,404,409,422,429].includes(response.status))throw new MemberCreateRejected('PBX user creation rejected.');
+    if(!response.ok)throw new Error('PBX user creation response is unconfirmed.');
+  }
   async domainPhoneNumbers(domain:string){
     const details=await this.readProvisionDomain(domain);
     if(!details||details.domain!==domain||details.reseller!==(await this.load())?.reseller)throw new Error('NetSapiens domain ownership could not be verified.');
@@ -528,6 +549,47 @@ export class NetsapiensClient {
     this.reads.clear();
     if([400,401,403,404,422,429].includes(response.status))throw new NumberAssignmentRejected(`NetSapiens rejected number creation (HTTP ${response.status}).`);
     if(!response.ok)throw new Error(`NetSapiens number creation is unconfirmed (HTTP ${response.status}). Resume to check its outcome.`);
+  }
+  async memberArchiveResources(domain:string,member:ArchiveMember){
+    const details=await this.readProvisionDomain(domain);
+    if(!details||details.reseller!==(await this.load())?.reseller)throw archiveConflict('PBX organization ownership could not be verified.');
+    const [users,numbers]=await Promise.all([this.resources(domain,'users'),this.resources(domain,'phone-numbers')]);
+    return memberResources(member,domain,users.rows,numbers.rows);
+  }
+  private async archiveWrite(path:string,method:string,body?:unknown){
+    await this.refresh();
+    const response=await this.request(baseUrl+path,{method,redirect:'error',signal:AbortSignal.timeout(30000),headers:{Authorization:'Bearer '+this.auth!.accessToken,...(body?{'Content-Type':'application/json'}:{})},...(body?{body:JSON.stringify(body)}:{})});
+    this.reads.clear();
+    if(!response.ok)throw archiveConflict('PBX cleanup could not be confirmed. Retry to check the saved progress.');
+  }
+  async returnMemberNumber(resources:ArchiveResources,expected:Record<string,string>,verifyOnly=false){
+    const domain=resources.domain;if(!domain)throw archiveConflict('PBX domain missing.');
+    if(await this.inventoryAttendantDestination(domain)!=='9999')throw archiveConflict('Unassigned extension 9999 is unavailable.');
+    const current=(await this.resources(domain,'phone-numbers')).rows.find(n=>n.phonenumber===expected.phonenumber);
+    if(!current)throw archiveConflict('An assigned number is no longer in this organization.');
+    const isReturned=current['dial-rule-translation-destination-user']==='9999'&&current['dial-rule-translation-destination-host']===domain&&current['dial-rule-application']==='to-user'&&current.enabled==='yes';
+    if(isReturned)return;
+    if(verifyOnly)throw archiveConflict('Previous routing is unconfirmed. Review the number before retrying any write.');
+    if(JSON.stringify(current)!==JSON.stringify(expected))throw archiveConflict('Number routing changed. Review its assignment before retrying.');
+    await this.archiveWrite(`/domains/${domain}/phonenumbers`,'PUT',{
+      phonenumber:expected.phonenumber,enabled:'yes','dial-rule-application':'to-user',
+      'dial-rule-translation-destination-user':'9999','dial-rule-translation-destination-host':domain,
+      'dial-rule-description':expected['dial-rule-description']??'',
+    });
+    const after=(await this.resources(domain,'phone-numbers')).rows.find(n=>n.phonenumber===expected.phonenumber);
+    if(after?.['dial-rule-translation-destination-user']!=='9999'||after?.['dial-rule-translation-destination-host']!==domain||after?.['dial-rule-application']!=='to-user'||after?.enabled!=='yes')throw archiveConflict('Number routing is still updating. Retry to verify it.');
+  }
+  async deleteMemberExtension(resources:ArchiveResources,expected:Record<string,string>,verifyOnly=false){
+    const domain=resources.domain;if(!domain||expected.user==='9999'||!/^\d{1,16}$/.test(expected.user??''))throw archiveConflict('Invalid extension.');
+    const details=await this.readProvisionDomain(domain);
+    if(!details||details.reseller!==(await this.load())?.reseller)throw archiveConflict('PBX organization ownership could not be verified.');
+    const current=(await this.resources(domain,'users')).rows.find(u=>u.user===expected.user);
+    if(!current)return;
+    if(verifyOnly)throw archiveConflict('Previous extension deletion is unconfirmed. Review the extension before retrying any write.');
+    if(JSON.stringify(current)!==JSON.stringify(expected))throw archiveConflict('Extension ownership changed. It has not been deleted.');
+    if((await this.resources(domain,'phone-numbers')).rows.some(n=>n['dial-rule-translation-destination-user']===expected.user))throw archiveConflict('The extension still has an assigned number. Return it to inventory first.');
+    await this.archiveWrite(`/domains/${domain}/users/${encodeURIComponent(expected.user!)}`,'DELETE');
+    if((await this.resources(domain,'users')).rows.some(u=>u.user===expected.user))throw archiveConflict('Extension deletion is still updating. Retry to verify it.');
   }
   async resources(domain:string,section:string){return netsapiensResources(domain,section,this.get.bind(this));}
   async verifyProvisionResources(
