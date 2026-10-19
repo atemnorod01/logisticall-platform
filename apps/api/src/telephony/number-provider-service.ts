@@ -111,7 +111,7 @@ export function platformNumberProviders(pool:Pool,clients?:{po:Pick<PortaoneClie
 }
 export function numberProviderRoutes(app:FastifyInstance,service:ReturnType<typeof platformNumberProviders>,publicKey:string){
  const verify=numberServiceVerifier(publicKey);
- app.route({method:['GET','POST'],url:numberServicePath,bodyLimit:65536,handler:async(req,reply)=>{
+ app.route({method:['GET','POST'],url:numberServicePath,config:{numberProviderService:true},bodyLimit:65536,handler:async(req,reply)=>{
   if(req.headers.origin||req.headers.cookie)throw Object.assign(Error('Service only'),{statusCode:401});
   const requestId=await verify(req.headers.authorization,req.method,req.raw.url!,req.method==='POST'?req.body:undefined);
   req.raw.setTimeout?.(70000);

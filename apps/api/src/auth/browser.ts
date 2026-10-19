@@ -13,6 +13,7 @@ export function readCookie(header: string | undefined, name: string): string | u
 }
 const cookie = (name: string, value: string, age: number) => `${name}=${value}; Path=/; Secure; HttpOnly; SameSite=Lax; Max-Age=${age}`;
 export class SessionError extends Error { constructor(public statusCode = 401) { super('Session unavailable'); } }
+declare module 'fastify' { interface FastifyContextConfig { numberProviderService?: true } }
 type StoredSession = { tokens: Tokens; csrf: string };
 export function browserSessions(options: {
   origin: string; key: Buffer; store: SessionStore; provider: Provider;
@@ -70,6 +71,11 @@ export function browserSessions(options: {
         reply.header('Cache-Control', 'no-store').header('Referrer-Policy', 'no-referrer').header('X-Content-Type-Options', 'nosniff');
       });
       app.addHook('preHandler', async (req, reply) => {
+        // This exact internal route verifies a separate method/path/body-bound
+        // service JWT. Browser credentials must never be accepted on it.
+        if (req.routeOptions.config.numberProviderService === true &&
+            req.raw.url === '/internal/number-providers' &&
+            req.headers.origin === undefined && req.headers.cookie === undefined) return;
         if (!['GET', 'HEAD', 'OPTIONS'].includes(req.method)) {
           try { await csrf(req); } catch (error) {
             return reply.code(error instanceof SessionError ? error.statusCode : 503).send({ message: 'Request rejected' });
