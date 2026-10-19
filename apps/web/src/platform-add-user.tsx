@@ -163,9 +163,10 @@ export function PlatformAddUser({
                 <button type="button" className="lc-platform-member-name" onClick={event=>setEditingMember({id:member.id,anchor:event.currentTarget})}>{member.name || member.email}</button>
                 <span>{member.email}</span>
               </div>
+              {!!member.extensions?.length&&<span className="lc-member-extension" title={`Extension${member.extensions.length===1?'':'s'} ${member.extensions.join(', ')}`}>Ext. {member.extensions.join(', ')}</span>}
               <div className="lc-platform-member-role">
                 <span>{member.role === "owner" ? "Owner" : member.role === "admin" ? "Organization admin" : "Member"}</span>
-                <small>{member.status}</small>
+                <small>{member.status==='pending'?'Pending':member.status}</small>
               </div>
             </li>
           ))}

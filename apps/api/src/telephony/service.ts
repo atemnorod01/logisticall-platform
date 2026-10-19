@@ -1,5 +1,6 @@
 import { terminationProviders } from "./organization-termination-providers";
 import {organizationTelephonyActive} from './organization-access';
+import {memberExtensionDirectory} from './member-extensions';
 import { runTermination, removalHash, assertRemovable } from "./organization-termination";
 import type { TelephonyDisablePreview } from "../../../../packages/types/src/telephony";
 import {portaoneResources,pendingResources} from './resource-views';
@@ -27,6 +28,7 @@ import {
 import { editableContactSchema } from "./contact-update";
 
 export interface TelephonyService {
+  memberExtensions?(id:string,emails:string[]):Promise<Record<string,string[]>>;
   canAccessTelephony(id:string):Promise<boolean>;
   enabledOrganizationIds(): Promise<string[]>;
   resources(id:string,provider:TelephonyProvider,section:string):Promise<TelephonyResourceView>;
@@ -148,6 +150,10 @@ export function postgresTelephony(pool: Pool): TelephonyService {
     return {action:"terminate",previewHash:removalHash(row.data),description:"This will terminate and then delete the PortaOne customer, then delete the NetSapiens domain and its PBX data. The Platform organization remains.",steps:["Terminate PortaOne customer","Delete PortaOne customer","Delete NetSapiens domain","Verify both systems"]};
   };
   return {
+    memberExtensions: memberExtensionDirectory(async id=>{
+      const saved=await read(id);
+      return organizationTelephonyActive(saved)&&saved?.data.netsapiensDomain?{domain:saved.data.netsapiensDomain}:undefined;
+    },async domain=>(await ns.resources(domain,'users')).rows),
     async canAccessTelephony(id){return organizationTelephonyActive(await read(id));},
     async enabledOrganizationIds() {
       const rows=await pool.query("SELECT organization_id FROM telephony.organizations WHERE COALESCE(data->'termination'->>'status','') <> 'complete'");

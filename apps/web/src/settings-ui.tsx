@@ -784,21 +784,22 @@ export function OrganizationMembers({
                   <Avatar name={p.name} presence={p.presence ?? "unknown"} />
                   <div className="lc-member-copy">
                     <strong>{p.name}</strong>
-                    <small title={`${p.email} · ${p.role_id === "owner" ? "Owner" : p.role_id === "admin" ? "Organization admin" : "Member"} · ${p.status === "active" ? "Active" : "Suspended"}`}>
+                    <small title={`${p.email} · ${p.role_id === "owner" ? "Owner" : p.role_id === "admin" ? "Organization admin" : "Member"} · ${p.status === "pending" ? "Pending" : p.status === "active" ? "Active" : "Suspended"}`}>
                       {p.email} · {" "}
                       {p.role_id === "owner"
                         ? "Owner"
                         : p.role_id === "admin"
                           ? "Organization admin"
                           : "Member"}{" "}
-                      · {p.status === "active" ? "Active" : "Suspended"}
+                      · {p.status === "pending" ? "Pending" : p.status === "active" ? "Active" : "Suspended"}
                     </small>
                   </div>
+                  {!!p.extensions?.length&&<span className="lc-member-extension" title={`Extension${p.extensions.length===1?'':'s'} ${p.extensions.join(', ')}`}>Ext. {p.extensions.join(', ')}</span>}
                   <button
                     className="button"
-                    onClick={() => setEditing(p.user_id)}
+                    onClick={() => p.status==='pending'?setTab('invitations'):setEditing(p.user_id)}
                   >
-                    Edit user
+                    {p.status==='pending'?'View invitation':'Edit user'}
                   </button>
                 </div>
               ))}

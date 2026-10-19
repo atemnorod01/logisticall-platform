@@ -43,7 +43,8 @@ export const managedMember = z.object({
   name: z.string(),
   email: z.email(),
   role_id: z.enum(["owner", "admin", "member"]),
-  status: z.enum(["active", "suspended"]),
+  status: z.enum(["pending", "active", "suspended"]),
+  extensions: z.array(z.string()).optional(),
   presence: z.string().optional(),
   can_edit_name: z.boolean(),
   can_edit_access: z.boolean(),
@@ -53,9 +54,10 @@ export const memberEdit = z
   .object({
     name: z.string().trim().min(1).max(100),
     role_id: managedMember.shape.role_id,
-    status: managedMember.shape.status,
+    status: z.enum(["active", "suspended"]),
     expected: managedMember
       .pick({ name: true, role_id: true, status: true })
+      .extend({ status: z.enum(["active", "suspended"]) })
       .strict(),
   })
   .strict();

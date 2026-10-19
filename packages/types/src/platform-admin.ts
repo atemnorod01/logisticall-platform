@@ -26,7 +26,7 @@ export const platformEdit=z.discriminatedUnion('kind',[
  z.object({kind:z.literal('company'),revision:z.string().min(1).max(100),company:companyEdit}).strict(),
  z.object({kind:z.literal('user'),revision:z.string().min(1).max(100),name:z.string().trim().min(1).max(100),status:z.enum(['active','suspended'])}).strict(),
 ]);
-export const platformMember=z.object({id:z.uuid(),name:z.string(),email:z.string(),role:z.string(),status:z.string()});
+export const platformMember=z.object({id:z.uuid(),name:z.string(),email:z.string(),role:z.string(),status:z.string(),extensions:z.array(z.string()).optional()});
 export const platformRecord=platformRow.extend({revision:z.string().min(1),member_list:z.array(platformMember).optional()});
 
 export const platformInvite = z.object({

@@ -376,6 +376,7 @@ export function buildApp(
   };
   organizationPhoneNumberRoutes(app,{numbers:deps.numbers,enabled:async org=>await deps.telephony?.canAccessTelephony(org)??false,authorize:async(req,org)=>(await authorizeOrganization(req,org)).actor.userId});
   settingsRoutes(app, {
+    memberExtensions: deps.telephony?.memberExtensions,
     profileChanged: deps.profileChanged,
     organizationChanged: deps.organizationChanged,
     presence: deps.presence

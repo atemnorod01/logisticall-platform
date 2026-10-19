@@ -131,9 +131,16 @@ export function platformAdminRoutes(
   app.get("/v1/platform/records/:kind/:id", async (req) => {
     const token = await options.authorize(req),
       p = params(req.params);
-    return platformRecord.parse(
+    const record=platformRecord.parse(
       await options.request(token, `/platform/records/${p.kind}/${p.id}`),
     );
+    if(p.kind==='organizations'&&record.member_list?.length){
+      try{
+        const extensions=await options.telephony?.memberExtensions?.(p.id,record.member_list.map(m=>m.email))??{};
+        record.member_list=record.member_list.map(m=>({...m,...(extensions[m.email]?.length?{extensions:extensions[m.email]}:{})}));
+      }catch{/* Member management stays available during a PBX outage. */}
+    }
+    return record;
   });
   app.patch("/v1/platform/records/:kind/:id", async (req) => {
     const token = await options.authorize(req),

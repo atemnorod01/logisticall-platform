@@ -15,6 +15,7 @@ import {
 export function settingsRoutes(
   app: FastifyInstance,
   options: {
+    memberExtensions?: ((id:string,emails:string[])=>Promise<Record<string,string[]>>) | undefined;
     profileChanged?: ((id: string, name: string) => Promise<void>) | undefined;
     organizationChanged?: ((id: string, name: string) => Promise<void>) | undefined;
     presence?:
@@ -69,6 +70,9 @@ export function settingsRoutes(
         ),
       );
     let statuses: Record<string, string> = {};
+    let extensions: Record<string,string[]> = {};
+    try { extensions=await options.memberExtensions?.(p.organizationId,members.slice(0,10).map(m=>m.email))??{}; }
+    catch { /* Keep member and invitation management available during a PBX outage. */ }
     try {
       statuses =
         (await options.presence?.(
@@ -81,6 +85,7 @@ export function settingsRoutes(
     return {
       members: members.slice(0, 10).map((m) => ({
         ...m,
+        ...(extensions[m.email]?.length?{extensions:extensions[m.email]}:{}),
         presence:
           m.status === "active"
             ? (statuses[m.user_id] ?? "unknown")

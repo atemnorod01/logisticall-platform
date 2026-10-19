@@ -114,6 +114,11 @@
   height: 56px;
   font-size: calc(18px * var(--font-scale, 1));
 }
+#app.tenant-ui .lc-member-extension {
+  flex:0 0 auto;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  padding:3px 7px;border-radius:5px;background:var(--soft);color:var(--accent);
+  font-size:11px;line-height:18px;font-weight:500;
+}
 #app.tenant-ui .lc-setting-row,
 #app.tenant-ui .lc-member-row {
   display: flex;
