@@ -206,7 +206,7 @@ export function PlatformEditor({
           ×
         </button>
       </header>
-      <div className="lc-platform-editor-body">
+      <div className={`lc-platform-editor-body${kind === "organizations" && selectedOrganizationTab === "netsapiens" ? " lc-platform-editor-resource-body" : ""}`}>
         {record && (
           <div className="lc-platform-profile-heading">
             <Avatar name={draft.name || record.name} inNetwork={kind==='organizations'||readOnly&&Boolean(record.organization_id)} presence={kind==='organizations'?companyPresence[id]??'unknown':readOnly&&record.organization_id?companyPresence[record.organization_id]??'unknown':kind==='users'?userPresence[id]??'unknown':undefined} />

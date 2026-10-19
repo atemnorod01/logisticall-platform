@@ -1,4 +1,5 @@
-import { useEffect, useId, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
+import { splitNetSapiensUsers } from "./netsapiens-user-groups.js";
 import {
   resourceSections,
   telephonyResourceView,
@@ -12,6 +13,7 @@ const names: Record<string, string> = {
   "dialing-rule": "Dialing rule",
   domain: "Domain",
   users: "Users",
+  "other-resources": "Other Resources",
   devices: "Devices",
   "phone-numbers": "Phone numbers",
   "auto-attendants": "Auto attendants",
@@ -65,6 +67,37 @@ export function TelephonyTabs({
     </div>
   );
 }
+function useProviderResource(
+  id: string,
+  csrf: string,
+  provider: TelephonyProvider,
+  section: string | null,
+  revision: number,
+) {
+  const key = `${id}/${provider}/${section}/${revision}`;
+  const [result, setResult] = useState<{
+    key: string;
+    data: TelephonyResourceView | null;
+    error: string;
+    busy: boolean;
+  }>({ key: "", data: null, error: "", busy: false });
+  useEffect(() => {
+    if (!section) return;
+    let current = true;
+    setResult({ key, data: null, error: "", busy: true });
+    void telephonyRequest(`organizations/${id}/telephony/${provider}/${section}`, csrf)
+      .then((value) => {
+        const data = telephonyResourceView.parse(value);
+        if (current) setResult({ key, data, error: "", busy: false });
+      })
+      .catch((e) => {
+        if (current) setResult({ key, data: null, error: (e as Error).message, busy: false });
+      });
+    return () => { current = false; };
+  }, [id, csrf, provider, section, revision, key]);
+  return result.key === key ? result : { data: null, error: "", busy: !!section };
+}
+
 export function TelephonyResources({
   id,
   csrf,
@@ -75,45 +108,32 @@ export function TelephonyResources({
   provider: TelephonyProvider;
 }) {
   const visibleSections = provider === "netsapiens"
-    ? resourceSections[provider].filter((key) => !["auto-attendants", "dial-plan", "attendant-routing"].includes(key))
+    ? ["domain", "users", "other-resources", "devices", "phone-numbers"]
     : resourceSections[provider];
   const [section, setSection] = useState<string>(visibleSections[0]!);
-  const [data, setData] = useState<TelephonyResourceView | null>(null),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(true),
-    [revision, setRevision] = useState(0),
-    [search, setSearch] = useState(""),
-    [page, setPage] = useState(0);
+  const [revision, setRevision] = useState(0),
+    [usersRevision, setUsersRevision] = useState(0),
+    [views, setViews] = useState<Record<string, { search: string; page: number }>>({});
+  const { search, page } = views[section] ?? { search: "", page: 0 };
+  const changeView = (change: Partial<{ search: string; page: number }>) =>
+    setViews((previous) => ({ ...previous, [section]: { search, page, ...change } }));
+  const isUserList = provider === "netsapiens" && ["users", "other-resources"].includes(section);
+  // Both user tabs share one provider snapshot, including their unfiltered counts.
+  const userList = useProviderResource(id, csrf, provider, provider === "netsapiens" ? "users" : null, usersRevision);
+  const resource = useProviderResource(id, csrf, provider, isUserList ? null : section, revision);
+  const { data, error, busy } = isUserList ? userList : resource;
+  const groups = useMemo(() => splitNetSapiensUsers(userList.data?.rows ?? []), [userList.data]);
+  const categoryRows = isUserList
+    ? section === "users" ? groups.users : groups.otherResources
+    : data?.rows ?? [];
   const panelId = useId();
-  useEffect(() => {
-    let current = true;
-    setBusy(true);
-    setData(null);
-    setError("");
-    void telephonyRequest(
-      `organizations/${id}/telephony/${provider}/${section}`,
-      csrf,
-    )
-      .then((value) => {
-        if (current) setData(telephonyResourceView.parse(value));
-      })
-      .catch((e) => {
-        if (current) setError((e as Error).message);
-      })
-      .finally(() => {
-        if (current) setBusy(false);
-      });
-    return () => {
-      current = false;
-    };
-  }, [id, csrf, provider, section, revision]);
   const rows =
-      data?.rows.filter((row) =>
+      categoryRows.filter((row) =>
         Object.values(row)
           .join(" ")
           .toLowerCase()
           .includes(search.toLowerCase()),
-      ) ?? [],
+      ),
     pages = Math.max(1, Math.ceil(rows.length / 20)),
     selectedPage = Math.min(page, pages - 1);
   return (
@@ -124,15 +144,13 @@ export function TelephonyResources({
       <TelephonyTabs
         items={visibleSections.map((key) => ({
           key,
-          label: names[key]!,
+          label: provider === "netsapiens" && ["users", "other-resources"].includes(key)
+            ? `${names[key]} (${userList.data && !userList.data.pending ? (key === "users" ? groups.users.length : groups.otherResources.length) : userList.busy ? "…" : "—"})`
+            : names[key]!,
         }))}
         value={section}
         label="Provider resource categories"
-        onChange={(key) => {
-          setSection(key);
-          setSearch("");
-          setPage(0);
-        }}
+        onChange={setSection}
       />
       <div className="lc-telephony-resource-toolbar">
         <small>
@@ -145,12 +163,13 @@ export function TelephonyResources({
         <button
           type="button"
           disabled={busy}
-          onClick={() => setRevision((v) => v + 1)}
+          onClick={() => isUserList ? setUsersRevision((v) => v + 1) : setRevision((v) => v + 1)}
         >
           Refresh
         </button>
       </div>
       <div
+        className={`lc-telephony-resource-panel${data?.columns.length ? " has-resource-table" : ""}`}
         role="tabpanel"
         aria-label={names[section]}
         id={panelId}
@@ -183,8 +202,7 @@ export function TelephonyResources({
                   <input
                     value={search}
                     onChange={(e) => {
-                      setSearch(e.target.value);
-                      setPage(0);
+                      changeView({ search: e.target.value, page: 0 });
                     }}
                   />
                 </label>
@@ -214,17 +232,17 @@ export function TelephonyResources({
                     </table>
                   </div>
                 ) : (
-                  <p>
+                  <p className="lc-telephony-resource-empty">
                     {search
                       ? "No matching resources."
                       : "No resources returned for this organization."}
                   </p>
                 )}
-                <div className="lc-telephony-resource-toolbar">
+                <div className="lc-telephony-resource-toolbar lc-telephony-resource-pagination" role="group" aria-label={`${names[section]} pagination`}>
                   <button
                     type="button"
                     disabled={selectedPage === 0}
-                    onClick={() => setPage(selectedPage - 1)}
+                    onClick={() => changeView({ page: selectedPage - 1 })}
                   >
                     Previous
                   </button>
@@ -234,7 +252,7 @@ export function TelephonyResources({
                   <button
                     type="button"
                     disabled={selectedPage + 1 >= pages}
-                    onClick={() => setPage(selectedPage + 1)}
+                    onClick={() => changeView({ page: selectedPage + 1 })}
                   >
                     Next
                   </button>
