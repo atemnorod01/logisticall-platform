@@ -253,7 +253,7 @@
 
 /* Member directory: shared column boundaries for headers and every row. */
 #app.tenant-ui .lc-member-directory {grid-template-columns:minmax(0,1fr);}
-#app.tenant-ui .lc-member-directory.is-editing {grid-template-columns:minmax(0,1fr) minmax(320px,390px);--member-footer-height:72px;}
+#app.tenant-ui .lc-member-directory.is-editing {grid-template-columns:minmax(0,1fr) minmax(320px,450px);--member-footer-height:72px;}
 /* Compensate for the editor's bottom border so both footer rules share a baseline. */
 #app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-member-directory.is-editing .lc-platform-pagination {
   flex:0 0 var(--member-footer-height);height:var(--member-footer-height);min-height:var(--member-footer-height);padding:16px 0;

@@ -1141,7 +1141,7 @@
   align-items: stretch;
 }
 #app.tenant-ui .lc-members-split.is-editing {
-  grid-template-columns: minmax(210px, 1fr) minmax(320px, 390px);
+  grid-template-columns: minmax(210px, 1fr) minmax(320px, 450px);
   gap: 16px;
 }
 #app.tenant-ui .lc-members-list {
