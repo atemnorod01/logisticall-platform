@@ -1,7 +1,7 @@
+import {formatMemberPhone} from './member-phone';
 import { AudioVideoSettings } from "./audio-video-settings.js";
 import { OrganizationPageHeader } from "./organization-page-header.js";
 import { PlatformPagination } from "./platform-pagination.js";
-import { loadMemberPage } from "./organization-member-pagination.js";
 import { InstallApps } from "./install-apps.js";
 import { RingtoneSettings } from "./ringtone-settings.js";
 import { LoadingSkeleton } from "./loading-skeleton.js";
@@ -632,14 +632,21 @@ export function OrganizationOverview({
 export function OrganizationMembers({
   organizationId,
   csrf,
+  telephonyEnabled=false,
 }: {
   organizationId: string;
   csrf: string;
+  telephonyEnabled?: boolean;
 }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [inviting, setInviting] = useState(false);
   const [tab, setTab] = useState<"members" | "invitations">("members");
   const [pageSize, setPageSize] = useState(10);
+  const [sort,setSort]=useState<'name'|'extension'|'phone'>('name');
+  const [direction,setDirection]=useState<'asc'|'desc'>('asc');
+  const [roleFilter,setRoleFilter]=useState('all'),[statusFilter,setStatusFilter]=useState('all');
+  useEffect(()=>{if(!telephonyEnabled){setSort('name');setDirection('asc');setOffset(0);}},[telephonyEnabled]);
+  function changeSort(key:'name'|'extension'|'phone'){setOffset(0);setDirection(sort===key&&direction==='asc'?'desc':'asc');setSort(key);}
   const [rows, setRows] = useState<z.infer<typeof managedMember>[]>([]),
     [search, setSearch] = useState(""),
     [query, setQuery] = useState(""),
@@ -659,9 +666,9 @@ export function OrganizationMembers({
     const abort = new AbortController();
     setBusy(true);
     setError("");
-    loadMemberPage(offset, pageSize, async pageOffset => {
+    (async () => {
       const response = await fetch(
-      `/v1/organizations/${encodeURIComponent(organizationId)}/members?offset=${pageOffset}&search=${encodeURIComponent(query)}`,
+      `/v1/organizations/${encodeURIComponent(organizationId)}/members?offset=${offset}&limit=${pageSize}&search=${encodeURIComponent(query)}&sort=${sort}&direction=${direction}&role=${roleFilter}&status=${statusFilter}`,
       {
         credentials: "same-origin",
         cache: "no-store",
@@ -671,7 +678,7 @@ export function OrganizationMembers({
       );
       if (!response.ok) throw Error();
       return managedMemberPage.parse(await response.json());
-    })
+    })()
       .then((data) => {
         if (!abort.signal.aborted) {
           setRows(data.members);
@@ -689,7 +696,7 @@ export function OrganizationMembers({
         if (!abort.signal.aborted) setBusy(false);
       });
     return () => abort.abort();
-  }, [organizationId, offset, pageSize, query, refresh, tab]);
+  }, [organizationId, offset, pageSize, query, refresh, tab, sort, direction, roleFilter, statusFilter]);
   return (
     <section className="lc-settings-page lc-members-page" aria-busy={busy}>
       <OrganizationPageHeader
@@ -749,7 +756,7 @@ export function OrganizationMembers({
         hidden={tab !== "members"}
       >
         <form
-          className="lc-search lc-org-search-toolbar"
+          className="lc-search lc-org-search-toolbar lc-member-toolbar"
           onSubmit={(e) => {
             e.preventDefault();
             setOffset(0);
@@ -765,6 +772,12 @@ export function OrganizationMembers({
             onChange={(e) => setSearch(e.target.value)}
           />
           <button className="button">Search</button>
+          <select aria-label="Filter members by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);setOffset(0);}}>
+            <option value="all">All roles</option><option value="owner">Owner</option><option value="admin">Organization admin</option><option value="member">Member</option>
+          </select>
+          <select aria-label="Filter members by status" value={statusFilter} onChange={e=>{setStatusFilter(e.target.value);setOffset(0);}}>
+            <option value="all">All current statuses</option><option value="pending">Pending</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="archived">Archived</option>
+          </select>
         </form>
         {error && <p role="alert">{error}</p>}
         {busy && (
@@ -772,40 +785,28 @@ export function OrganizationMembers({
             Loading members…
           </p>
         )}
-        <div className={`lc-members-split ${editing ? "is-editing" : ""}`}>
+        <div className={`lc-members-split lc-member-directory ${editing ? "is-editing" : ""}`}>
           <div className="lc-members-list">
             <div className="lc-member-rows">
-              {busy && !rows.length && <LoadingSkeleton />}
-              {rows.map((p) => (
-                <div
-                  className={`lc-member-row ${editing === p.user_id ? "is-selected" : ""}`}
-                  key={p.user_id}
-                >
-                  <Avatar name={p.name} presence={p.presence ?? "unknown"} />
-                  <div className="lc-member-copy">
-                    <strong>{p.name}</strong>
-                    <small title={`${p.email} · ${p.role_id === "owner" ? "Owner" : p.role_id === "admin" ? "Organization admin" : "Member"} · ${p.status === "pending" ? "Pending" : p.status === "active" ? "Active" : "Suspended"}`}>
-                      {p.email} · {" "}
-                      {p.role_id === "owner"
-                        ? "Owner"
-                        : p.role_id === "admin"
-                          ? "Organization admin"
-                          : "Member"}{" "}
-                      · {p.status === "pending" ? "Pending" : p.status === "active" ? "Active" : "Suspended"}
-                    </small>
-                  </div>
-                  {!!p.extensions?.length&&<span className="lc-member-extension" title={`Extension${p.extensions.length===1?'':'s'} ${p.extensions.join(', ')}`}>Ext. {p.extensions.join(', ')}</span>}
-                  <button
-                    className="button"
-                    onClick={() => p.status==='pending'?setTab('invitations'):setEditing(p.user_id)}
-                  >
-                    {p.status==='pending'?'View invitation':'Edit user'}
-                  </button>
-                </div>
-              ))}
-              {!busy && !error && !rows.length && (
-                <p>No members match your search.</p>
-              )}
+              <table className={`lc-member-table ${telephonyEnabled?'':'without-telephony'}`}  aria-label="Organization members">
+                <colgroup><col className="member-name-col"/>{telephonyEnabled&&<><col className="member-extension-col"/><col className="member-phone-col"/></>}<col className="member-role-col"/><col className="member-status-col"/></colgroup>
+                <thead><tr>
+                  {([['name','Name'],['extension','Extension'],['phone','Phone number']] as const).filter(([key])=>key==='name'||telephonyEnabled).map(([key,label])=><th key={key} scope="col" aria-sort={sort===key?(direction==='asc'?'ascending':'descending'):'none'}><button type="button" onClick={()=>changeSort(key)}>{label}<span aria-hidden="true">{sort===key?(direction==='asc'?' ↑':' ↓'):' ↕'}</span></button></th>)}
+                  <th scope="col">Role</th><th scope="col">Status</th>
+                </tr></thead>
+                <tbody>{rows.map(p=><tr key={p.user_id} className={editing===p.user_id?'is-selected':''}>
+                  <td><div className="lc-member-name-cell"><Avatar name={p.name} presence={p.presence??'unknown'}/><div>
+                    <button type="button" className="lc-member-name-link" onClick={()=>setEditing(p.user_id)}>{p.name}</button>
+                    <small title={p.email}>{p.email}</small>
+                  </div></div></td>
+                  {telephonyEnabled&&<><td>{p.extensions?.length?p.extensions.map(ext=><span key={ext} className="lc-member-extension">{ext}</span>):<span className="lc-muted">—</span>}</td>
+                  <td>{p.phone_numbers?.length?p.phone_numbers.map(number=><span className="lc-member-phone" key={number}>{formatMemberPhone(number)}</span>):<span className="lc-muted">—</span>}</td>
+                  </>}<td>{p.role_id==='owner'?'Owner':p.role_id==='admin'?'Organization admin':'Member'}</td>
+                  <td><span className={`lc-member-status is-${p.status}`}>{p.status==='pending'?'Pending':p.status==='active'?'Active':p.status==='archived'?'Archived':'Suspended'}</span></td>
+                </tr>)}</tbody>
+              </table>
+              {busy&&!rows.length&&<LoadingSkeleton/>}
+              {!busy&&!error&&!rows.length&&<p className="lc-member-empty">No members match these filters.</p>}
             </div>
             <PlatformPagination
               label="Members"
@@ -838,6 +839,7 @@ export function OrganizationMembers({
       </div>
       <InvitationManager
         organizationId={organizationId}
+        telephonyEnabled={telephonyEnabled}
         csrf={csrf}
         creating={inviting}
         visible={tab === "invitations"}

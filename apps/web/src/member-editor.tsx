@@ -1,3 +1,4 @@
+import {formatMemberPhone} from './member-phone';
 import { LoadingSkeleton } from "./loading-skeleton.js";
 import { RemoveMembership } from './remove-membership.js';
 import { useEffect, useRef, useState } from "react";
@@ -232,7 +233,7 @@ export function MemberEditor({
             role="tab"
             aria-selected={tab === t}
             className={tab === t ? "active" : ""}
-            disabled={busy}
+            disabled={busy || (t!=="details" && ["pending","archived"].includes(member?.status??"pending"))}
             onClick={() => {
               setTab(t);
               setResetLink(null); setResetCopied(false);
@@ -302,19 +303,23 @@ export function MemberEditor({
                 disabled={busy || !member.can_edit_access}
                 onChange={(e) => setStatus(e.target.value as Member["status"])}
               >
+                {status==="pending"&&<option value="pending">Pending invitation</option>}
+                {status==="archived"&&<option value="archived">Archived</option>}
                 <option value="active">Active</option>
                 <option value="suspended">Suspended</option>
               </select>
             </label>
-            <p className="lc-muted">
-              Suspending access applies only to this organization. Other
-              organizations are unaffected.
-            </p>
-            {!member.can_edit_access && (
+            {member.status==='active'||member.status==='suspended'?<p className="lc-muted">
+              Suspending access applies only to this organization. Other organizations are unaffected.
+            </p>:null}
+            {!member.can_edit_access && !['pending','archived'].includes(member.status) && (
               <p>Your role cannot change this member’s access.</p>
             )}
             </div>
-            <RemoveMembership organizationId={organizationId} userId={userId} name={member.name} csrf={csrf} disabled={busy} onRemoved={()=>{onSaved();onBack();}}/>
+            {!!member.extensions?.length&&<div className="lc-member-assignment-detail"><strong>Extensions</strong><span>{member.extensions.join(', ')}</span></div>}
+            {!!member.phone_numbers?.length&&<div className="lc-member-assignment-detail"><strong>Assigned phone numbers</strong><span>{member.phone_numbers.map(formatMemberPhone).join(', ')}</span></div>}
+            {member.status==='pending'&&<p className="lc-muted">This member can sign in after accepting their invitation.</p>}
+            {member.status==='archived'&&<p className="lc-muted">Archived. This member’s call and message history is retained.</p>}
           </form>
         )}
         {member && tab === "security" && (
@@ -381,12 +386,22 @@ export function MemberEditor({
           </div>
         )}
       </div>
-      {tab !== "security" && <footer className="lc-member-editor-footer">
-        <button
+      <footer className="lc-member-editor-footer">
+        {member && (member.status === "pending" || member.status === "suspended") && <RemoveMembership
+          organizationId={organizationId}
+          userId={userId}
+          name={member.name}
+          status={member.status}
+          csrf={csrf}
+          disabled={busy}
+          onRemoved={() => { onSaved(); onBack(); }}
+          onError={setError}
+        />}
+        {tab !== "security" && <button
           className="button primary"
           disabled={
             busy ||
-            !member ||
+            !member || member.status==='archived' ||
             (tab === "details"
               ? !dirty || !name.trim()
               : !groupsReady ||
@@ -397,8 +412,8 @@ export function MemberEditor({
           }
         >
           {busy ? "Saving…" : "Save changes"}
-        </button>
-      </footer>}
+        </button>}
+      </footer>
     </aside>
   );
 }

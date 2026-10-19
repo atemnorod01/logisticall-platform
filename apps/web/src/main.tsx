@@ -350,6 +350,7 @@ function App() {
             />
           ) : currentSetting === "Members" && admin ? (
             <OrganizationMembers
+              telephonyEnabled={telephonyAccess.enabled}
               key={state.context!.organization_id}
               organizationId={state.context!.organization_id}
               csrf={state.session!.csrfToken}

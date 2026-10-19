@@ -3,15 +3,18 @@ import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
 import { refreshWhileVisible } from "./refresh-visible.js";
 import { Modal } from "./settings-ui.js";
+import { RemoveMembership } from "./remove-membership.js";
 import {
   invitationRows,
   invitationLink,
+  pbxExtension,
 } from "../../../packages/types/src/settings.js";
 export function InvitationManager({
   organizationId,
   csrf,
   creating,
   visible,
+  telephonyEnabled=false,
   onCreated,
   onClose,
 }: {
@@ -19,6 +22,7 @@ export function InvitationManager({
   csrf: string;
   creating: boolean;
   visible: boolean;
+  telephonyEnabled?: boolean;
   onCreated: () => void;
   onClose: () => void;
 }) {
@@ -33,6 +37,9 @@ export function InvitationManager({
     [copied, setCopied] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null),
     [linkOpen, setLinkOpen] = useState(false);
+  const [extension,setExtension]=useState(''),[suggestedExtension,setSuggestedExtension]=useState('');
+  const [extensionLoading,setExtensionLoading]=useState(false),[extensionError,setExtensionError]=useState('');
+  const [requestId,setRequestId]=useState('');
   const live = useRef(true),
     lock = useRef(false),
     abort = useRef(new AbortController());
@@ -58,11 +65,14 @@ export function InvitationManager({
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
         signal: AbortSignal.any([
           abort.current.signal,
-          AbortSignal.timeout(15000),
+          AbortSignal.timeout(method==='POST'&&path===''?90000:15000),
         ]),
       },
     );
-    if (!response.ok) throw Object.assign(Error(), { status: response.status });
+    if (!response.ok) {
+      const data=await response.json().catch(()=>null);
+      throw Object.assign(Error(typeof data?.message==='string'&&data.message!=='Request rejected'?data.message:''), { status: response.status });
+    }
     return response.json();
   }
   async function load(offset = 0) {
@@ -89,7 +99,7 @@ export function InvitationManager({
     } catch (e) {
       if (live.current)
         setError(
-          (e as { status?: number }).status === 409
+          e instanceof Error&&e.message?e.message:(e as { status?: number }).status === 409
             ? "An invitation already exists, has expired, or was generated recently. Review the list or wait a minute before retrying."
             : "The request could not be completed. Check your access and try again.",
         );
@@ -115,8 +125,20 @@ export function InvitationManager({
       setLink(null);
       setError("");
       setCopied(false);
+      setRequestId(crypto.randomUUID());
+      setExtension('');setSuggestedExtension('');setExtensionError('');
     }
   }, [creating]);
+  useEffect(()=>{
+    if(!creating||!telephonyEnabled){setExtensionLoading(false);return;}
+    let cancelled=false;setExtensionLoading(true);
+    void request('/extension').then(value=>{
+      const data=z.object({extension:z.string().nullable()}).parse(value);
+      if(!cancelled){setExtension(data.extension??'');setSuggestedExtension(data.extension??'');}
+    }).catch(()=>{if(!cancelled)setExtensionError('Could not load a suggestion. Enter an extension; availability is checked when you invite.');})
+      .finally(()=>{if(!cancelled)setExtensionLoading(false);});
+    return()=>{cancelled=true;};
+  },[creating,telephonyEnabled,organizationId]);
   const close = () => {
     if (lock.current) return;
     setLink(null);
@@ -142,8 +164,7 @@ export function InvitationManager({
         hidden={!visible}
       >
         <p>
-          New users join as members. Invitation links are shared by you; no
-          email is sent.
+          Invited people are added as pending members immediately. Their invitation lets them sign in.
         </p>
         {loading && !rows.length && <LoadingSkeleton />}
         {error && !creating && !linkOpen && (
@@ -181,18 +202,11 @@ export function InvitationManager({
                 >
                   Create link
                 </button>
-                <button
-                  className="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void run(async () => {
-                      await request(`/${row.id}/revoke`, "POST", {});
-                      await load();
-                    })
-                  }
-                >
-                  Revoke
-                </button>
+                {row.user_id && <RemoveMembership
+                  organizationId={organizationId} userId={row.user_id}
+                  name={row.display_name || row.email} status="pending" csrf={csrf} disabled={busy} deferPreview
+                  onRemoved={() => void run(() => load())} onError={setError}
+                />}
               </>
             )}
           </div>
@@ -259,15 +273,18 @@ export function InvitationManager({
                 void run(async () => {
                   let id = createdId;
                   if (!id) {
-                    id = z.object({ id: z.uuid() }).parse(
+                    const created = z.object({ id: z.uuid(),link:invitationLink.optional() }).parse(
                       await request("", "POST", {
                         name: name.trim(),
                         email: email.trim(),
+                        ...(telephonyEnabled?{extension,request_id:requestId}:{}),
                       }),
-                    ).id;
+                    );
+                    id=created.id;
                     if (live.current) {
                       setCreatedId(id);
                       onCreated();
+                      if(created.link){setLink(created.link);setLinkOpen(true);await load();return;}
                     }
                   }
                   await load();
@@ -276,7 +293,7 @@ export function InvitationManager({
               }}
             >
               <p>
-                Create an invitation and copy its link. No email will be sent.
+                Add a pending member and copy their sign-in link. No email will be sent.
               </p>
               <label>
                 Name
@@ -299,6 +316,17 @@ export function InvitationManager({
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </label>
+              {telephonyEnabled&&<label>
+                Extension
+                <input
+                  required aria-label="Extension" inputMode="numeric" pattern="[0-9]{2,6}" maxLength={6}
+                  value={extension} disabled={busy||!!createdId||extensionLoading}
+                  placeholder={extensionLoading?'Finding next available…':'Enter extension'}
+                  onChange={e=>setExtension(e.target.value.replace(/\D/g,''))}
+                  aria-describedby="invite-extension-help"
+                />
+                <small id="invite-extension-help">{extensionError|| (suggestedExtension?`Next available: ${suggestedExtension}. You can choose a different extension.`:'Choose a 2–6 digit extension.')}</small>
+              </label>}
               <p>
                 The email identifies who can accept. New members are not
                 automatically added to groups.
@@ -314,7 +342,7 @@ export function InvitationManager({
                 </button>
                 <button
                   className="button primary"
-                  disabled={busy || !name.trim() || !email.trim()}
+                  disabled={busy || !name.trim() || !email.trim() || (telephonyEnabled&&(extensionLoading||!pbxExtension.safeParse(extension).success))}
                 >
                   {busy
                     ? "Creating…"

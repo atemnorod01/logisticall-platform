@@ -250,3 +250,59 @@
 #app.tenant-ui.conversation-workspace .lc-organization-numbers > .lc-number-console > [role=tabpanel] > .paginated-panel {
   flex:1;min-height:0;border:0;border-radius:0;margin:0;padding:0;
 }
+
+/* Member directory: shared column boundaries for headers and every row. */
+#app.tenant-ui .lc-member-directory {grid-template-columns:minmax(0,1fr);}
+#app.tenant-ui .lc-member-directory.is-editing {grid-template-columns:minmax(0,1fr) minmax(320px,390px);--member-footer-height:72px;}
+/* Compensate for the editor's bottom border so both footer rules share a baseline. */
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-member-directory.is-editing .lc-platform-pagination {
+  flex:0 0 var(--member-footer-height);height:var(--member-footer-height);min-height:var(--member-footer-height);padding:16px 0;
+}
+#app.tenant-ui .lc-member-directory .lc-member-editor-footer {
+  box-sizing:border-box;flex:0 0 calc(var(--member-footer-height) - 1px);height:calc(var(--member-footer-height) - 1px);min-height:0;
+  align-items:center;gap:12px;padding:16px 0;
+}
+#app.tenant-ui .lc-member-directory .lc-member-editor-footer > .button {margin-left:auto;}
+@media(max-width:1050px){#app.tenant-ui .lc-member-directory.is-editing {grid-template-columns:minmax(0,1fr);}}
+#app.tenant-ui .lc-member-table {width:100%;min-width:720px;border-collapse:collapse;table-layout:fixed;font-size:13px;}
+#app.tenant-ui .lc-member-table .member-name-col {width:34%;}
+#app.tenant-ui .lc-member-table .member-extension-col {width:12%;}
+#app.tenant-ui .lc-member-table .member-phone-col {width:23%;}
+#app.tenant-ui .lc-member-table .member-role-col {width:19%;}
+#app.tenant-ui .lc-member-table .member-status-col {width:12%;}
+#app.tenant-ui .lc-member-table th {position:sticky;top:0;z-index:1;text-align:left;background:var(--surface);color:var(--muted);font-size:11px;font-weight:500;height:40px;box-sizing:border-box;border-bottom:1px solid var(--line);padding:0 12px;}
+#app.tenant-ui .lc-member-table th button {display:flex;align-items:center;gap:5px;margin:0;padding:0;border:0;background:none;color:inherit;font:inherit;white-space:nowrap;cursor:pointer;}
+#app.tenant-ui .lc-member-table th[aria-sort=ascending] button,#app.tenant-ui .lc-member-table th[aria-sort=descending] button {color:var(--accent);}
+#app.tenant-ui .lc-member-table td {height:71px;box-sizing:border-box;padding:12px;border-bottom:1px solid var(--line);vertical-align:middle;overflow-wrap:anywhere;}
+#app.tenant-ui .lc-member-table .is-selected {background:var(--soft);}
+#app.tenant-ui .lc-member-name-cell {display:flex;align-items:center;gap:11px;min-width:0;}
+#app.tenant-ui .lc-member-name-cell>.avatar {width:32px;height:32px;flex:0 0 32px;font-size:11px;}
+#app.tenant-ui .lc-member-name-cell>div {min-width:0;}
+#app.tenant-ui .lc-member-name-cell small {display:block;color:var(--muted);font-size:11px;margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+#app.tenant-ui .lc-member-name-link {display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;padding:0;margin:0;border:0;background:none;color:var(--ink);font:inherit;font-weight:600;cursor:pointer;}
+#app.tenant-ui .lc-member-name-link:hover {color:var(--accent);text-decoration:underline;}
+#app.tenant-ui .lc-member-name-link:focus-visible {outline:2px solid var(--accent);outline-offset:3px;}
+#app.tenant-ui .lc-member-table .lc-member-extension {display:inline-block;margin:2px 4px 2px 0;}
+#app.tenant-ui .lc-member-phone {display:block;white-space:nowrap;font-variant-numeric:tabular-nums;font-size:12px;line-height:20px;}
+#app.tenant-ui .lc-member-status {font-size:12px;white-space:nowrap;}
+#app.tenant-ui .lc-member-status.is-pending {color:var(--accent);}
+#app.tenant-ui .lc-member-status.is-archived {color:var(--muted);}
+#app.tenant-ui .lc-member-empty {padding:20px 12px;color:var(--muted);font-size:13px;}
+#app.tenant-ui.conversation-workspace .lc-organization-settings-open .lc-member-toolbar select {box-sizing:border-box;height:40px;min-height:40px;width:auto;margin:0;padding:0 30px 0 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink);font:inherit;font-size:13px;}
+#app.tenant-ui .lc-member-assignment-detail {display:flex;justify-content:space-between;gap:16px;font-size:13px;}
+@media(max-width:900px){#app.tenant-ui .lc-member-toolbar {flex-wrap:wrap;}#app.tenant-ui .lc-member-toolbar input {flex-basis:55%;}}
+
+#app.tenant-ui .lc-member-table th:first-child {padding-left:55px;}
+#app.tenant-ui .lc-member-table.without-telephony {min-width:480px;}
+#app.tenant-ui .lc-member-table.without-telephony .member-name-col {width:60%;}
+#app.tenant-ui .lc-member-table.without-telephony .member-role-col {width:25%;}
+#app.tenant-ui .lc-member-table.without-telephony .member-status-col {width:15%;}
+
+/* Keep the directory columns readable when the inline editor shares its width. */
+#app.tenant-ui .lc-member-directory.is-editing .lc-member-table:not(.without-telephony) {min-width:580px;}
+#app.tenant-ui .lc-member-directory.is-editing .lc-member-table:not(.without-telephony) .member-name-col {width:31%;}
+#app.tenant-ui .lc-member-directory.is-editing .lc-member-table:not(.without-telephony) .member-extension-col {width:13%;}
+#app.tenant-ui .lc-member-directory.is-editing .lc-member-table:not(.without-telephony) .member-phone-col {width:25%;}
+#app.tenant-ui .lc-member-directory.is-editing .lc-member-table:not(.without-telephony) .member-role-col {width:18%;}
+#app.tenant-ui .lc-member-directory.is-editing .lc-member-table:not(.without-telephony) .member-status-col {width:13%;}
+#app.tenant-ui .lc-member-directory.is-editing .lc-member-table :is(th,td):not(:first-child) {padding-inline:8px;}

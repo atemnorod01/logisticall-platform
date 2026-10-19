@@ -1,11 +1,7 @@
-.membership-remove-section { margin-top:24px; padding-top:20px; border-top:1px solid light-dark(#e4e7eb,#35404c); }
-.membership-remove-row { display:flex; align-items:center; justify-content:space-between; gap:20px; }
-.membership-remove-row strong { display:block; font-size:13px; font-weight:600; }
-.membership-remove-row p { margin:4px 0 0; color:light-dark(#687383,#a8b4c2); font-size:12px; line-height:1.5; }
-.membership-remove-trigger { border:1px solid light-dark(#e8b9b7,#754341); border-radius:8px; background:transparent; color:light-dark(#ae302b,#f19790); padding:9px 13px; font:inherit; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; }
-.membership-remove-trigger:hover:not(:disabled) { background:light-dark(#fff2f0,#3e2829); }
-.membership-remove-trigger:disabled { opacity:.45; cursor:not-allowed; }
-.membership-remove-reason { margin:10px 0 0; color:light-dark(#687383,#a8b4c2); font-size:12px; line-height:1.5; }
+.membership-remove-action { margin-right:auto; position:relative; }
+#app.tenant-ui .membership-remove-trigger { border:1px solid light-dark(#e8b9b7,#754341); border-radius:8px; background:transparent; color:light-dark(#ae302b,#f19790); padding:9px 13px; font:inherit; font-size:13px; font-weight:600; white-space:nowrap; cursor:pointer; }
+#app.tenant-ui .membership-remove-trigger:hover:not(:disabled) { background:light-dark(#fff2f0,#3e2829); }
+#app.tenant-ui .membership-remove-trigger:disabled { opacity:.45; cursor:not-allowed; }
 dialog.membership-confirm { position:fixed; inset:0; margin:auto; width:min(440px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); padding:0; border:1px solid light-dark(#e1e5ea,#3a4552); border-radius:18px; color:light-dark(#222b36,#edf1f6); background:light-dark(#fff,#18212b); box-shadow:0 24px 80px #0004; overflow:auto; }
 dialog.membership-confirm::backdrop { background:rgba(12,20,30,.42); backdrop-filter:blur(3px); }
 .membership-confirm-body { padding:28px 28px 24px; }
@@ -19,4 +15,8 @@ dialog.membership-confirm::backdrop { background:rgba(12,20,30,.42); backdrop-fi
 .membership-confirm-actions .membership-confirm-danger:hover:not(:disabled) { background:#962b25; }
 .membership-confirm-actions button:focus-visible,.membership-remove-trigger:focus-visible { outline:3px solid #779bbd; outline-offset:3px; }
 .membership-confirm-actions button:disabled { opacity:.55; cursor:wait; }
-@media(max-width:480px){.membership-remove-row{align-items:flex-start;flex-direction:column;gap:12px;}.membership-confirm-body{padding:24px;}.membership-confirm-actions{padding:16px 24px;}}
+@media(max-width:480px){.membership-confirm-body{padding:24px;}.membership-confirm-actions{padding:16px 24px;}}
+.membership-archive-resources {margin-top:18px;padding:12px 14px;border:1px solid var(--line);border-radius:8px;font-size:13px;}
+.membership-archive-resources ul {margin:8px 0 0;padding-left:18px;}
+.membership-archive-resources p {margin:8px 0;}
+.membership-archive-resources small {color:var(--muted);}
