@@ -143,10 +143,17 @@ export function platformAdminRoutes(
       await options.request(token, `/platform/records/${p.kind}/${p.id}`),
     );
     if(p.kind==='organizations'&&record.member_list?.length){
+      const current=record.member_list.filter(m=>m.status!=='archived');
+      record.member_list=record.member_list.map(m=>({...m,extensions:[],phone_numbers:[],telephony_unavailable:false}));
       try{
-        const extensions=await options.telephony?.memberExtensions?.(p.id,record.member_list.map(m=>m.email))??{};
-        record.member_list=record.member_list.map(m=>({...m,...(extensions[m.email]?.length?{extensions:extensions[m.email]}:{})}));
-      }catch{/* Member management stays available during a PBX outage. */}
+        if(options.telephony?.memberDirectory){
+          const directory=await options.telephony.memberDirectory(p.id,current.map(m=>m.email));
+          record.member_list=record.member_list.map(m=>({...m,...(m.status!=='archived'?directory[m.email]:{})}));
+        }else{
+          const extensions=await options.telephony?.memberExtensions?.(p.id,current.map(m=>m.email))??{};
+          record.member_list=record.member_list.map(m=>({...m,extensions:m.status!=='archived'?extensions[m.email]??[]:[]}));
+        }
+      }catch{record.member_list=record.member_list.map(m=>({...m,telephony_unavailable:m.status!=='archived'}));}
     }
     return record;
   });
