@@ -1,4 +1,5 @@
 import {createHash} from 'node:crypto';
+import {directMemberDestination} from './member-extensions';
 export type ArchiveMember={organizationId:string;userId:string;email:string;membershipKey:string};
 export type ArchiveResources={domain:string|null;users:Record<string,string>[];numbers:Record<string,string>[]};
 export type ArchiveOperation={member:ArchiveMember;resources:ArchiveResources;hash:string;started:boolean;complete:boolean;released:string[];deleted:string[];pending?:{kind:'number'|'extension';target:string}};
@@ -60,7 +61,7 @@ export function memberResources(member:ArchiveMember,domain:string,users:Record<
  if(matches.some(u=>u.domain&&u.domain!==domain))throw archiveConflict('Extension belongs to another organization.');
  const extensions=new Set(matches.map(u=>u.user));
  const assigned=numbers.filter(n=>extensions.has(n['dial-rule-translation-destination-user']));
- if(assigned.some(n=>(n.domain&&n.domain!==domain)||n['dial-rule-translation-destination-host']!==domain||n['dial-rule-application']!=='to-user'))throw archiveConflict('A number has an unsupported destination. Review its routing first.');
+ if(assigned.some(n=>!directMemberDestination(domain,n)))throw archiveConflict('A number has an unsupported destination. Review its routing first.');
  if(new Set(matches.map(u=>u.user)).size!==matches.length||new Set(assigned.map(n=>n.phonenumber)).size!==assigned.length)throw archiveConflict('Duplicate PBX resources need review.');
  return {domain,users:matches.sort((a,b)=>a.user!.localeCompare(b.user!)),numbers:assigned.sort((a,b)=>a.phonenumber!.localeCompare(b.phonenumber!))};
 }

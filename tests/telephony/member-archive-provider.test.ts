@@ -1,9 +1,9 @@
 import {it,expect,vi} from 'vitest';
 import {NetsapiensClient} from '../../apps/api/src/telephony/netsapiens';
 import type {IntegrationVault} from '../../apps/api/src/telephony/integration-vault';
-function fixture(){
+function fixture(application='to-user'){
  let users=[{domain:'123',user:'201',email:'person@example.com','user-scope':'Basic User','name-first-name':'Person','name-last-name':'Example','account-status':'standard'}];
- let numbers=[{domain:'123',phonenumber:'12165550100',enabled:'yes','dial-rule-description':'Direct number','dial-rule-application':'to-user','dial-rule-translation-destination-user':'201','dial-rule-translation-destination-host':'123'}];
+ let numbers=[{domain:'123',phonenumber:'12165550100',enabled:'yes','dial-rule-description':'Direct number','dial-rule-application':application,'dial-rule-translation-destination-user':'201','dial-rule-translation-destination-host':'123'}];
  const writes:string[]=[];
  const request=vi.fn<typeof fetch>(async(input,init)=>{
   const path=new URL(String(input)).pathname.replace('/ns-api/v2','');
@@ -22,8 +22,8 @@ function fixture(){
  return {client,writes,changeEmail:()=>{users[0]!.email='other@example.com';},changeRoute:()=>{numbers[0]!['dial-rule-translation-destination-user']='202';}};
 }
 const member={organizationId:'org',userId:'user',email:'person@example.com',membershipKey:'key'};
-it('returns numbers to 9999 before deleting an extension, verifying each provider outcome',async()=>{
- const f=fixture(),snapshot=await f.client.memberArchiveResources('123',member);
+it.each(['to-user','to-user-residential'])('returns %s numbers to 9999 before deleting an extension, verifying each provider outcome',async application=>{
+ const f=fixture(application),snapshot=await f.client.memberArchiveResources('123',member);
  await expect(f.client.deleteMemberExtension(snapshot,snapshot.users[0]!)).rejects.toThrow('still has an assigned number');expect(f.writes).toEqual([]);
  await f.client.returnMemberNumber(snapshot,snapshot.numbers[0]!);
  await f.client.deleteMemberExtension(snapshot,snapshot.users[0]!);

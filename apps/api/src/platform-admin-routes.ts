@@ -1,4 +1,5 @@
 import {phoneNumberRoutes} from './phone-number-routes.js';
+import {resolveNumberMembers} from './number-members';
 import type {NumberProvisioning} from './number-provisioning.js';
 import {resourceSections,telephonyResourceView} from '../../../packages/types/src/telephony-resources.js';
 import {disabledTelephony,type TelephonyService} from './telephony/service.js';
@@ -44,7 +45,14 @@ export function platformAdminRoutes(
     ) => Promise<unknown>;
   },
 ) {
-  phoneNumberRoutes(app,{numbers:options.numbers,authorize:async req=>{const token=await options.authorize(req);return z.uuid().parse(options.actorIdForRequest?.(req)??await options.actorId?.(token));}});
+  const numberTokens=new WeakMap<FastifyRequest,string>();
+  phoneNumberRoutes(app,{numbers:options.numbers,authorize:async req=>{const token=await options.authorize(req);numberTokens.set(req,token);return z.uuid().parse(options.actorIdForRequest?.(req)??await options.actorId?.(token));},
+    members:options.telephony?.memberDirectory?async(req,org)=>{
+      const record=platformRecord.parse(await options.request(numberTokens.get(req)!,`/platform/records/organizations/${z.uuid().parse(org)}`));
+      if((record.organization_id??record.id)!==org)throw Error('Organization mismatch');
+      return resolveNumberMembers(record.member_list??[],emails=>options.telephony!.memberDirectory!(org,emails));
+    }:undefined,
+  });
   const telephony = () => {if(!options.telephony)throw Object.assign(Error('Telephony is not configured'),{statusCode:503});return options.telephony;};
   const actorId = async (token:string) => z.uuid().parse(await options.actorId?.(token));
   app.get('/v1/platform/organizations/:id/telephony',async req=>{

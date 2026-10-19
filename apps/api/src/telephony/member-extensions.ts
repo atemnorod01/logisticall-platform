@@ -1,6 +1,12 @@
 type Binding = {domain:string}|undefined;
 type Row = Record<string,string>;
 
+export function directMemberDestination(domain:string,row:Row){
+ return (!row.domain||row.domain===domain)&&
+  ['to-user','to-user-residential'].includes(row['dial-rule-application']??'')&&
+  row['dial-rule-translation-destination-host']===domain;
+}
+
 /** Display matches only: never grants access or changes PBX/Platform identities. */
 export function memberExtensionDirectory(
  binding:(organizationId:string)=>Promise<Binding>,
@@ -22,7 +28,7 @@ export function memberExtensionDirectory(
     for(const row of rows){
      const email=(row.email??'').trim().toLowerCase(),extension=(row.user??'').trim();
      const role=(row['user-scope']??'').replace(/[\s_-]+/g,'').toLowerCase();
-     if(!email||email==='blank@replaceme.com'||role==='noportal'||!/^\d{1,20}$/.test(extension))continue;
+     if(!email||email==='blank@replaceme.com'||role==='noportal'||extension==='9999'||(row.domain&&row.domain!==current.domain)||!/^\d{1,20}$/.test(extension))continue;
      const list=result[email]??=[];if(!list.includes(extension))list.push(extension);
     }
     for(const list of Object.values(result))list.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
@@ -39,8 +45,7 @@ export function memberExtensionDirectory(
 /** Includes only direct number destinations in this tenant, never caller-ID numbers. */
 export function memberPhoneNumbers(domain:string,extensions:string[],rows:Row[]){
  return [...new Set(rows.filter(row=>
-  (!row.domain||row.domain===domain)&&row['dial-rule-application']==='to-user'&&
-  row['dial-rule-translation-destination-host']===domain&&
+  directMemberDestination(domain,row)&&
   extensions.includes(row['dial-rule-translation-destination-user']??'')
  ).map(row=>row.phonenumber??'').filter(Boolean))].sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
 }

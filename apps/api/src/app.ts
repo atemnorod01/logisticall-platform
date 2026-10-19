@@ -1,5 +1,6 @@
 import type {FastifyRequest} from 'fastify';
 import {organizationPhoneNumberRoutes} from './organization-phone-numbers.js';
+import {organizationNumberMembers,resolveNumberMembers} from './number-members';
 import type {NumberProvisioning} from './number-provisioning.js';
 import type {TelephonyService} from './telephony/service.js';
 import { platformAdminRoutes } from "./platform-admin-routes.js";
@@ -374,7 +375,14 @@ export function buildApp(
       }
       return {token,actor};
   };
-  organizationPhoneNumberRoutes(app,{numbers:deps.numbers,enabled:async org=>await deps.telephony?.canAccessTelephony(org)??false,authorize:async(req,org)=>(await authorizeOrganization(req,org)).actor.userId});
+  const numberTokens=new WeakMap<FastifyRequest,string>();
+  organizationPhoneNumberRoutes(app,{numbers:deps.numbers,enabled:async org=>await deps.telephony?.canAccessTelephony(org)??false,
+    authorize:async(req,org)=>{const {token,actor}=await authorizeOrganization(req,org);numberTokens.set(req,token);return actor.userId;},
+    members:deps.telephony?.memberDirectory?async(req,org)=>resolveNumberMembers(
+      await organizationNumberMembers(path=>(deps.settings??iamSettings(config.iamApi))(numberTokens.get(req)!,path),org),
+      emails=>deps.telephony!.memberDirectory!(org,emails),
+    ):undefined,
+  });
   settingsRoutes(app, {
     telephony: deps.telephony,
     memberExtensions: deps.telephony?.memberExtensions,

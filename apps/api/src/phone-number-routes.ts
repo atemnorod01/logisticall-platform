@@ -12,12 +12,16 @@ import {
   numberSearchResult,
 } from "../../../packages/types/src/phone-numbers.js";
 import type { NumberProvisioning } from "./number-provisioning.js";
+import {numberRoutingMembers,type NumberMember} from './number-members';
+import type {NumberRouting} from '../../web/src/number-provisioning/models/number-routing';
+import type {AssignmentView} from '../../web/src/number-provisioning/models/number-assignment-model';
 
 export function phoneNumberRoutes(
   app: FastifyInstance,
   options: {
     numbers?: NumberProvisioning | undefined;
     authorize: (req: FastifyRequest) => Promise<string>;
+    members?: ((req:FastifyRequest,org:string)=>Promise<NumberMember[]>) | undefined;
   },
 ) {
   const call = async (
@@ -39,6 +43,13 @@ export function phoneNumberRoutes(
     req.raw.setTimeout?.(75000);
     const path=req.raw.url!.slice((base+'/console').length);
     if(!numberConsolePath(req.method,path))throw Object.assign(Error('Unsupported number action'),{statusCode:404});
+    if(req.method==='GET'&&new URL(path,'http://local.invalid').pathname==='/number-purchase/routing'&&options.members){
+      const [result,data]=await Promise.all([
+        call(actor,'GET','/console'+path) as Promise<{routing:Record<string,NumberRouting>}>,
+        call(actor,'GET','/console/number-purchase/assignments') as Promise<{assignments:AssignmentView[]}>,
+      ]);
+      return {routing:await numberRoutingMembers(result.routing,data.assignments,org=>options.members!(req,org))};
+    }
     return call(actor,req.method as 'GET'|'POST','/console'+path,req.method==='GET'?undefined:req.body??{});
   }});
   app.get(base + "/context", async (req) => {

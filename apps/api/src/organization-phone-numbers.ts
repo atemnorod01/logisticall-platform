@@ -13,6 +13,7 @@ import {
 } from "../../web/src/number-provisioning/models/number-purchase-model.js";
 import type { TelephoneInventory } from "../../web/src/number-provisioning/models/telephone-numbers.js";
 import type { NumberRouting } from "../../web/src/number-provisioning/models/number-routing.js";
+import {numberRoutingMembers,type NumberMember} from './number-members';
 type Destination = {
   id: string;
   label: string;
@@ -58,6 +59,7 @@ export function organizationPhoneNumberRoutes(
     numbers?: NumberProvisioning | undefined;
     authorize: (req: FastifyRequest, org: string) => Promise<string>;
     enabled: (org:string)=>Promise<boolean>;
+    members?: ((req:FastifyRequest,org:string)=>Promise<NumberMember[]>) | undefined;
   },
 ) {
   app.get('/v1/organizations/:organizationId/telephony-access',async(req)=>{
@@ -189,11 +191,8 @@ export function organizationPhoneNumberRoutes(
               .filter((a) => a.organizationId === org)
               .map((a) => a.id),
           );
-          return {
-            routing: Object.fromEntries(
-              Object.entries(result.routing).filter(([id]) => ids.has(id)),
-            ),
-          };
+          const routing=Object.fromEntries(Object.entries(result.routing).filter(([id])=>ids.has(id)));
+          return {routing:options.members?await numberRoutingMembers(routing,data.assignments.filter(a=>a.organizationId===org),id=>options.members!(req,id)):routing};
         }
         if (route === "/number-purchase/order-directory") {
           const q = z
