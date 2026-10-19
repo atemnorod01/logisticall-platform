@@ -1,7 +1,7 @@
 import {InfiniteScroll,useInfiniteItems} from './infinite-scroll.js';
 import {formatMemberPhone} from './member-phone.js';
 import {PlatformMemberModal} from './platform-member-modal.js';
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import type { z } from "zod";
 import { Avatar } from "./ui.js";
 import {
@@ -46,7 +46,6 @@ export function PlatformAddUser({
       .catch(error => { if (!abort.signal.aborted) setMembersError(error.message); });
     return () => abort.abort();
   }, [organizationId, retry]);
-  const memberList=useInfiniteItems(members??[],organizationId);
   const [open, setOpen] = useState(false),
     [name, setName] = useState(""),
     [email, setEmail] = useState(""),
@@ -57,6 +56,11 @@ export function PlatformAddUser({
     [invitation, setInvitation] = useState(""),
     [url, setUrl] = useState(""),
     [copied, setCopied] = useState(false);
+  const orderedMembers = useMemo(() => {
+    const rows = members ?? [];
+    return invitation ? [...rows].sort((a,b) => Number(b.email.toLowerCase()===email.toLowerCase())-Number(a.email.toLowerCase()===email.toLowerCase())) : rows;
+  }, [members, invitation, email]);
+  const memberList=useInfiniteItems(orderedMembers,organizationId);
   async function request(path: string, body: unknown) {
     const response = await fetch(`/v1/platform/${path}`, {
       method: "POST",
@@ -89,6 +93,7 @@ export function PlatformAddUser({
         ),
       );
       setInvitation(result.id);
+      setOpen(false);
       setRetry(value => value + 1);
       setLocalOnly(result.local_only ?? false);
     } catch (e) {
@@ -120,7 +125,7 @@ export function PlatformAddUser({
         <button
           type="button"
           className="button"
-          disabled={!active || busy}
+          disabled={!active || busy || open}
           onClick={() => {
             setOpen(true);
             setInvitation("");
@@ -132,39 +137,11 @@ export function PlatformAddUser({
             setCopied(false);
           }}
         >
-          Add user
+          Invite people
         </button>
       </header>
-      {membersError ? (
-        <p role="alert">{membersError} <button type="button" className="button" onClick={() => setRetry(value => value + 1)}>Retry</button></p>
-      ) : members === null ? <p role="status">Loading members…</p> : members.length === 0 ? <p>No members yet.</p> : (
-        <><ul className="lc-platform-members" aria-label="Organization members">
-          {memberList.items.map(member => (
-            <li key={member.id}>
-              <Avatar name={member.name || member.email} />
-              <div className="lc-platform-member-identity">
-                <button type="button" className="lc-platform-member-name" onClick={event=>setEditingMember({id:member.id,anchor:event.currentTarget})}>{member.name || member.email}</button>
-                <span>{member.email}</span>
-              </div>
-              <div className="lc-platform-member-telephony">
-                {member.telephony_unavailable ? <small>Phone details unavailable</small> : <>
-                  {!!member.extensions?.length && <span className="lc-member-extension">Ext. {member.extensions.join(', ')}</span>}
-                  {member.phone_numbers?.map(number => <span className="lc-member-phone" key={number}>{formatMemberPhone(number)}</span>)}
-                </>}
-              </div>
-              <div className="lc-platform-member-role">
-                <span>{member.role === "owner" ? "Owner" : member.role === "admin" ? "Organization admin" : "Member"}</span>
-                <small>{member.status==='pending'?'Pending':member.status}</small>
-              </div>
-            </li>
-          ))}
-        </ul><InfiniteScroll label="Members" hasMore={memberList.hasMore} onMore={memberList.loadMore} progress={memberList.items.length} resetKey={organizationId}/></>
-      )}
-      {!active && (
-        <small>Available after organization setup is complete.</small>
-      )}
-      {open && (
-        <div className="lc-platform-fields">
+      {(open || invitation) && (
+        <div className={open ? "lc-platform-fields lc-platform-inline-invite" : "lc-platform-invitation-result"}>
           {invitation ? (
             <>
               <p role="status">
@@ -214,7 +191,7 @@ export function PlatformAddUser({
                 type="button"
                 className="button"
                 disabled={busy}
-                onClick={() => setOpen(false)}
+                onClick={() => { setOpen(false); setInvitation(""); setUrl(""); }}
               >
                 Done
               </button>
@@ -224,6 +201,7 @@ export function PlatformAddUser({
               <label>
                 Name
                 <input
+                  autoFocus
                   value={name}
                   maxLength={100}
                   disabled={busy}
@@ -279,6 +257,34 @@ export function PlatformAddUser({
             </>
           )}
         </div>
+      )}
+      {membersError ? (
+        <p role="alert">{membersError} <button type="button" className="button" onClick={() => setRetry(value => value + 1)}>Retry</button></p>
+      ) : members === null ? <p role="status">Loading members…</p> : members.length === 0 ? <p>No members yet.</p> : (
+        <><ul className="lc-platform-members" aria-label="Organization members">
+          {memberList.items.map(member => (
+            <li key={member.id}>
+              <Avatar name={member.name || member.email} />
+              <div className="lc-platform-member-identity">
+                <button type="button" className="lc-platform-member-name" onClick={event=>setEditingMember({id:member.id,anchor:event.currentTarget})}>{member.name || member.email}</button>
+                <span>{member.email}</span>
+              </div>
+              <div className="lc-platform-member-telephony">
+                {member.telephony_unavailable ? <small>Phone details unavailable</small> : <>
+                  {!!member.extensions?.length && <span className="lc-member-extension">Ext. {member.extensions.join(', ')}</span>}
+                  {member.phone_numbers?.map(number => <span className="lc-member-phone" key={number}>{formatMemberPhone(number)}</span>)}
+                </>}
+              </div>
+              <div className="lc-platform-member-role">
+                <span>{member.role === "owner" ? "Owner" : member.role === "admin" ? "Organization admin" : "Member"}</span>
+                <small>{member.status==='pending'?'Pending':member.status}</small>
+              </div>
+            </li>
+          ))}
+        </ul><InfiniteScroll label="Members" hasMore={memberList.hasMore} onMore={memberList.loadMore} progress={memberList.items.length} resetKey={organizationId}/></>
+      )}
+      {!active && (
+        <small>Available after organization setup is complete.</small>
       )}
       {editingMember&&<PlatformMemberModal id={editingMember.id} anchor={editingMember.anchor} csrf={csrf}
         onClose={()=>setEditingMember(null)} onSaved={()=>{setEditingMember(null);setRetry(value=>value+1);}}/>}
