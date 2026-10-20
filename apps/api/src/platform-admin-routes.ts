@@ -1,6 +1,7 @@
 import {phoneNumberRoutes} from './phone-number-routes.js';
 import {resolveNumberMembers} from './number-members';
 import type {NumberProvisioning} from './number-provisioning.js';
+import {MemberInviteError,type MemberInvitation} from './telephony/member-invitation.js';
 import {resourceSections,telephonyResourceView} from '../../../packages/types/src/telephony-resources.js';
 import {disabledTelephony,type TelephonyService} from './telephony/service.js';
 import {telephonyEnable,telephonyDisableInput,telephonyDisablePreview} from '../../../packages/types/src/telephony.js';
@@ -213,18 +214,35 @@ export function platformAdminRoutes(
         ),
       );
   });
-  app.post("/v1/platform/organizations/:id/invitations", async (req) => {
+  app.post("/v1/platform/organizations/:id/invitations", async (req,reply) => {
     const token = await options.authorize(req);
     const id = z.uuid().parse((req.params as { id: string }).id);
     const body = platformInvite.parse(req.body);
-    return platformInviteResult.parse(
-      await options.request(
-        token,
-        `/platform/organizations/${id}/invitations`,
-        "POST",
-        body,
-      ),
-    );
+    const iamBody={name:body.name,email:body.email,role:body.role};
+    const memberTelephony=options.telephony;
+    if(!memberTelephony||!(await memberTelephony.canAccessTelephony(id)))
+      return platformInviteResult.parse(await options.request(token,`/platform/organizations/${id}/invitations`,"POST",iamBody));
+    if(!memberTelephony.inviteMember)throw Object.assign(Error('PBX invitations are unavailable.'),{statusCode:503});
+    let setup: z.infer<typeof invitationLink> | undefined;
+    const ensureMember=async(previous?:MemberInvitation)=>{
+      let invitation=previous?.id;
+      if(!invitation){
+        invitation=platformInviteResult.parse(await options.request(token,`/platform/organizations/${id}/invitations`,"POST",iamBody)).id;
+        setup=invitationLink.parse(await options.request(token,`/platform/invitations/${invitation}/link`,"POST",{}));
+      }
+      const record=platformRecord.parse(await options.request(token,`/platform/records/organizations/${id}`));
+      const member=record.member_list?.find(row=>row.email.toLowerCase()===body.email.toLowerCase());
+      if(!member||member.status!=='pending'||previous&&member.id!==previous.user_id)
+        throw new MemberInviteError('The pending member could not be verified.');
+      return {id:invitation,user_id:member.id};
+    };
+    try{
+      const result=await memberTelephony.inviteMember({organizationId:id,requestId:body.request_id??crypto.randomUUID(),name:body.name,email:body.email},ensureMember);
+      return platformInviteResult.parse({...result,...(setup?{link:setup}:{})});
+    }catch(error){
+      if(error instanceof MemberInviteError)return reply.code(error.statusCode).send({message:error.message});
+      throw error;
+    }
   });
   app.post("/v1/platform/invitations/:id/link", async (req) => {
     const token = await options.authorize(req),

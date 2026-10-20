@@ -27,6 +27,7 @@ export interface Organization {
   termination?: import("./organization-termination").OrganizationTermination;
   lifecycleHistory?: { portaoneId: string | null; netsapiensDomain: string | null; termination?: import("./organization-termination").OrganizationTermination }[];
   netsapiensProvisioning?: import("./netsapiens-provisioning-options").NetsapiensProvisioning;
+  memberConversion?: import("./member-conversion").MemberConversion;
   portaoneProvisioning?: PortaoneProvisioning;
   contact?: ContactProfile;
   id: string;

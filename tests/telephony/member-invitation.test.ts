@@ -39,7 +39,7 @@ it("suggests the first gap in the normal sequence, ignores outliers and services
       ["203"],
     ),
   ).toBe("204");
-  expect(suggestMemberExtension([])).toBe("201");
+  expect(suggestMemberExtension([])).toBe("101");
   expect(suggestMemberExtension([human("909"), human("910")])).toBe("912");
 });
 function fixture() {

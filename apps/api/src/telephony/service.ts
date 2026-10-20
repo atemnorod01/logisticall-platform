@@ -11,7 +11,7 @@ import type { TelephonyDisablePreview } from "../../../../packages/types/src/tel
 import {portaoneResources,pendingResources} from './resource-views';
 import type {TelephonyProvider,TelephonyResourceView} from '../../../../packages/types/src/telephony-resources';
 import type { Pool, PoolClient } from "pg";
-import type { PlatformRow } from "../../../../packages/types/src/platform-admin";
+import type { PlatformMember, PlatformRow } from "../../../../packages/types/src/platform-admin";
 import type {
   TelephonyIntegrations,
   TelephonyStatus,
@@ -31,6 +31,10 @@ import {
   provisionNetsapiensOrganization,
 } from "./netsapiens-provisioning";
 import { editableContactSchema } from "./contact-update";
+import {
+  memberConversionPlan,
+  provisionConvertedMembers,
+} from "./member-conversion";
 
 export interface TelephonyService {
   memberExtensionSuggestion?(id:string):Promise<{extension:string|null}>;
@@ -43,7 +47,7 @@ export interface TelephonyService {
   enabledOrganizationIds(): Promise<string[]>;
   resources(id:string,provider:TelephonyProvider,section:string):Promise<TelephonyResourceView>;
   status(id: string): Promise<TelephonyStatus>;
-  enable(record: PlatformRow, actorId: string): Promise<TelephonyStatus>;
+  enable(record: PlatformRow & { member_list?: PlatformMember[] | undefined }, actorId: string): Promise<TelephonyStatus>;
   previewDisable(record: PlatformRow): Promise<TelephonyDisablePreview>;
   disable(record: PlatformRow, actorId: string, previewHash: string): Promise<TelephonyStatus>;
   integrations(): Promise<TelephonyIntegrations>;
@@ -356,6 +360,7 @@ export function postgresTelephony(pool: Pool): TelephonyService {
               postalCode: record.postal_code ?? "",
             }),
           };
+          org.memberConversion ??= memberConversionPlan(record.member_list ?? []);
           if(removed && previous) org.lifecycleHistory = [...(previous.data.lifecycleHistory ?? []), {portaoneId:previous.data.portaoneId,netsapiensDomain:previous.data.netsapiensDomain,...(previous.data.termination ? {termination:previous.data.termination} : {})}];
           newPortaoneCustomerInfo(org, template);
           // Every checkpoint commits before the next external write. Never wrap the
@@ -398,6 +403,21 @@ export function postgresTelephony(pool: Pool): TelephonyService {
                 ns,
                 po.call.bind(po),
                 proof,
+              );
+              const provisioned = (await read(id, client))!.data;
+              const domain = provisioned.netsapiensDomain;
+              if (!domain) throw Error("NetSapiens domain is unavailable for member conversion.");
+              await provisionConvertedMembers(
+                domain,
+                provisioned.memberConversion ?? memberConversionPlan(record.member_list ?? []),
+                ns,
+                async progress => {
+                  const current = (await read(id, client))!.data;
+                  await client.query(
+                    "UPDATE telephony.organizations SET data=$2,updated_at=now() WHERE organization_id=$1",
+                    [id, { ...current, memberConversion: progress }],
+                  );
+                },
               );
               await client.query("BEGIN");
               await client.query(

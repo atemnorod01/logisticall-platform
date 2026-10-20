@@ -71,7 +71,7 @@ export function suggestMemberExtension(
       b[1].length - a[1].length || Math.min(...a[1]) - Math.min(...b[1]),
   )[0];
   const width = group?.[0] ?? 3,
-    start = group ? Math.min(...group[1]) : 201;
+    start = group ? Math.min(...group[1]) : 101;
   const occupied = new Set([...users.map((u) => u.user), ...reserved]);
   for (let n = start; n < 10 ** width; n++) {
     const extension = String(n).padStart(width, "0");
