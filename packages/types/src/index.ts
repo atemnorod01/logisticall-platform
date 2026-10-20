@@ -21,6 +21,7 @@ export const directoryContact = z.object({
   id: z.uuid(),
   name: z.string().min(1).max(254),
   email: z.email().max(254),
+  status: z.enum(["active", "pending"]).default("active"),
   presence: z
     .enum(["available", "away", "busy", "offline", "unknown"])
     .default("unknown"),

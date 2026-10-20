@@ -51,6 +51,7 @@ export function PlatformAddUser({
     [email, setEmail] = useState(""),
     [role, setRole] = useState("member");
   const [localOnly, setLocalOnly] = useState(false);
+  const requestId=useRef(crypto.randomUUID());
   const [busy, setBusy] = useState(false),
     [error, setError] = useState(""),
     [invitation, setInvitation] = useState(""),
@@ -78,7 +79,7 @@ export function PlatformAddUser({
     return response.json();
   }
   async function invite() {
-    const parsed = platformInvite.safeParse({ name, email, role });
+    const parsed = platformInvite.safeParse({ name, email, role, request_id:requestId.current });
     if (!parsed.success) {
       setError("Enter a name and valid email address.");
       return;
@@ -96,6 +97,7 @@ export function PlatformAddUser({
       setOpen(false);
       setRetry(value => value + 1);
       setLocalOnly(result.local_only ?? false);
+      if(result.link)setUrl(result.link.url);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -135,6 +137,7 @@ export function PlatformAddUser({
             setEmail("");
             setRole("member");
             setCopied(false);
+            requestId.current=crypto.randomUUID();
           }}
         >
           Invite people

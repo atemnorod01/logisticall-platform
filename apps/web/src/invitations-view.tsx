@@ -7,7 +7,6 @@ import { RemoveMembership } from "./remove-membership.js";
 import {
   invitationRows,
   invitationLink,
-  pbxExtension,
 } from "../../../packages/types/src/settings.js";
 export function InvitationManager({
   organizationId,
@@ -37,8 +36,6 @@ export function InvitationManager({
     [copied, setCopied] = useState(false);
   const [createdId, setCreatedId] = useState<string | null>(null),
     [linkOpen, setLinkOpen] = useState(false);
-  const [extension,setExtension]=useState(''),[suggestedExtension,setSuggestedExtension]=useState('');
-  const [extensionLoading,setExtensionLoading]=useState(false),[extensionError,setExtensionError]=useState('');
   const [requestId,setRequestId]=useState('');
   const live = useRef(true),
     lock = useRef(false),
@@ -126,19 +123,8 @@ export function InvitationManager({
       setError("");
       setCopied(false);
       setRequestId(crypto.randomUUID());
-      setExtension('');setSuggestedExtension('');setExtensionError('');
     }
   }, [creating]);
-  useEffect(()=>{
-    if(!creating||!telephonyEnabled){setExtensionLoading(false);return;}
-    let cancelled=false;setExtensionLoading(true);
-    void request('/extension').then(value=>{
-      const data=z.object({extension:z.string().nullable()}).parse(value);
-      if(!cancelled){setExtension(data.extension??'');setSuggestedExtension(data.extension??'');}
-    }).catch(()=>{if(!cancelled)setExtensionError('Could not load a suggestion. Enter an extension; availability is checked when you invite.');})
-      .finally(()=>{if(!cancelled)setExtensionLoading(false);});
-    return()=>{cancelled=true;};
-  },[creating,telephonyEnabled,organizationId]);
   const close = () => {
     if (lock.current) return;
     setLink(null);
@@ -277,7 +263,7 @@ export function InvitationManager({
                       await request("", "POST", {
                         name: name.trim(),
                         email: email.trim(),
-                        ...(telephonyEnabled?{extension,request_id:requestId}:{}),
+                        ...(telephonyEnabled?{request_id:requestId}:{}),
                       }),
                     );
                     id=created.id;
@@ -316,17 +302,6 @@ export function InvitationManager({
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </label>
-              {telephonyEnabled&&<label>
-                Extension
-                <input
-                  required aria-label="Extension" inputMode="numeric" pattern="[0-9]{2,6}" maxLength={6}
-                  value={extension} disabled={busy||!!createdId||extensionLoading}
-                  placeholder={extensionLoading?'Finding next available…':'Enter extension'}
-                  onChange={e=>setExtension(e.target.value.replace(/\D/g,''))}
-                  aria-describedby="invite-extension-help"
-                />
-                <small id="invite-extension-help">{extensionError|| (suggestedExtension?`Next available: ${suggestedExtension}. You can choose a different extension.`:'Choose a 2–6 digit extension.')}</small>
-              </label>}
               <p>
                 The email identifies who can accept. New members are not
                 automatically added to groups.
@@ -342,7 +317,7 @@ export function InvitationManager({
                 </button>
                 <button
                   className="button primary"
-                  disabled={busy || !name.trim() || !email.trim() || (telephonyEnabled&&(extensionLoading||!pbxExtension.safeParse(extension).success))}
+                  disabled={busy || !name.trim() || !email.trim()}
                 >
                   {busy
                     ? "Creating…"
