@@ -2,7 +2,7 @@ import {InfiniteScroll,useInfiniteItems} from './infinite-scroll.js';
 import {formatMemberPhone} from './member-phone.js';
 import {PlatformMemberModal} from './platform-member-modal.js';
 import { useState, useEffect, useRef, useMemo } from "react";
-import type { z } from "zod";
+import { z } from "zod";
 import { Avatar } from "./ui.js";
 import {
   platformRecord,
@@ -12,6 +12,7 @@ import {
 } from "../../../packages/types/src/platform-admin.js";
 import {
   invitationLink,
+  invitationRows,
 } from "../../../packages/types/src/settings.js";
 
 export function PlatformAddUser({
@@ -29,12 +30,14 @@ export function PlatformAddUser({
 }) {
   const [editingMember,setEditingMember]=useState<{id:string;anchor:HTMLElement}|null>(null);
   const [members, setMembers] = useState<z.infer<typeof platformMember>[] | null>(null);
+  const [invitations,setInvitations]=useState<z.infer<typeof invitationRows>>([]);
   const [membersError, setMembersError] = useState("");
   const [retry, setRetry] = useState(0);
   const loadedOrganization=useRef(organizationId);
   useEffect(() => {
     const abort = new AbortController();
     if(loadedOrganization.current!==organizationId){setMembers(null);loadedOrganization.current=organizationId;}
+    setInvitations([]);
     setMembersError("");
     fetch(`/v1/platform/records/organizations/${organizationId}`, {signal: abort.signal})
       .then(async response => {
@@ -44,6 +47,13 @@ export function PlatformAddUser({
         if (!abort.signal.aborted) setMembers(record.member_list);
       })
       .catch(error => { if (!abort.signal.aborted) setMembersError(error.message); });
+    fetch(`/v1/platform/organizations/${organizationId}/invitations`, {signal:abort.signal})
+      .then(async response=>{
+        if(!response.ok)throw Error("Could not load invitations.");
+        const result=z.object({invitations:invitationRows}).parse(await response.json());
+        if(!abort.signal.aborted)setInvitations(result.invitations);
+      })
+      .catch(error=>{if(!abort.signal.aborted)setMembersError(error.message);});
     return () => abort.abort();
   }, [organizationId, retry]);
   const [open, setOpen] = useState(false),
@@ -118,6 +128,20 @@ export function PlatformAddUser({
       setBusy(false);
     }
   }
+  async function showExistingInvitation(id:string,memberEmail:string){
+    setInvitation(id);
+    setEmail(memberEmail);
+    setOpen(false);
+    setUrl("");
+    setCopied(false);
+    setBusy(true);
+    setError("");
+    try{
+      const result=invitationLink.parse(await request(`invitations/${id}/link`,{}));
+      setUrl(result.url);
+    }catch(e){setError((e as Error).message);}
+    finally{setBusy(false);}
+  }
   return (
     <section className="lc-platform-profile-section lc-platform-add-user">
       <header>
@@ -148,7 +172,7 @@ export function PlatformAddUser({
           {invitation ? (
             <>
               <p role="status">
-                Invitation created for {email}. They’re a pending member of {organizationName}.
+                Invitation for {email}. They’re a pending member of {organizationName}.
               </p>
               {localOnly ? (
                 <small>
@@ -265,8 +289,9 @@ export function PlatformAddUser({
         <p role="alert">{membersError} <button type="button" className="button" onClick={() => setRetry(value => value + 1)}>Retry</button></p>
       ) : members === null ? <p role="status">Loading members…</p> : members.length === 0 ? <p>No members yet.</p> : (
         <><ul className="lc-platform-members" aria-label="Organization members">
-          {memberList.items.map(member => (
-            <li key={member.id}>
+          {memberList.items.map(member => {
+            const existingInvitation=invitations.find(row=>row.user_id===member.id||row.email.toLowerCase()===member.email.toLowerCase());
+            return <li key={member.id}>
               <Avatar name={member.name || member.email} />
               <div className="lc-platform-member-identity">
                 <button type="button" className="lc-platform-member-name" onClick={event=>setEditingMember({id:member.id,anchor:event.currentTarget})}>{member.name || member.email}</button>
@@ -281,9 +306,10 @@ export function PlatformAddUser({
               <div className="lc-platform-member-role">
                 <span>{member.role === "owner" ? "Owner" : member.role === "admin" ? "Organization admin" : "Member"}</span>
                 <small>{member.status==='pending'?'Pending':member.status}</small>
+                {member.status==='pending'&&existingInvitation&&<button type="button" className="button" disabled={busy} onClick={()=>void showExistingInvitation(existingInvitation.id,member.email)}>Get invitation link</button>}
               </div>
             </li>
-          ))}
+          })}
         </ul><InfiniteScroll label="Members" hasMore={memberList.hasMore} onMore={memberList.loadMore} progress={memberList.items.length} resetKey={organizationId}/></>
       )}
       {!active && (
