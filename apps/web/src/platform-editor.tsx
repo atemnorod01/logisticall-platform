@@ -9,6 +9,7 @@ import {
   platformEdit,
   type PlatformRow,
 } from "../../../packages/types/src/platform-admin.js";
+import { passwordResetLink } from "../../../packages/types/src/settings.js";
 import { Avatar } from "./ui.js";
 
 type Field = { key: string; label: string; max?: number; options?: string[][] };
@@ -102,6 +103,8 @@ export function PlatformEditor({
   const [editing, setEditing] = useState<string | null>(null),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
+  const [resetLink,setResetLink]=useState<{url:string;expires_at:string}|null>(null);
+  const [resetCopied,setResetCopied]=useState(false);
   const readOnly = kind === "directory",
     sections = kind === "users" ? userSections : companySections;
   const userPresence = usePlatformUserPresence(kind === 'users' ? [id] : []);
@@ -146,6 +149,17 @@ export function PlatformEditor({
       });
     return () => abort.abort();
   }, [kind, id, profileRevision]);
+  useEffect(()=>{setResetLink(null);setResetCopied(false);},[kind,id]);
+  async function generateResetLink(){
+    setBusy(true);setError("");setResetLink(null);setResetCopied(false);
+    try{
+      const response=await fetch(`/v1/platform/users/${encodeURIComponent(id)}/password-reset-link`,{
+        method:"POST",headers:{"content-type":"application/json","x-csrf-token":csrf},body:"{}",
+      });
+      if(!response.ok)throw Object.assign(Error(response.status===409?"Please wait before generating another reset link.":response.status===403?"Platform administrator access is required.":"The reset link could not be generated. Please try again."),{status:response.status});
+      setResetLink(passwordResetLink.parse(await response.json()));
+    }catch(e){setError((e as Error).message);}finally{setBusy(false);}
+  }
   async function save(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!record || readOnly || !dirty) return;
@@ -371,6 +385,18 @@ export function PlatformEditor({
               )}
             </section>
           ))}
+        {record && kind === "users" && <section className="lc-platform-profile-section lc-platform-password-reset">
+          <header><h3>Password reset</h3></header>
+          <p>Generate a one-time link to share privately with this user. No email will be sent.</p>
+          <button type="button" className="button" disabled={busy} onClick={()=>void generateResetLink()}>
+            {busy?"Generating…":"Generate reset link"}
+          </button>
+          {resetLink&&<div className="lc-platform-reset-result">
+            <label>Password reset link<input readOnly value={resetLink.url} onFocus={event=>event.target.select()}/></label>
+            <p>Expires {new Date(resetLink.expires_at).toLocaleString()}.</p>
+            <button type="button" className="button primary" onClick={()=>void navigator.clipboard.writeText(resetLink.url).then(()=>setResetCopied(true)).catch(()=>setError("Select the link and copy it manually."))}>{resetCopied?"Copied":"Copy link"}</button>
+          </div>}
+        </section>}
         </div>
         {readOnly && record && (
           <p className="lc-platform-source-note">

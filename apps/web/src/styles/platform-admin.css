@@ -300,6 +300,13 @@ body[data-tenant-theme="light"]
 #app.tenant-ui.conversation-workspace .lc-platform-source-note {font-size:12px;color:var(--muted);}
 #app.tenant-ui.conversation-workspace .lc-platform-profile-section dl > div {display:grid;grid-template-columns:minmax(90px, .8fr) minmax(0,1.2fr);gap:12px;align-items:baseline;}
 #app.tenant-ui.conversation-workspace .lc-platform-profile-section dt {margin:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-password-reset {display:grid;justify-items:start;gap:10px;}
+#app.tenant-ui.conversation-workspace .lc-platform-password-reset > header {width:100%;margin-bottom:0;}
+#app.tenant-ui.conversation-workspace .lc-platform-password-reset > p {margin:0;color:var(--muted);font-size:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-reset-result {display:grid;width:100%;gap:8px;padding-top:2px;}
+#app.tenant-ui.conversation-workspace .lc-platform-reset-result label {display:grid;gap:6px;font-size:12px;}
+#app.tenant-ui.conversation-workspace .lc-platform-reset-result input {width:100%;}
+#app.tenant-ui.conversation-workspace .lc-platform-reset-result p {margin:0;color:var(--muted);font-size:12px;}
 
 /* Directory search and company identity start directly below the page heading. */
 #app.tenant-ui.conversation-workspace .lc-platform-editor {position:relative;}

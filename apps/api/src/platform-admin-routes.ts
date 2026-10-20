@@ -26,6 +26,7 @@ import {
 import {
   invitationLink,
   invitationRows,
+  passwordResetLink,
 } from "../../../packages/types/src/settings.js";
 export function platformAdminRoutes(
   app: FastifyInstance,
@@ -179,6 +180,20 @@ export function platformAdminRoutes(
     if (p.kind === "users") await options.profileChanged?.(p.id, record.name ?? (body.kind === "user" ? body.name : ""));
     if (p.kind === "organizations") await options.organizationChanged?.(record.organization_id ?? p.id, record.name);
     return record;
+  });
+  app.post("/v1/platform/users/:id/password-reset-link", async (req, reply) => {
+    const token = await options.authorize(req),
+      id = z.uuid().parse((req.params as { id: string }).id);
+    z.object({}).strict().parse(req.body);
+    reply.header("Cache-Control", "no-store");
+    return passwordResetLink.parse(
+      await options.request(
+        token,
+        `/platform/users/${id}/password-reset-link`,
+        "POST",
+        {},
+      ),
+    );
   });
   app.post("/v1/platform/companies", async (req) => {
     const token = await options.authorize(req),
